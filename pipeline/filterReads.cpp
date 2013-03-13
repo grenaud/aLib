@@ -321,7 +321,7 @@ int main (int argc, char *argv[]) {
     for(int i=0;i<(argc);i++){
 	pCommandLine += (string(argv[i])+" ");
     }
-    putProgramInHeader(&myHeader,pID,pName,pCommandLine);
+    putProgramInHeader(&myHeader,pID,pName,pCommandLine,returnGitHubVersion(string(argv[0]),".."));
 
 
     if(produceUnCompressedBAM)  

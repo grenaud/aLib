@@ -11,13 +11,16 @@
 #include "MergeTrimReads.h"
 #include "PutProgramInHeader.h"
 
+
+#include "utils.h"
+
 ////////////////////////////////
 // TO DO
 //
 ////////////////////////////////
 
 using namespace std;
-using namespace BamTools;
+//using namespace BamTools;
 // using namespace __MergeTrimReads__;
 
 
@@ -26,20 +29,12 @@ string options_adapter_S_BAM="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCC
 string options_adapter_chimera_BAM="ACACTCTTTCCCTACACGTCTGAACTCCAG,ACACTCTTTCCCACACGTCTGAACTCCAGT,ACACTCTTTCCCTACACACGTCTGAACTCC,CTCTTTCCCTACACGTCTGAACTCCAGTCA,GAAGAGCACACGTCTGAACTCCAGTCACII,GAGCACACGTCTGAACTCCAGTCACIIIII,GATCGGAAGAGCACACGTCTGAACTCCAGT,AGATCGGAAGAGCACACGTCTGAACTCCAG,AGAGCACACGTCTGAACTCCAGTCACIIII,ACACGTCTGAACTCCAGTCACIIIIIIIAT,GTGCACACGTCTGAACTCCAGTCACIIIII,AGCACACGTCTGAACTCCAGTCACIIIIII,CGTATGCCGTCTTCTGCTTGAAAAAAAAAA";
 int maxadapterComp_BAM = 30;
 
+//FLAGs for merged reads
 const string MERGEDBAMFLAG = "FF";
 const int32_t TRIMMEDFLAG       = 1;
 const int32_t MERGEDFLAG        = 2;
 const int32_t TRIMMEDMERGEDFLAG = 3;
 
-string boolStringify(const bool b){
-    return b ? "true" : "false";
-}
-
-string intStringify(int i) {
-    stringstream s;
-    s << i;
-    return s.str();
-}
 
 inline string sortUniqueChar(string v){
     // vector<char> v( input.begin(), input.end() );
@@ -57,17 +52,16 @@ inline string sortUniqueChar(string v){
     return toReturn;
 }
 
-bool isaDirectory(const string& directory){
-    struct stat sb;
-    return !stat(directory.c_str(), &sb) && S_ISDIR(sb.st_mode); 
-}
 
 
 int main (int argc, char *argv[]) {
 
+
     bool produceUnCompressedBAM=false;
     bool verbose=false;
     bool mergeoverlap=false;
+    bool keepOrig=false;
+
     string adapter_F=options_adapter_F_BAM;
     string adapter_S=options_adapter_S_BAM;
     string adapter_chimera=options_adapter_chimera_BAM;
@@ -104,13 +98,15 @@ int main (int argc, char *argv[]) {
 			      
 			      "\n\t"+"Paired End merging/Single Read trimming  options"+"\n"+
 			      "\t\t"+"--mergeoverlap"+"\t\t\t\t"+"Merge PE reads of molecules longer than read length that show a minimum overlap (default "+boolStringify(mergeoverlap)+")"+"\n"+
-			      "\t\t\t\t\t\tGood for merging ancient DNA reads into a single sequence\n\n"
+			      "\t\t\t\t\t\t\tGood for merging ancient DNA reads into a single sequence\n\n"
+			      "\t\t"+"--keepOrig"+"\t\t\t\t"+"Write original reads if they are trimmed or merged  (default "+boolStringify(keepOrig)+")"+"\n"+
+			      "\t\t\t\t\t\t\tSuch reads will be marked as PCR duplicates\n\n"
 			      "\t\t"+"-f , --adapterFirstRead" +"\t\t\t"+"Adapter that is observed after the forward read (def. Multiplex: "+options_adapter_F_BAM .substr(0,maxadapterComp_BAM)+")"+"\n"+
 			      "\t\t"+"-s , --adapterSecondRead" +"\t\t"+"Adapter that is observed after the reverse read (def. Multiplex: "+options_adapter_S_BAM.substr(0,maxadapterComp_BAM)+")"+"\n"+
 			      "\t\t"+"-c , --FirstReadChimeraFilter" +"\t\t"+"If the forward read looks like this sequence, the cluster is filtered out.\n\t\t\t\t\t\t\tProvide several sequences separated by comma.(def. Multiplex: "+options_adapter_chimera_BAM.substr(0,maxadapterComp_BAM)+")"+"\n"+
 			      "\t\t"+"-k , --key"+"\t\t\t\t"+"Key sequence with which each sequence starts. Comma separate for forward and reverse reads. (default '"+key+"')"+"\n"+
 			      "\t\t"+"-i , --allowMissing"+"\t\t\t"+"Allow one base in one key to be missing or wrong. (default "+boolStringify(allowMissing)+")"+"\n"+
-			      "\t\t"+"-t , --trimCutoff"+"\t\t\t"+"Lowest number of adapter bases to be observed for single Read trimming (default "+intStringify(trimCutoff)+")");
+			      "\t\t"+"-t , --trimCutoff"+"\t\t\t"+"Lowest number of adapter bases to be observed for single Read trimming (default "+stringify(trimCutoff)+")");
 
     if( (argc== 1) ||
     	(argc== 2 && string(argv[1]) == "-h") ||
@@ -154,6 +150,11 @@ int main (int argc, char *argv[]) {
 
 	if(strcmp(argv[i],"--mergeoverlap") == 0 ){
 	    mergeoverlap=true;
+	    continue;
+	}
+
+	if(strcmp(argv[i],"--keepOrig") == 0 ){
+	    keepOrig=true;
 	    continue;
 	}
 
@@ -227,13 +228,15 @@ int main (int argc, char *argv[]) {
     }
     SamHeader header = reader.GetHeader();
 
+    
+
     string pID          = "mergeTrimReadsBAM";   
     string pName        = "mergeTrimReadsBAM";   
     string pCommandLine = "";
     for(int i=0;i<(argc);i++){
 	pCommandLine += (string(argv[i])+" ");
     }
-    putProgramInHeader(&header,pID,pName,pCommandLine);
+    putProgramInHeader(&header,pID,pName,pCommandLine,returnGitHubVersion(string(argv[0]),".."));
 
     const RefVector references = reader.GetReferenceData();
     //we will not call bgzip with full compression, good for piping into another program to 
@@ -324,6 +327,7 @@ int main (int argc, char *argv[]) {
 		merged result=process_PE(read1,qual1,
 					 read2,qual2);
 
+		
 		if(result.code != ' '){ 
 		    string prevZQ1="";
 		    string prevZQ2="";
@@ -370,9 +374,13 @@ int main (int argc, char *argv[]) {
 		    }else{
 			if( result.code  == 'D'){
 			    count_chimera++;
+			}else{
+			    cerr << "mergeTrimReadsBAM: Wrong return code =\""<<result.code<<"\""<<endl;
+			    return 1;
 			}
 		    }
 		}
+
 
 		if(result.sequence != ""){ //new sequence
 		  BamAlignment toWrite (al);//build from the previous one
@@ -382,6 +390,8 @@ int main (int argc, char *argv[]) {
 		  //     cerr << "Failed to remove tag for new "<< toWrite.Name<< endl;
 		  //     return 1;
 		  // }
+
+		  //not failed
 		  if( result.code == ' '){
 		      if( result.sequence.length() > max(read1.length(),read2.length())){
 			  count_merged_overlap ++;			  
@@ -389,12 +399,25 @@ int main (int argc, char *argv[]) {
 			      cerr << "Unable to add tag" << endl;
 			      return 1;
 			  }
+
+			  if(!al2.AddTag(MERGEDBAMFLAG,"i",MERGEDFLAG)){
+			      cerr << "Unable to add tag" << endl;
+			      return 1;
+			  }
+
+
 		      }else{
 			  count_merged++;
+		
 			  if(!al.AddTag(MERGEDBAMFLAG,"i",TRIMMEDMERGEDFLAG)){
 			      cerr << "Unable to add tag" << endl;
 			      return 1;
 			  }
+			  if(!al2.AddTag(MERGEDBAMFLAG,"i",TRIMMEDMERGEDFLAG)){
+			      cerr << "Unable to add tag" << endl;
+			      return 1;
+			  }
+
 		      }
 		  }
 		  
@@ -408,7 +431,7 @@ int main (int argc, char *argv[]) {
 
 		  toWrite.Position    =-1;
 		  toWrite.MatePosition=-1;
-		  toWrite.SetIsFailedQC( al.IsFailedQC() && al2.IsFailedQC() );
+		  toWrite.SetIsFailedQC( al.IsFailedQC() && al2.IsFailedQC() ); //fail the new one if both fail 
 		  toWrite.TagData=al.TagData; //copy tag info
 		  //toWrite.RemoveTag("ZQ");
 		  if(toWrite.HasTag("ZQ") ){ 
@@ -475,7 +498,14 @@ int main (int argc, char *argv[]) {
 			  cerr << "Error while editing tags new tag20:"<<towriteZQ <<"#"<< endl;
 			  return 1;
 		      }
-		  }		    
+		  }	
+		  //we keep the original reads
+		  if(keepOrig){
+		      al.SetIsDuplicate(true);
+		      al2.SetIsDuplicate(true);
+		      writer.SaveAlignment(al2);
+		      writer.SaveAlignment(al);
+		  }
 		  writer.SaveAlignment(toWrite);
 		    
 		}else{
@@ -531,7 +561,11 @@ int main (int argc, char *argv[]) {
 		    }else{
 			if( result.code  == 'D'){
 			    count_chimera++;
+			}else{
+			    cerr << "mergeTrimReadsBAM: Wrong return code =\""<<result.code<<"\""<<endl;
+			    return 1;
 			}
+
 		    }
 		}
 
@@ -557,6 +591,11 @@ int main (int argc, char *argv[]) {
 		    toWrite.MatePosition=-1;		    
 		    if( result.code == ' ')
 			count_trimmed++;
+
+		    if(keepOrig){
+		      al.SetIsDuplicate(true);
+		      writer.SaveAlignment(al);
+		    }
 		    writer.SaveAlignment(toWrite);
 
 		}else{
