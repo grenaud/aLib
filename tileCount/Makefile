@@ -1,4 +1,4 @@
-BAMTOOLS= /mnt/solexa/bin/bamtools-1.0.2
+BAMTOOLS= /mnt/solexa/bin/bamtools-2.2.2
 
 
 
