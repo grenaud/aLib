@@ -1,0 +1,4 @@
+[submodule "biohazard"]
+	path = biohazard
+	url = git@github.com:udo-stenzel/biohazard.git
+	branch = v0.4.7
