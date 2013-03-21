@@ -21,9 +21,18 @@
 using namespace std;
 using namespace BamTools;
 
+typedef struct Report {
+    unsigned int totalSeq;
+    unsigned int qcBefore;
+    unsigned int qcFailExp;
+    unsigned int qcFailEnt;
+    unsigned int qcFailClx;
+    unsigned int qcLength;
+} Report;
+
 void initializeLikelihoodScores();
-void setVariables(int _minLength,int _maxLength,double _cutoffLikelihood,bool _frequency,bool _entropy,bool _compOrEntCutoff, 
-		  bool _likelihoodFlag,ofstream * _likelihoodOS,bool _entropyOSFlag,ofstream  * _entropyOS,bool _frequencyOSFlag,ofstream  * _frequencyOS,bool verbose);
+void setVariables(int _minLength,int _maxLength,double _cutoffLikelihood,double _cutoffAvgExpError,bool _frequency,bool _entropy,bool _compOrEntCutoff, 
+		  bool _likelihoodFlag,ofstream * _likelihoodOS,bool _entropyOSFlag,ofstream  * _entropyOS,bool _frequencyOSFlag,ofstream  * _frequencyOS,bool verbose,bool _resetQC,Report * repToPrint);
 void filterBAMAlign(BamAlignment * al);
 double compLikelihoodSeq(BamAlignment * al);
 

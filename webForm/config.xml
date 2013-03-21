@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<aLibInfo>
+  <illuminareaddir>/mnt/solexa/</illuminareaddir>
+  <illuminawritedir>/mnt/ngs_data/</illuminawritedir>
+  <illuminajson>/mnt/solexa/tmp/</illuminajson>
+  <sequencers>
+    <sequencer id="M00518" type="miseq"/>
+    <sequencer id="SN7001204"  type="hiseq"/>
+  </sequencers>
+  <runstodisplay>30</runstodisplay>
+  <emailAddrToSend>gabriel_renaud@eva.mpg.de</emailAddrToSend>
+  <genomedirectory>/mnt/solexa/Genomes/</genomedirectory>
+  <outputdirectory>/mnt/solexa/tmp/</outputdirectory>
+</aLibInfo>

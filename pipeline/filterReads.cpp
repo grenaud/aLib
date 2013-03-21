@@ -23,6 +23,8 @@
 using namespace std;
 using namespace BamTools;
 
+ 
+
 
 int main (int argc, char *argv[]) {
 
@@ -34,7 +36,7 @@ int main (int argc, char *argv[]) {
     bool frequency    = false;
     double compOrEntCutoff = 0.85;
     double cutoffLikelihood = 0.5;
-    double cutoffAvgExpError = 0.001;
+    double cutoffAvgExpError = 0.01;
   
     ofstream likelihoodOS;
     bool     likelihoodFlag  = false;
@@ -50,6 +52,18 @@ int main (int argc, char *argv[]) {
 
     bool trimSeqs=false;
     bool produceUnCompressedBAM=false; 
+    bool resetQC=false; 
+
+    //report
+    string reportFile="/dev/stderr";
+    Report toprint;
+    toprint.totalSeq  = 0;
+    toprint.qcLength  = 0;
+
+    toprint.qcFailClx = 0;
+    toprint.qcFailEnt = 0;
+    toprint.qcFailExp = 0;
+    toprint.qcBefore  = 0;
 
     const string usage=string("\t"+string(argv[0])+
 			      " [options] BAMfile"+"\n\n"+
@@ -59,22 +73,25 @@ int main (int argc, char *argv[]) {
 			      // "\t\t"+"--mm"+"\t\t[mismatches]"+"\t\t"+""+"Maximum # of tolerated mismatches (default:"+stringify(mismatchesTrie)+") \n"+
 
 
+			      "\n\tInput options:"+"\n"+
+			      "\t\t"+""+""+"-r"  +"\t\t"+"\t\t\t"+"Reset QC flags"+"\n"+
     
 			      "\n\tOutput options:"+"\n"+
 			      "\t\t"+""+""+"-u"  +"\t\t"+"\t\t\t"+"Produce uncompressed bam (good for pipe)"+"\n"+
 			      "\t\t"+""+""+"--like"  +"\t\t[file]"+"\t\t\t"+"Write the sequence likelihoods as a binary file"+"\n"+
 			      "\t\t"+""+""+"--ent"  +"\t\t[file]"+"\t\t\t"+"Write the sequence entropy as a binary file"+"\n"+
 			      "\t\t"+""+""+"--freq"  +"\t\t[file]"+"\t\t\t"+"Write the sequence frequency complexity as a binary file"+"\n"+
-			      "\t\t"+"-v"+""+"--verbose"  +"\t"+"\t\t\t"+"Print info on the stderr (Default: "+booleanAsString(verbose)+")\n"+
-			      
+			      "\t\t"+"-v"+" "+"--verbose"  +"\t"+"\t\t\t"+"Print info on the stderr (Default: "+booleanAsString(verbose)+")\n"+
+			      "\t\t"+""+" "+"--log"  +"\t"+"\t[log file]"+"Print a report to this file (Default: stderr)\n"+
+
 			      "\n\t"+"\tMandatory:"+"\n"+
 			      "\t\t"+"-o"+" "+"--outfile"+"\t[outfile]"+"\t\t"+"Specify output file"+"\n"+
 
 			      "\n\tFiltering options:"+"\n"+
 			      "\t\t"+"-c" +" "+"--cutoff"+"\t[cutoff]""\t\t"+"Sequence likelihood cutoff (Default: "+stringify(cutoffLikelihood)+")"+"\n"+
-			      "\t\t"+"  " +" "+"--cutexp"+"\t[cutoff]""\t\t"+"Average of expectancy of base error cutoff (Default: "+stringify(cutoffAvgExpError)+")"+"\n"+
+			      "\t\t"+"" +""+"--cutexp"+"\t[cutoff]""\t\t"+"Average of expectancy of base error cutoff (Default: "+stringify(cutoffAvgExpError)+")"+"\n"+
 
-			      "\t\t"+"" +" "+"--trim"+"\t\t\t\t\t"+"Try to trim from the 3' end (TO IMPLEMENT) (Default: "+stringify(trimSeqs)+")"+"\n"+
+			      "\t\t"+"" +""+"--trim"+"\t\t\t\t\t"+"Try to trim from the 3' end (TO IMPLEMENT) (Default: "+booleanAsString(trimSeqs)+")"+"\n"+
 
 
 			      "\t\t"+"" +""+"--min_length"+"\t[cutoff]"+"\t\t"+"Flag any sequence with strickly less than this min length as failed (Default: "+stringify(minLength)+""+"\n"+
@@ -124,8 +141,17 @@ int main (int argc, char *argv[]) {
 	    produceUnCompressedBAM=true; 
 	    continue; 
 	} 
-	
 
+	if(strcmp(argv[i],"-r") == 0  ){ 
+	    resetQC=true; 
+	    continue; 
+	} 
+
+	if(strcmp(argv[i],"--trim") == 0  ){ 
+	    cerr<<"to implement"<<endl;
+	    return 1;
+	} 
+	
 	if(strcmp(argv[i],"--ent") == 0 ){
 	    string temp =string(argv[i+1]);
 	    entropyOS.open(temp.c_str(), ios::out | ios::binary);
@@ -150,6 +176,11 @@ int main (int argc, char *argv[]) {
 	    continue;
 	}
 
+	if(strcmp(argv[i],"--log") == 0 ){
+	    reportFile =string(argv[i+1]);
+	    i++;
+	    continue;
+	}
 
 	if(  (strcmp(argv[i],"--percent") == 0)   ){
 	    bottomPercent =destringify<double>(argv[i+1]);
@@ -218,12 +249,12 @@ int main (int argc, char *argv[]) {
 	cerr<<"Cannot defined a likelihood cutoff and a percentage"<<endl;
 	return 1;             
     }
-
-
-    // if(definedExpCutoff && (usePercent || definedCutoff) ){
-    // 	cerr<<"Cannot defined a "<<endl;
-    // 	return 1;             
-    // }
+    
+    
+    if(definedExpCutoff && (usePercent || definedCutoff) ){
+	cerr<<"Cannot defined a expectancy cutoffs and a likelihood cutoff or percentage one"<<endl;
+	return 1;             
+    }
 
     if(usePercent &&
        (bottomPercent<0 || bottomPercent>1 ) ){
@@ -289,8 +320,8 @@ int main (int argc, char *argv[]) {
 	//return 1;
     }
 
-    setVariables(minLength,maxLength,cutoffLikelihood,frequency,entropy,compOrEntCutoff,
-		 likelihoodFlag,&likelihoodOS, entropyOSFlag, &entropyOS, frequencyOSFlag, &frequencyOS,verbose);
+    setVariables(minLength,maxLength,cutoffLikelihood,cutoffAvgExpError,frequency,entropy,compOrEntCutoff,
+		 likelihoodFlag,&likelihoodOS, entropyOSFlag, &entropyOS, frequencyOSFlag, &frequencyOS,verbose,resetQC,&toprint);
 
     // cout<<"h"<<endl;
     // cout<<"outfile "<<outfile<<endl;
@@ -347,6 +378,28 @@ int main (int argc, char *argv[]) {
     if(likelihoodFlag)
 	likelihoodOS.close();
 
+   // ifstream reportFile;
+   // myFile.open(filename.c_str(), ios::in);
+    ofstream fileLog;
+    fileLog.open(reportFile.c_str());
+
+    if (fileLog.is_open()){
+	fileLog <<"Total reads                                               : "<<toprint.totalSeq<<endl;
+	fileLog <<"Reads that were previously flagged as QC failed           : "<<toprint.qcBefore<<endl;
+	fileLog <<"Reads that are QC failed due to length                    : "<<toprint.qcLength<<endl;
+	fileLog <<"Reads that are QC failed due to complexity                : "<<toprint.qcFailClx<<endl;
+	fileLog <<"Reads that are QC failed due to entropy                   : "<<toprint.qcFailEnt<<endl;
+	fileLog <<"Reads that are QC failed due to expectation of mismatches : "<<toprint.qcFailExp<<endl;
+    }else{
+	cerr << "Unable to print to file "<<reportFile<<endl;
+    }
+    fileLog.close();
+
+ // toprint.totalSeq  = 0;
+ //    toprint.qcFailClx = 0;
+ //    toprint.qcFailEnt = 0;
+ //    toprint.qcFailExp = 0;
+ //    toprint.qcBefore  = 0;
 
     return 0;
 }
