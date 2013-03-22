@@ -1,14 +1,17 @@
-CPPFLAGS :=  -I/mnt/solexa/bin/bamtools-1.0.2/include/ -I/home/gabriel_renaud/lib/
-LDFLAGS := -lm -I/mnt/solexa/bin/bamtools-1.0.2/include/ -L/mnt/solexa/bin/bamtools-1.0.2/lib/ -lbamtools 
+BAMTOOLS= /mnt/solexa/bin/bamtools-2.2.2
+LIBGAB   = /home/gabriel_renaud/lib/
+
+CXXFLAGS+= -O3 -Wall -I${BAMTOOLS}/include/ -I${LIBGAB}
+LDLIBS+= ${BAMTOOLS}/lib/libbamtools.a ${LIBGAB}utils.o -lm -lz
 
 all:	qualScoresObsVsPred
 
-
-qualScoresObsVsPred.o:	qualScoresObsVsPred.cpp
-	g++ $(CPPFLAGS) -c  qualScoresObsVsPred.cpp 
+%.o: %.cpp
+	${CXX} -c ${CXXFLAGS} $^ 
 
 qualScoresObsVsPred:	qualScoresObsVsPred.o
-	g++ $(LDFLAGS) -o qualScoresObsVsPred qualScoresObsVsPred.o /home/gabriel_renaud/lib/utils.o
+	g++ $(LDFLAGS) -o $@ $^ $(LDLIBS)
+
 
 clean:
 	rm -f qualScoresObsVsPred qualScoresObsVsPred.o

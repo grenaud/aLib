@@ -19,10 +19,11 @@ typedef struct{
     int offset;
 } mdField;
 
-typedef struct{
+
+typedef struct countMatMis{
     int match;
     int mismatch;
-} count;
+} countMatMis;
 
 int asciiOffsetZero=48;
 int maxQualScore=0;
@@ -48,7 +49,7 @@ inline vector<mdField> mdString2Vector(const string & mdFieldToParse){
     toadd.offset=0;
     toadd.bp='N';
 
-    while(mdFieldToParse.length() != i){
+    while(int(mdFieldToParse.length()) != i){
 	if(isdigit(mdFieldToParse[i])){
 	    toadd.offset=toadd.offset*10+(int(mdFieldToParse[i])-asciiOffsetZero);
 	}else{
@@ -107,16 +108,16 @@ int main (int argc, char *argv[]) {
     string bamfiletopen = string(argv[1]);
     set<int> maskedPos;    
 
-    vector<string> fileMask=allTokens(string(argv[2]),",");
+    vector<string> fileMask=allTokens(string(argv[2]),',');
 
-    for(int i=0;i<fileMask.size();i++){
+    for(unsigned int i=0;i<fileMask.size();i++){
 	ifstream myFile; 
 	string line;
 	myFile.open(fileMask[i].c_str(), ios::in);
 
 	if (myFile.is_open()){
 	    while ( getline (myFile,line)){
-		vector<string> lineTok=allTokens(line,"\t");
+		vector<string> lineTok=allTokens(line,'\t');
 		maskedPos.insert(atoi(lineTok[1].c_str()));
 	    }
 	    myFile.close();
@@ -126,9 +127,10 @@ int main (int argc, char *argv[]) {
 	}
     }
 
-    vector<string> cycles=allTokens(string(argv[3]),",");
-    vector< vector<count> > perCycleCountr1;
-    vector< vector<count> > perCycleCountr1NM2;
+    vector<string> cycles=allTokens(string(argv[3]),',');
+    vector<countMatMis>  perCycleCountr122;
+    vector< vector<countMatMis> > perCycleCountr1;
+    vector< vector<countMatMis> > perCycleCountr1NM2;
     // vector< vector<count> > perCycleCountr2;
     // vector< vector<count> > perCycleCountr2NM2;
 
@@ -147,16 +149,16 @@ int main (int argc, char *argv[]) {
     int cyclesFirst=0;
     int cyclesSecond=0;
 
-    for(int j=0;j<cycles.size();j++){
+    for(unsigned int j=0;j<cycles.size();j++){
 
 	int numberOfCycles=atoi(cycles[j].c_str());
 	    
 	for(int k=0;k<numberOfCycles;k++){
-	    vector<count> v1;
-	    vector<count> v2;
+	    vector<countMatMis> v1;
+	    vector<countMatMis> v2;
 
 	    for(int i=0;i<64;i++){
-		count toadd;
+		countMatMis toadd;
 		toadd.match=0;
 		toadd.mismatch=0;
 		v1.push_back(toadd);
@@ -182,15 +184,15 @@ int main (int argc, char *argv[]) {
     	return 1;
     }
 
-    vector<count> allCount;
-    vector<count> editDist2Count;
-    vector<count> countA;
-    vector<count> countC;
-    vector<count> countG;
-    vector<count> countT;
+    vector<countMatMis> allCount;
+    vector<countMatMis> editDist2Count;
+    vector<countMatMis> countA;
+    vector<countMatMis> countC;
+    vector<countMatMis> countG;
+    vector<countMatMis> countT;
 
     for(int i=0;i<64;i++){
-	count toadd;
+	countMatMis toadd;
 	toadd.match=0;
 	toadd.mismatch=0;
 
@@ -231,7 +233,7 @@ int main (int argc, char *argv[]) {
 	}
 	
 	cigarData=al.CigarData;
-	for(int i=0;i<cigarData.size();i++){
+	for(unsigned int i=0;i<cigarData.size();i++){
 	    reconstructedTemp+=string(cigarData[i].Length,cigarData[i].Type);
 	}
 
@@ -248,9 +250,9 @@ int main (int argc, char *argv[]) {
 	int initialPositionControl=al.Position;
 
 	//combine the CIGAR and MD into one single string
-	int mdVectorIndex=0;
+	unsigned int mdVectorIndex=0;
 
-	for(int i=0;i<reconstructedTemp.size();i++){
+	for(unsigned int i=0;i<reconstructedTemp.size();i++){
 	    if(reconstructedTemp[i] == 'M' ){ //only look at matches and indels	    
 		
 		if(mdVectorIndex<parsedMD.size()){ //still have mismatches
@@ -305,7 +307,7 @@ int main (int argc, char *argv[]) {
 	// int cyclesFirst;
 	// int cyclesSecond;
 
-	for(int i=0;i<reconstructed.size();i++){
+	for(unsigned int i=0;i<reconstructed.size();i++){
 	    //skip masked positions 
 	    if(maskedPos.find(positionsOnControl[i]) != maskedPos.end())
 		continue;
