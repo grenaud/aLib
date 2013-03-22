@@ -507,8 +507,7 @@ rgAssignment assignReadGroup(
     exit(1);
 #endif
 
-    //DETECT WRONGS
-
+    // DETECT WRONGS
     // Look for a wrong index.  Suppose the top indices do not match up,
     // then those give the likelihood for being wrong, which we compare
     // to that of the top correct pair.
@@ -516,7 +515,7 @@ rgAssignment assignReadGroup(
     // Suppose they do, then we have to find the highest scoring wrong
     // pair.  That's either the top first index with the runner-up
     // second index, or vice versa.  Could actually be both to some
-    // extent.
+    // extent, so we add them.
 
     if(!sortedLikelihood1.empty() && !sortedLikelihood2.empty() ){
         if(sortedLikelihood1[0].first != sortedLikelihood2[0].first) {
@@ -533,28 +532,26 @@ rgAssignment assignReadGroup(
     } else toReturn.topWrongToTopCorrect = 0x7fffffff ; // +infinity for practical purposes
     
 
-    //DETECT CONFLICTS
-    //Checking likelihood of second best hit
-    //if the ratio is too low, it's a conflict
+    // DETECT CONFLICTS
+    // Checking likelihood of inferior hits; if the ratio is too low,
+    // it's a conflict.  Checking the second best only is already a
+    // useable approximation, adding all is more appropriate (and a bit
+    // more expensive).
     double probRG    = sortedLikelihoodAll[0].second;
     toReturn.predictedGroup = values.names[ sortedLikelihoodAll[0].first ];
     toReturn.logLikelihoodScore = probRG;
 
     if(sortedLikelihoodAll.size() > 1){
 	double probRG2nd    = sortedLikelihoodAll[1].second;
+        for( size_t i = 2 ; i != sortedLikelihoodAll.size() ; ++i )
+            probRG2nd = oplus( probRG2nd, sortedLikelihoodAll[i].second ) ;
+
 	toReturn.logRatioTopToSecond=probRG2nd-probRG;
-	if(flag_ratioValues && toReturn.logRatioTopToSecond > -5)//to avoid very small values
+	if(flag_ratioValues && toReturn.logRatioTopToSecond > -5) //to avoid very small values
 	    ratioValues->write( (char *)&toReturn.logRatioTopToSecond, sizeof(toReturn.logRatioTopToSecond));
     }else{
 	toReturn.logRatioTopToSecond = 1;
     }
-
-
-    //DETECT UNKNOWNS
-    // double probRGAll = 0.0;
-    // for(unsigned int j=0;j<sortedLikelihoodAll.size();j++){
-	// probRGAll+=pow(10.0,sortedLikelihoodAll[j].second);
-    // }
 
     if(flag_rgqual)
 	rgqual->write( (char *)&toReturn.logLikelihoodScore, sizeof(toReturn.logLikelihoodScore));
