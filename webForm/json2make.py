@@ -123,12 +123,12 @@ if not os.path.exists(BAMFilterLIKER):
   print "Required executable file not found "+BAMFilterLIKER;
   sys.exit(1);
 
-ERRORPERCYCLE = ALIBDIR+"/"+ERRORPERCYCLE;
+ERRORPERCYCLE = alibdir+"/"+ERRORPERCYCLE;
 if not os.path.exists(ERRORPERCYCLE):
   print "Required executable file not found "+ERRORPERCYCLE;
   sys.exit(1);
 
-ERRORPERCYCLER = ALIBDIR+"/"+ERRORPERCYCLER;
+ERRORPERCYCLER = alibdir+"/"+ERRORPERCYCLER;
 if not os.path.exists(ERRORPERCYCLER):
   print "Required executable file not found "+ERRORPERCYCLER;
   sys.exit(1);

@@ -1,11 +1,19 @@
-CPPFLAGS := -lm -I/mnt/solexa/bin/bamtools-1.0.2/include/ -L/mnt/solexa/bin/bamtools-1.0.2/lib/ -lbamtools 
+BAMTOOLS= /mnt/solexa/bin/bamtools-2.2.2
+LIBGAB   = /home/gabriel_renaud/lib/
+
+CXXFLAGS+= -O3 -Wall -I${BAMTOOLS}/include/ -I${LIBGAB}
+LDLIBS+= ${BAMTOOLS}/lib/libbamtools.a ${LIBGAB}utils.o -lm -lz
+
+%.o: %.cpp
+	${CXX} -c ${CXXFLAGS} $^ 
+
 all:	getCtrlReadsBAM	getCtrlReadsFASTQ
 
-getCtrlReadsBAM:	getCtrlReadsBAM.cpp
-	g++ $(CPPFLAGS) -o getCtrlReadsBAM getCtrlReadsBAM.cpp
+getCtrlReadsBAM:	getCtrlReadsBAM.o
+	g++ $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-getCtrlReadsFASTQ:	getCtrlReadsFASTQ.cpp
-	g++ $(CPPFLAGS) -o getCtrlReadsFASTQ getCtrlReadsFASTQ.cpp
+getCtrlReadsFASTQ:	getCtrlReadsFASTQ.o
+	g++ $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 clean:
-	rm -f getCtrlReadsBAM getCtrlReadsFASTQ
+	rm -f getCtrlReadsBAM getCtrlReadsFASTQ *.o
