@@ -546,7 +546,7 @@ rgAssignment assignReadGroup(
         for( size_t i = 2 ; i != sortedLikelihoodAll.size() ; ++i )
             probRG2nd = oplus( probRG2nd, sortedLikelihoodAll[i].second ) ;
 
-	toReturn.logRatioTopToSecond=probRG2nd-probRG;
+	toReturn.logRatioTopToSecond = probRG2nd - oplus(probRG,probRG2nd) ;
 	if(flag_ratioValues && toReturn.logRatioTopToSecond > -5) //to avoid very small values
 	    ratioValues->write( (char *)&toReturn.logRatioTopToSecond, sizeof(toReturn.logRatioTopToSecond));
     }else{
