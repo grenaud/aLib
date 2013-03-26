@@ -19,364 +19,31 @@ $xmlconf = simplexml_load_file( getcwd()."/config.xml" );
 $emailAddrToSend=$xmlconf->emailAddrToSend;
 $genomedirectory=$xmlconf->genomedirectory;
 $outputdirectory=$xmlconf->outputdirectory;
+$protocol2chimera = array();
+foreach($xmlconf->chimeras->chimera as $chimlem){
+$protocol2chimera[ (string)$chimlem["protocol"] ] = array((string)$chimlem["name"],
+(string)$chimlem["adapter1"],
+(string)$chimlem["adapter2"],
+(string)$chimlem["chimera"] );
+}
+$ctrlindex=$xmlconf->controlindex;
 
 
+$p7Indices=array();
+$p5Indices=array();
 
-// $emailAddrToSend=array("gabriel_renaud@eva.mpg.de");
-// $genomedirectory="/mnt/solexa/Genomes/";
-// $outputdirectory="/mnt/solexa/tmp/";
-#$outputdirectory="/tmp/";
+#var_dump($xmlconf);
+foreach($xmlconf->p7indices->p7index as $p7ind){
+$p7Indices[ (string)$p7ind["id"] ] = (string)$p7ind["seq"];
+} 
 
-
-//convert this to XML and put it into config.xml ...
-$protocol2chimera = array(  'IllMultiplex'  => array("Illumina Multiplex library",'AGATCGGAAGAGCACACGTCTGAACTCCAGTCACIIIIIIIATCTCGTATGCCGTCTTCTGCTTG','AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT','ACACTCTTTCCCTACACGTCTGAACTCCAG,ACACTCTTTCCCACACGTCTGAACTCCAGT,ACACTCTTTCCCTACACACGTCTGAACTCC,CTCTTTCCCTACACGTCTGAACTCCAGTCA,GAAGAGCACACGTCTGAACTCCAGTCACII,GAGCACACGTCTGAACTCCAGTCACIIIII,GATCGGAAGAGCACACGTCTGAACTCCAGT,AGATCGGAAGAGCACACGTCTGAACTCCAG,AGAGCACACGTCTGAACTCCAGTCACIIII,ACACGTCTGAACTCCAGTCACIIIIIIIAT,GTGCACACGTCTGAACTCCAGTCACIIIII,AGCACACGTCTGAACTCCAGTCACIIIIII,CGTATGCCGTCTTCTGCTTGAAAAAAAAAA'),
-			    'IllTruSeq'     => array("Illumina TruSeq RNA/DNA library",'AGATCGGAAGAGCACACGTCTGAACTCCAGTCACIIIIIIIATCTCGTATGCCGTCTTCTGCTTG','AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT','ACACTCTTTCCCTACACGTCTGAACTCCAG,ACACTCTTTCCCACACGTCTGAACTCCAGT,ACACTCTTTCCCTACACACGTCTGAACTCC,CTCTTTCCCTACACGTCTGAACTCCAGTCA,GAAGAGCACACGTCTGAACTCCAGTCACII,GAGCACACGTCTGAACTCCAGTCACIIIII,GATCGGAAGAGCACACGTCTGAACTCCAGT,AGATCGGAAGAGCACACGTCTGAACTCCAG,AGAGCACACGTCTGAACTCCAGTCACIIII,ACACGTCTGAACTCCAGTCACIIIIIIIAT,GTGCACACGTCTGAACTCCAGTCACIIIII,AGCACACGTCTGAACTCCAGTCACIIIIII,CGTATGCCGTCTTCTGCTTGAAAAAAAAAA'),
-			    'IllPE'         => array("Illumina Paired End library",'AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAGACCGATCTCGTATGCCGTCTTCTGCTTG','AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT','AGATCTAGATCGGAAGAGCGGTTCAGCAGGAATGCCGAGACCGATCTCGT,GAAGAGCGGTTCAGCAGGAATGCCGAGACCGATCTCGTATGCCG,AAGAGCGGTTCAGCAGGAATGCCGAGACCGATCTCGTATGCCGTCTTCTG'),
-			    'IllSR'         => array("Illumina Single Read library",'AGATCGGAAGAGCTCGTATGCCGTCTTCTGCTTG','',''),
-			    'IllsRNA'       => array("Illumina smallRNA/DpnI library",'TCGTATGCCGTCTTCTGCTTG','',''),
-			    'IllsRNA2'      => array("Illumina smallRNA II",'ATCTCGTATGCCGTCTTCTGCTTG','','TCTCGTATGCCGTCTTCTGCTTG,TCGTATGCCGTCTTCTGCTTG,GTATGCCGTCTTCTGCTTG'),
-			    'IllsRNA2Index' => array("Illumina smallRNA II (5p Index)",'ATCTCGTATGCCGTCTTCTGCTTG','','TCTCGTATGCCGTCTTCTGCTTG,TCGTATGCCGTCTTCTGCTTG,GTATGCCGTCTTCTGCTTG'),
-			    'IllSAGE'       => array("Illumina SAGE (NlaIII) library",'TCGTATGCCGTCTTCTGCTTG','','GTATGCCGTCTTCTGCTTG,CCGTCTTCTGCTTGTCGTATGCCGTCTTCTGCTTG,CGTATGCCGTCTTCTGCTTG,CCGTCTTCTGCTTGAAAAAAAAA,TCGGACTGTAGAACTCT'),
-			    #'454Std': ("454 Standard library (converted)",'CTGAGACACGCAACAGGGGATAGGCAAGGCACACAGGGGATAGGATCTCGTATGCCGTCTTCTGCTTG','CTGAGACAGGGAGGGAACAGATGGGACACGCAGGGATGAGATGGGTGTAGATCTCGGTGGTCGCCGTATCATT','ACGCAACAGGGGATAGGCAAGGCACACAGGGGATAGGATCTCGTATGCCGTCTTCTGCTTG'),
-			    #'454Nea': ("454 Neandertal library (converted)",'GTCAGACACGCAACAGGGGATAGGCAAGGCACACAGGGGATAGGATCTCGTATGCCGTCTTCTGCTTG','GTCAGACAGGGAGGGAACAGATGGGACACGCAGGGATGAGATGGGTGTAGATCTCGGTGGTCGCCGTATCATT','ACGCAACAGGGGATAGGCAAGGCACACAGGGGATAGGATCTCGTATGCCGTCTTCTGCTTG'),
-			    #'454StdIndex': ("454 Standard library (Index converted)",'CTGAGACACGCAACAGGGGATAGGCAAGGCACACAGGGGATAGGIIIIIIIATCTCGTATGCCGTCTTCTGCTTG','CTGAGACAGGGAGGGAACAGATGGGACACGCAGGGATGAGATGGGTGTAGATCTCGGTGGTCGCCGTATCATT','ACGCAACAGGGGATAGGCAAGGCACACAGGGGATAGGIIIIIIIATCTCGTATGCCGTCTTCTGCTTG'),
-			    #'454NeaIndex': ("454 Neandertal library (Index converted)",'GTCAGACACGCAACAGGGGATAGGCAAGGCACACAGGGGATAGGIIIIIIIATCTCGTATGCCGTCTTCTGCTTG','GTCAGACAGGGAGGGAACAGATGGGACACGCAGGGATGAGATGGGTGTAGATCTCGGTGGTCGCCGTATCATT','ACGCAACAGGGGATAGGCAAGGCACACAGGGGATAGGIIIIIIIATCTCGTATGCCGTCTTCTGCTTG'),			 
-			    'IllMultiplexCR1' =>array("Illumina CR1 Multiplex (Neandertal group)",'GAGTAGATCGGAAGAGCACACGTCTGAACTCCAGTCACIIIIIIIATCTCGTATGCCGTCTTCTGCTTG','GAGTAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT',''),
-			    'IllMultiplexCR2' =>array("Illumina CR2 Multiplex (Neandertal group)",'AGACAGATCGGAAGAGCACACGTCTGAACTCCAGTCACIIIIIIIATCTCGTATGCCGTCTTCTGCTTG','AGACAGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT',''),
-			    'IllMultiplex_ssDNA' =>array("Illumina ssDNA Multiplex (ssDNA ligation protocol with 5nt deletion)",'AGATCGGAAGAGCACACGTCTGAACTCCAGTCACIIIIIIIATCTCGTATGCCGTCTTCTGCTTG','GGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT','') );
-
-$p7_block300 = array("TCGCAGG",
-		     "CTCTGCA",
-		     "CCTAGGT",
-		     "GGATCAA",
-		     "GCAAGAT",
-		     "ATGGAGA",
-		     "CTCGATG",
-		     "GCTCGAA",
-		     "ACCAACT",
-		     "CCGGTAC",
-		     "AACTCCG",
-		     "TTGAAGT",
-		     "ACTATCA",
-		     "TTGGATC",
-		     "CGACCTG",
-		     "TAATGCG",
-		     "AGGTACC",
-		     "TGCGTCC",
-		     "GAATCTC",
-		     "CATGCTC",
-		     "ACGCAAC",
-		     "GCATTGG",
-		     "GATCTCG",
-		     "CAATATG",
-		     "TGACGTC",
-		     "GATGCCA",
-		     "CAATTAC",
-		     "AGATAGG",
-		     "CCGATTG",
-		     "ATGCCGC",
-		     "CAGTACT",
-		     "AATAGTA",
-		     "CATCCGG",
-		     "TCATGGT",
-		     "AGAACCG",
-		     "TGGAATA",
-		     "CAGGAGG",
-		     "AATACCT",
-		     "CGAATGC",
-		     "TTCGCAA",
-		     "AATTCAA",
-		     "CGCGCAG",
-		     "AAGGTCT",
-		     "ACTGGAC",
-		     "AGCAGGT",
-		     "GTACCGG",
-		     "GGTCAAG",
-		     "AATGATG",
-		     "AGTCAGA",
-		     "AACTAGA",
-		     "CTATGGC",
-		     "CGACGGT",
-		     "AACCAAG",
-		     "CGGCGTA",
-		     "GCAGTCC",
-		     "CTCGCGC",
-		     "CTGCGAC",
-		     "ACGTATG",
-		     "ATACTGA",
-		     "TACTTAG",
-		     "AAGCTAA",
-		     "GACGGCG",
-		     "AGAAGAC",
-		     "GTCCGGC",
-		     "TCAGCTT",
-		     "AGAGCGC",
-		     "GCCTACG",
-		     "TAATCAT",
-		     "AACCTGC",
-		     "GACGATT",
-		     "TAGGCCG",
-		     "GGCATAG",
-		     "TTCAACC",
-		     "TTAACTC",
-		     "TAGTCTA",
-		     "TGCATGA",
-		     "AATAAGC",
-		     "AGCCTTG",
-		     "CCAACCT",
-		     "GCAGAAG",
-		     "AGAATTA",
-		     "CAGCATC",
-		     "TTCTAGG",
-		     "CCTCTAG",
-		     "CCGGATA",
-		     "GCCGCCT",
-		     "AACGACC",
-		     "CCAGCGG",
-		     "TAGTTCC",
-		     "TGGCAAT",
-		     "CGTATAT",
-		     "GCTAATC",
-		     "GACTTCT",
-		     "GTACTAT",
-		     "CGAGATC",
-		     "CGCAGCC");
+foreach($xmlconf->p5indices->p5index as $p5ind){
+$p5Indices[ (string)$p5ind["id"] ] = (string)$p5ind["seq"];
+} 
 
 
 
 
-
-$p7_block = array("ACAGTG",
-		  "GATCAG",
-		  "ATCACG",
-		  "CGATGT",
-		  "CTTGTA",
-		  "GGCTAC",
-		  "TGACCA",
-		  "AAAGCA",
-		  "AAATGC",
-		  "AAGCGA",
-		  "AAGGAC",
-		  "AATAGG",
-		  "ACCCAG",
-		  "ACTCTC",
-		  "AGAAGA",
-		  "AGCATC",
-		  "AGGCCG",
-		  "ATACGG",
-		  "ATCCTA",
-		  "ATCTAT",
-		  "ATGAGC",
-		  "CATTTT",
-		  "CCGCAA",
-		  "CTCAGA",
-		  "GAATAA",
-		  "GCCGCG",
-		  "GCTCCA",
-		  "GGCACA",
-		  "GGCCTG",
-		  "TCGGCA",
-		  "TCTACC",
-		  "TGCCAT",
-		  "TGCTGG",
-		  "AGGTTT",
-		  "AGTCAA",
-		  "AGTTCC",
-		  "ATGTCA",
-		  "CCGTCC",
-		  "GTAGAG",
-		  "GTGAAA",
-		  "GTGGCC",
-		  "GTTTCG",
-		  "CGTACG",
-		  "GAGTGG",
-		  "GGTAGC",
-		  "ACTTGA",
-		  "CAGATC",
-		  "GCCAAT",
-		  "TAGCTT",
-		  "TTAGGC",
-		  "AACCGCC",
-		  "AACGAAC",
-		  "AACGCCT",
-		  "AACGGTA",
-		  "AACTAGT",
-		  "AACTGAG",
-		  "AAGAATT",
-		  "AAGATAG",
-		  "AAGCTCT",
-		  "AAGTCTG",
-		  "AATAACC",
-		  "AATCCGT",
-		  "ACCGATT",
-		  "ACCGTAG",
-		  "ACCTCAT",
-		  "ACCTTGC",
-		  "ACGACCT",
-		  "ACGATTC",
-		  "ACGCGGC",
-		  "ACGGAGG",
-		  "ACGTAAC",
-		  "ACTACTG",
-		  "ACTCGTT",
-		  "ACTGCGC",
-		  "AGACCTC",
-		  "AGACTAG",
-		  "AGAGACC",
-		  "AGAGCGT",
-		  "AGATATG",
-		  "AGATTCT",
-		  "AGCAAGC",
-		  "AGCAGTT",
-		  "AGCGCTG",
-		  "AGTATAC",
-		  "ATAAGTC",
-		  "ATAATGG",
-		  "ATACTCC",
-		  "ATAGAAG",
-		  "ATCTCCG",
-		  "ATGCAGT",                                           
-		  "ATGGTAT",
-		  "ATTATCT",
-		  "ATTCGAC",
-		  "ATTGCTA",
-		  "CAACCGG",
-		  "CAACTAA",
-		  "AATCTTC",
-		  "ACCAACG",
-		  "AGATGGC",
-		  "CCAGGTT",
-		  "CCGTTAG",
-		  "CGCCTCT",
-		  "CTTGCGG",
-		  "GGCGGAG",
-		  "TGGACGT",
-		  "AACCATG",
-		  "CAGGAAG",
-		  "CATACCT",
-		  "CCAATCC",
-		  "CCGGCGT",
-		  "CGCATAG",
-		  "CGTAATC",
-		  "CGTTGGT",
-		  "CTATACG",
-		  "GACCTAC",
-		  "GATATTG",
-		  "AAGACGC",
-		  "GCAGTAT",
-		  "GGTCCGC",
-		  "GTCGACT",                                           
-		  "GTTAGAT",
-		  "TAACTCG",
-		  "TGCTTCC",
-		  "TGGCGCT",
-		  "AATGGCG",
-		  "ACCAGAC",
-		  "ACGCCAG",
-		  "ACTAAGT",
-		  "AGAACCG",
-		  "ATCGTTC",
-		  "CAACGTC");
-
-
-$p5_block = array("TCGCAGG",
-		  "CTCTGCA",
-		  "CCTAGGT",
-		  "GGATCAA",
-		  "GCAAGAT",
-		  "ATGGAGA",
-		  "CTCGATG",
-		  "GCTCGAA",
-		  "ACCAACT",
-		  "CCGGTAC",
-		  "AACTCCG",
-		  "TTGAAGT",
-		  "ACTATCA",
-		  "TTGGATC",
-		  "CGACCTG",
-		  "TAATGCG",
-		  "AGGTACC",
-		  "TGCGTCC",
-		  "GAATCTC",
-		  "CATGCTC",
-		  "ACGCAAC",
-		  "GCATTGG",
-		  "GATCTCG",
-		  "CAATATG",
-		  "TGACGTC",
-		  "GATGCCA",
-		  "CAATTAC",
-		  "AGATAGG",
-		  "CCGATTG",
-		  "ATGCCGC",
-		  "CAGTACT",
-		  "AATAGTA",
-		  "CATCCGG",
-		  "TCATGGT",
-		  "AGAACCG",
-		  "TGGAATA",
-		  "CAGGAGG",
-		  "AATACCT",
-		  "CGAATGC",
-		  "TTCGCAA",
-		  "AATTCAA",
-		  "CGCGCAG",
-		  "AAGGTCT",
-		  "ACTGGAC",
-		  "AGCAGGT",
-		  "GTACCGG",
-		  "GGTCAAG",
-		  "AATGATG",
-		  "AGTCAGA",
-		  "AACTAGA",
-		  "CTATGGC",
-		  "CGACGGT",
-		  "AACCAAG",
-		  "CGGCGTA",
-		  "GCAGTCC",
-		  "CTCGCGC",
-		  "CTGCGAC",
-		  "ACGTATG",
-		  "ATACTGA",
-		  "TACTTAG",
-		  "AAGCTAA",
-		  "GACGGCG",
-		  "AGAAGAC",
-		  "GTCCGGC",
-		  "TCAGCTT",
-		  "AGAGCGC",
-		  "GCCTACG",
-		  "TAATCAT",
-		  "AACCTGC",
-		  "GACGATT",
-		  "TAGGCCG",
-		  "GGCATAG",
-		  "TTCAACC",
-		  "TTAACTC",
-		  "TAGTCTA",
-		  "TGCATGA",
-		  "AATAAGC",
-		  "AGCCTTG",
-		  "CCAACCT",
-		  "GCAGAAG",
-		  "AGAATTA",
-		  "CAGCATC",
-		  "TTCTAGG",
-		  "CCTCTAG",
-		  "CCGGATA",
-		  "GCCGCCT",
-		  "AACGACC",
-		  "CCAGCGG",
-		  "TAGTTCC",
-		  "TGGCAAT",
-		  "CGTATAT",
-		  "GCTAATC",
-		  "GACTTCT",
-		  "GTACTAT",
-		  "CGAGATC",
-		  "CGCAGCC" );
-
-$is4seq="AGATCTC";
 
 function getGenomes(){
     global $genomedirectory;
@@ -541,7 +208,7 @@ function displayStep1($runid) {
 
     echo "<label for=\"cyclesindx1\">Cycles for index#1</label>:\n";
     echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"cyclesindx1\" value=\"".$runinformation["cyclesindx1"]."\"><br />";
-
+    
     echo "<label for=\"cyclesread2\">Cycles for read#2</label>:\n";
     echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"cyclesread2\" value=\"".$runinformation["cyclesread2"]."\"><br />";
 
@@ -564,13 +231,13 @@ function displayStep1($runid) {
     #echo "<label for=\"TileCount\">Lane count</label>:\n";
 
     if($runinformation["LaneCount"] != 1){
-	echo "<br>Which lanes  ? <br>\n";
+    echo "<br>Which lanes belong to you ? <br>\n";
 
-	for ($i=1; $i<=$runinformation["LaneCount"]; $i++){
+    for ($i=1; $i<=$runinformation["LaneCount"]; $i++){
 	    echo $i.":<input type=\"checkbox\" value=\"".$i."\" name=\"lanes".$i."\"><br/>\n";
 	}
     }else{
-	echo "<br>Which lanes  ? <br>\n";
+	echo "<br>Which lanes belong to you ? <br>\n";
 	echo "1:<input type=\"checkbox\" value=\"1\" name=\"lanes1\" checked ><br/>\n";
     }
 
@@ -579,9 +246,12 @@ function displayStep1($runid) {
 
 }
 
-function displayStep2() {
-    #var_dump($_POST);
 
+
+
+
+function displayStep2() {
+    global $ctrlindex;
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
 
     //////////////////////////////////
@@ -634,6 +304,7 @@ function displayStep2() {
 	echo "Please enter a valid email";
 	exit;
     }
+      
 
     $runinformation=array("runid"        => $_POST["runid"],
 			  "cyclesread1"  => $_POST["cyclesread1"],
@@ -668,6 +339,7 @@ function displayStep2() {
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
     #echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
     echo "<h3>Step 2: Basecalling</h3>";
+    echo "<BR>Basecalling is the process that converts the raw intensities into sequences. The default Illumina basecaller is Bustard and our custom basecaller is freeIbis. freeIbis is more accurate in terms of sequence and quality score but required control sequences. We recommend using Bustad for small MiSeqs and freeIbis for GAs or HiSeqs<BR>";
 
     if($seqtype == "hiseq" || $seqtype == "ga" ){
 	echo "Bustard:<input type=\"checkbox\" value=\"bustard\" name=\"bustard\"\"><br/>\n";
@@ -676,6 +348,24 @@ function displayStep2() {
 	echo "Bustard:<input type=\"checkbox\" value=\"bustard\" name=\"bustard\"\" checked><br/>\n";
 	echo "freeIbis:<input type=\"checkbox\" value=\"freeibis\" name=\"freeibis\"\"><br/>\n";
     }
+
+    echo "<BR>If you picked freeIbis, how were control sequence (phiX) specified ?<BR>";
+    echo "<input type=\"radio\" name=\"spikedin\" value=\"True\" checked>Spiked-in controls using P7 index:   <input type=\"text\" name=\"ctrlindex\" value=\"$ctrlindex\" size=\"7\"><BR>\n";
+    echo "<input type=\"radio\" name=\"spikedin\" value=\"False\">Dedicated lane (specify which below)\n";
+
+    echo "<p style=\"padding-left:5em;\">";
+
+    if($runinformation["LaneCount"] != 1){
+	echo "If so, which lanes were used exclusively for phiX ? <br>\n";
+
+	for ($i=1; $i<=$runinformation["LaneCount"]; $i++){
+	    echo $i.":<input type=\"checkbox\" value=\"".$i."\" name=\"lanesdedicated".$i."\"><br/>\n";
+	}
+    }else{
+	echo "<br>Which lanes were used exclusively for phiX    ? <br>\n";
+	echo "1:<input type=\"checkbox\" value=\"1\" name=\"lanesdedicated1\" checked ><br/>\n";
+    }
+    echo "</p>";
     echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
 
     echo "</form>\n";
@@ -685,16 +375,45 @@ function displayStep2() {
 
 function displayStep3() {
     global $protocol2chimera;
-    
+    #var_dump($_POST);
     //////////////////////////////////
     //BEGIN checking step 2 variables
     ////////////////////////////////
 
-    $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
-    $runinformation["freeibis"] = isset($_POST["freeibis"]);
-    $runinformation["bustard"]  = isset($_POST["bustard"]);
-    
 
+
+    if(isset($_POST["lanesdedicated1"]) && $_POST["spikedin"] == "True" ){ 	echo "Do not specify lane if the control was spiked in"; exit; }
+    if(isset($_POST["lanesdedicated2"]) && $_POST["spikedin"] == "True" ){ 	echo "Do not specify lane if the control was spiked in"; exit; }
+    if(isset($_POST["lanesdedicated3"]) && $_POST["spikedin"] == "True" ){ 	echo "Do not specify lane if the control was spiked in"; exit; }
+    if(isset($_POST["lanesdedicated4"]) && $_POST["spikedin"] == "True" ){ 	echo "Do not specify lane if the control was spiked in"; exit; }
+    if(isset($_POST["lanesdedicated5"]) && $_POST["spikedin"] == "True" ){ 	echo "Do not specify lane if the control was spiked in"; exit; }
+    if(isset($_POST["lanesdedicated6"]) && $_POST["spikedin"] == "True" ){ 	echo "Do not specify lane if the control was spiked in"; exit; }
+    if(isset($_POST["lanesdedicated7"]) && $_POST["spikedin"] == "True" ){ 	echo "Do not specify lane if the control was spiked in"; exit; }
+    if(isset($_POST["lanesdedicated8"]) && $_POST["spikedin"] == "True" ){ 	echo "Do not specify lane if the control was spiked in"; exit; }
+
+    $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
+    $runinformation["freeibis"]   = isset($_POST["freeibis"]);
+    $runinformation["bustard"]    = isset($_POST["bustard"]);
+    $runinformation["spikedin"]   = $_POST["spikedin"];
+    $runinformation["ctrlindex"]  = $_POST["ctrlindex"];
+
+    $lanesdedicated=array();
+
+    if(isset($_POST["lanesdedicated1"]) ){ array_push($lanesdedicated,1); }
+    if(isset($_POST["lanesdedicated2"]) ){ array_push($lanesdedicated,2); }
+    if(isset($_POST["lanesdedicated3"]) ){ array_push($lanesdedicated,3); }
+    if(isset($_POST["lanesdedicated4"]) ){ array_push($lanesdedicated,4); }
+    if(isset($_POST["lanesdedicated5"]) ){ array_push($lanesdedicated,5); }
+    if(isset($_POST["lanesdedicated6"]) ){ array_push($lanesdedicated,6); }
+    if(isset($_POST["lanesdedicated7"]) ){ array_push($lanesdedicated,7); }
+    if(isset($_POST["lanesdedicated8"]) ){ array_push($lanesdedicated,8); }
+
+    $runinformation["lanesdedicated"]  = $lanesdedicated;
+    if($runinformation["spikedin"] == "False" &&
+       count($lanesdedicated) == 0 ){
+	echo "Error, you must specify which lanes were used for controls";
+        exit;
+    } 
 
     //////////////////////////////////
     //END checking step 2 variables
@@ -720,7 +439,14 @@ function displayStep3() {
     echo "<input type=\"radio\" name=\"mergeoverlap\" value=\"False\" checked>after adapter trimming, they overlap completely<br>\n";
     echo "<input type=\"radio\" name=\"mergeoverlap\" value=\"True\" >The above plus if they show partial overlap (recommended for ancient DNA)<br>\n";
 
+    #missing key
+    #echo "<BR><BR>If a key is used, do you allow 1 mismatch in the key ?<BR>\n";
+    #echo "<input type=\"radio\" name=\"allowMissing\" value=\"True\" checked>Yes allow a mismatch  <input type=\"text\" name=\"ctrlindex\" value=\"$ctrlindex\" size=\"7\"><BR><BR>\n";
+    #echo "<input type=\"radio\" name=\"allowMissing\" value=\"False\"><br>\n";
+
+
     echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
+
     echo "</form>\n";
     #echo "#";   
     
@@ -786,10 +512,15 @@ function displayStep4() {
     echo "<input type=\"hidden\" name=\"step\" value=\"5\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
     echo "Basic filtering:<BR>\n";
-    echo "Filter reads with a high likelihood of error:<input type=\"checkbox\" value=\"True\" name=\"filterseqlike\" checked ><br/>\n";
+   echo "This step flags reads with an unusually high number of expected mismatches as failing the QC controls. The sequences remain in the BAM file but are labeled as failing quality controls<BR><BR>";
+
+    echo "<input type=\"radio\" name=\"filterseqexp\" value=\"False\" checked>Do not filter reads<BR>\n";
+    echo "<input type=\"radio\" name=\"filterseqexp\" value=\"True\">Filter reads with a high number of expected mismatches<br>\n";
+
+     #echo "Filter reads with a high number of expected mismatches:<input type=\"checkbox\" value=\"True\" name=\"filterseqexp\" ><br/>\n";
     #echo "Instead of filtering, trim the low quality bases at the 3' end instead<input type=\"checkbox\" value=\"1\" name=\"lanes1\" checked ><br/>\n";
 
-    echo "Likelihood cutoff : <input type=\"text\" name=\"seqlikecutoff\" value=\"0.5\" size=\"5\"><BR><BR>\n";
+    echo "Threshold for normalized number of expected mismatches  : <input type=\"text\" name=\"seqNormExpcutoff\" value=\"0.01\" size=\"5\"><BR><BR>\n";
     echo "Additional filtering:<BR>\n";
     echo "<input type=\"radio\" name=\"addfilters\" value=\"False\" checked>Do not use additional filters<br>\n";
     echo "<input type=\"radio\" name=\"addfilters\" value=\"entropy\">Apply sequence entropy [0.0-2.0]  filter at:  <input type=\"text\" name=\"entropycutoff\" value=\"0.85\" size=\"5\"> <BR>\n";
@@ -803,13 +534,14 @@ function displayStep4() {
 
 
 function displayStep5() {
-    #var_dump($_POST);
+ 
+						     
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
 
     ///////////////////////////////////
     //BEGIN checking step 4 variables//
     ///////////////////////////////////
-    if((int)$_POST["seqlikecutoff"]<0 || (int)$_POST["seqlikecutoff"]>1){
+    if((int)$_POST["seqNormExpcutoff"]<0 || (int)$_POST["seqNormExpcutoff"]>1){
 	echo "Sequence likelihood cannot be less than 0 or more than 1";
 	exit;
     }
@@ -831,8 +563,8 @@ function displayStep5() {
     $runinformation["key1"]    = $_POST["key1"];
     $runinformation["key2"]    = $_POST["key2"];
 
-    $runinformation["filterseqlike"]    = ($_POST["filterseqlike"] == "True");
-    $runinformation["seqlikecutoff"]   = $_POST["seqlikecutoff"];
+    $runinformation["filterseqexp"]    = ($_POST["filterseqexp"] == "True");
+    $runinformation["seqNormExpcutoff"]   = $_POST["seqNormExpcutoff"];
     $runinformation["filterentropy"]   = ($_POST["addfilters"] == "entropy");
     $runinformation["filterfrequency"] = ($_POST["addfilters"] == "frequency");		    
     $runinformation["entropycutoff"]   = $_POST["entropycutoff"];
@@ -855,7 +587,7 @@ function displayStep5() {
 	<br />
 	<br />
 
-	<textarea rows="20" cols="100" name="indextext" wrap="physical" placeholder="Paste your indices here"></textarea>
+	<textarea rows="20" cols="100" name="indextext" wrap="physical" placeholder="Paste your indices here, if a particular RG has only an index for the first adapter and is mixed with a multiplexed paired-end run, use is4 as the second index"></textarea>
 	<br>
 	<input type="submit" name="submitButton" id="nextButton" value="Next &gt;" />
         <br>
@@ -890,10 +622,8 @@ function displayStep5() {
 
 
 function displayStep6() {
-    global $p7_block300;
-    global $p7_block;
-    global $p5_block;
-
+    global $p7Indices;
+    global $p5Indices;
 
    # echo "test6";
     
@@ -928,8 +658,7 @@ function displayStep6() {
 
 
 
-#	if($indextype       == "single"){
-	if($runinformation["cyclesread2"] == 0 ){
+	if($runinformation["cyclesindx2"] == 0 ){
 	    if(count($arrayfield) != 2){
 		echo "ERROR: For single index, lines must have 2 fields check line \"".$line."\"";
 		exit;
@@ -955,7 +684,7 @@ function displayStep6() {
 	    }
 
 	    #if($indextype  == "double"){
-	    if($runinformation["cyclesread2"] != 0 ){
+	    if($runinformation["cyclesindx2"] != 0 ){
 
 		if($arrayfield[2] != "p5"){
 		    echo "ERROR: the first field of the header must be p5 (case sensitive)";
@@ -965,7 +694,6 @@ function displayStep6() {
 
 	}else{
 	    #CHECKING REMAINING FIELDS
-	    #if($indextype       == "single"){
 
 	    if(strstr($arrayfield[0],"\"") ||
 	       strstr($arrayfield[0],"'")  || 
@@ -975,38 +703,34 @@ function displayStep6() {
 		exit;
 	    }
 
-	    if($runinformation["cyclesread2"] == 0 ){
+	    if($runinformation["cyclesindx2"] == 0 ){
 
-		if( ($arrayfield[1] > count($p7_block)) &&
-		    ( ($arrayfield[1]<301) || ($arrayfield[1]>(300+count($p7_block300)) ) )  ){
-		    echo "ERROR: index for p7 is not within the expected bound for ".$line . "";
+		
+		if(!array_key_exists($arrayfield[1],$p7Indices)){
+		    echo "ERROR: index for p7 ".(string)$arrayfield[1]." is not within the expected range ".$line . "";
 		    exit;	    
-		}
+                }
+		$stringToPrint.=$p7Indices[ (string)$arrayfield[1] ] ."\t".$arrayfield[0]."\n";
 
-		if( ($arrayfield[1]>=301) && ($arrayfield[1]<=(300+count($p7_block300)) )   ){
-		    $stringToPrint.=$p7_block300[ $arrayfield[1] - 301] ."\t".$arrayfield[0]."\n"; #-1 for zero base array
-		}else{
-		    $stringToPrint.=$p7_block[ $arrayfield[1] - 1] ."\t".$arrayfield[0]."\n";
-		}
 	    }else{
 
 
-		if( ($arrayfield[1] > count($p7_block)) &&
-		    ( ($arrayfield[1]<301) || ($arrayfield[1]>(300+count($p7_block300)) ) )  ){
-		    echo "ERROR: index for p7 is not within the expected bound for ".$line . "";
-		    exit;	    
-		}
 
-		if($arrayfield[2] > count($p5_block)){
-		    echo "ERROR: index for p5 is greater than size of the array in line ".$line;
+		if(!array_key_exists((string)$arrayfield[1],$p7Indices)){
+		    echo "ERROR: index for p7 ".(string)$arrayfield[1]." is not within the expected range ".$line . "";
+                    var_dump($p7Indices);
 		    exit;	    
-		}
+                }
 
-		if( ($arrayfield[1]>=301) && ($arrayfield[1]<=(300+count($p7_block300)) )   ){
-		    $stringToPrint.=$p7_block300[ $arrayfield[1] - 301] ."\t".$p5_block[ $arrayfield[2] - 1]."\t".$arrayfield[0]."\n";
-		}else{
-		    $stringToPrint.=$p7_block[ $arrayfield[1] - 1] ."\t".$p5_block[ $arrayfield[2] - 1]."\t".$arrayfield[0]."\n";
-		}
+		if(!array_key_exists((string)$arrayfield[2],$p5Indices)){
+		    echo "ERROR: index for p5 ".(string)$arrayfield[2]." is not within the expected range ".$line . "";
+		    exit;	    
+                }
+
+
+
+	        $stringToPrint.=$p7Indices[ (string)$arrayfield[1] ] ."\t".$p5Indices[ (string)$arrayfield[2] ]."\t".$arrayfield[0]."\n";
+																     
 	    }
 
 	    if($arrayfield[0] == "control"){
@@ -1018,7 +742,7 @@ function displayStep6() {
 
     if($foundControl == 0){
 	#if($indextype       == "single"){
-	if($runinformation["cyclesread2"] == 0 ){
+	if($runinformation["cyclesindx2"] == 0 ){
 	    $stringToPrint.="TTGCCGC\tcontrol\n";
 	}else{
 	    $stringToPrint.="TTGCCGC\tAGATCTC\tcontrol\n";
@@ -1153,8 +877,8 @@ function displayStep8() {
     echo "<TR><TD nowrap> </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap>      </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap>Quality filtering:      </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>Flag sequences with low likelihood  :</TD><TD> ".(($runinformation["filterseqlike"]=="1")?"yes":"no")."</TD></TR>\n";
-    echo "<TR><TD nowrap>Likelihood cutoff                  :</TD><TD> ".($runinformation["seqlikecutoff"])."</TD></TR>\n";
+    echo "<TR><TD nowrap>Flag sequences with high exp. of mismatch  :</TD><TD> ".(($runinformation["filterseqexp"]=="1")?"yes":"no")."</TD></TR>\n";
+    echo "<TR><TD nowrap>Normalized expectency of mismatch cutoff    :</TD><TD> ".($runinformation["seqNormExpcutoff"])."</TD></TR>\n";
 
     echo "<TR><TD nowrap>Flag sequences based on  entropy  :</TD><TD> ".(($runinformation["filterentropy"])?"yes":"no")."</TD></TR>\n";
     echo "<TR><TD nowrap>Entropy cutoff  :</TD><TD> ".($runinformation["entropycutoff"])."</TD></TR>\n";
@@ -1204,7 +928,7 @@ function displayStep9() {
     fwrite($fh, $stringtoprint);
     fclose($fh);
 
-    
+    #call json2make    
     
     $mail = new EMail;
     $mail->Username = 'sbsuser';
@@ -1223,6 +947,7 @@ function displayStep9() {
     $mail->ConnectTimeout = 30;  // Socket connect timeout (sec)
     $mail->ResponseTimeout = 8;  // CMD response timeout (sec)
     $success = $mail->Send();
+    $stringforscreen="";
     if($success != 1){
 	$stringforscreen.="the admin notification email WAS NOT sent successfully, contact directly ".implode(",",$emailAddrToSend)."<br>\n";
     }else{
@@ -1231,7 +956,7 @@ function displayStep9() {
     
 
     if(0){
-
+    
     }
     
     

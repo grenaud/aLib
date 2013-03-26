@@ -517,20 +517,21 @@ rgAssignment assignReadGroup(
     // second index, or vice versa.  Could actually be both to some
     // extent, so we add them.
 
-    if(!sortedLikelihood1.empty() && !sortedLikelihood2.empty() ){
+    if( (sortedLikelihood1.size()>1) && 
+	(sortedLikelihood2.size()>1)   ){
         if(sortedLikelihood1[0].first != sortedLikelihood2[0].first) {
             // mismatch, we found the wrong pair
             toReturn.topWrongToTopCorrect = sortedLikelihoodAll[0].second
                                           - sortedLikelihood1[0].second
                                           - sortedLikelihood2[0].second ;
-        }
-        else {
+        }else {
             toReturn.topWrongToTopCorrect = sortedLikelihoodAll[0].second -
                 oplus( sortedLikelihood1[0].second + sortedLikelihood2[1].second 
                      , sortedLikelihood1[1].second + sortedLikelihood2[0].second ) ;
         }
-    } else toReturn.topWrongToTopCorrect = 0x7fffffff ; // +infinity for practical purposes
-    
+    }else{
+	toReturn.topWrongToTopCorrect = 0x7fffffff ; // +infinity for practical purposes
+    }
 
     // DETECT CONFLICTS
     // Checking likelihood of inferior hits; if the ratio is too low,
@@ -547,13 +548,16 @@ rgAssignment assignReadGroup(
             probRG2nd = oplus( probRG2nd, sortedLikelihoodAll[i].second ) ;
 
 	toReturn.logRatioTopToSecond = probRG2nd - oplus(probRG,probRG2nd) ;
+	double temporaryD=-10.0*toReturn.logRatioTopToSecond;
 	if(flag_ratioValues && toReturn.logRatioTopToSecond > -5) //to avoid very small values
-	    ratioValues->write( (char *)&toReturn.logRatioTopToSecond, sizeof(toReturn.logRatioTopToSecond));
+	    ratioValues->write( (char *)&(temporaryD), sizeof(toReturn.logRatioTopToSecond));
     }else{
 	toReturn.logRatioTopToSecond = 1;
     }
 
-    if(flag_rgqual)
-	rgqual->write( (char *)&toReturn.logLikelihoodScore, sizeof(toReturn.logLikelihoodScore));
+    if(flag_rgqual){
+	double temporaryD=-10.0*toReturn.logLikelihoodScore;
+	rgqual->write( (char *)&(temporaryD), sizeof(toReturn.logLikelihoodScore));
+    }
     return toReturn;
 }

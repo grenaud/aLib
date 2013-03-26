@@ -29,6 +29,14 @@ using namespace BamTools;
 /****************************************/
 
 
+struct tallyForRG{    
+    unsigned int assigned;
+    unsigned int conflict;
+    unsigned int unknown;
+    unsigned int wrong;    
+};
+
+
 static double rgScoreCutoff  = 80 ;             // two HQ bases can mismatch
 static double fracConflict   = 20 ;             // top shall be 100x more likely
 static double wrongness      = 0 ;              // 50% chance of being wrong
@@ -393,13 +401,22 @@ static const string  truseq[] = {"ATCACG", //1
 };
 
 // XXX really, a global?!
-map<string,int> namesMap; //a map name of RG to count of how many observed
+map<string,tallyForRG> namesMap; //a map name of RG to count of how many observed
 
 struct compareNameRG {
-    bool operator() (pair<string,int> i,pair<string,int> j) { 
-        return (i.second>j.second); 
+    bool operator() (pair<string,int> i,pair<string,int> j) {
+        return (i.second>j.second);
     }
 };
+
+struct compareNameTally {
+    bool operator() (pair<string,tallyForRG> i,pair<string,tallyForRG> j) { 
+        return ( (i.second.assigned+i.second.unknown+i.second.conflict+i.second.wrong)
+		 >
+		 (j.second.assigned+j.second.unknown+j.second.conflict+j.second.wrong) );
+    }
+};
+
 
 static string get_string_field( BamAlignment &al, const char* name ) 
 {
@@ -464,9 +481,20 @@ void updateRecord( BamAlignment &al, const rgAssignment &rg )
     }
     zq.erase( q, e ) ;
 
-    if( rg.conflict ) zq += 'C' ;
-    if( rg.wrong    ) zq += 'W' ;
-    if( rg.unknown  ) zq += 'I' ;
+    string predictedGroup=rg.predictedGroup;
+    //will overwrite the RG
+    bool assigned=true;
+    if( rg.predictedGroup.empty() ) {
+	predictedGroup="unknown";
+    }
+
+    if( rg.conflict ){ zq += 'C' ; assigned=false; namesMap[predictedGroup].conflict++;  }
+    if( rg.wrong    ){ zq += 'W' ; assigned=false; namesMap[predictedGroup].wrong++;     }
+    if( rg.unknown  ){ zq += 'I' ; assigned=false; namesMap[predictedGroup].unknown++;   }
+    if(assigned){
+	namesMap[predictedGroup].assigned++;
+    }
+
 
     if( rg.predictedGroup.empty() ) {
         al.RemoveTag("RG");
@@ -474,19 +502,20 @@ void updateRecord( BamAlignment &al, const rgAssignment &rg )
         al.RemoveTag("Z1");
         al.RemoveTag("Z2");
         zq += 'I';
-    } else
-    {
+	//namesMap[ "unknown" ] ++;
+    } else    {
+	//namesMap[ predictedGroup ] ++;
         al.EditTag("RG","Z",rg.predictedGroup);
         al.EditTag("Z0","i",(int)round(-10 * rg.logLikelihoodScore));
         if( rg.logRatioTopToSecond <= 0 )
             al.EditTag("Z1","i",(int)round(-10 * rg.logRatioTopToSecond));
         else
             al.RemoveTag("Z1") ;
-        if( 10 * rg.topWrongToTopCorrect < rgScoreCutoff ) 
+        if( (10 * rg.topWrongToTopCorrect) < rgScoreCutoff ) 
             al.EditTag("Z2","i",(int)round(-10 * rg.topWrongToTopCorrect));
         else
             al.RemoveTag("Z2") ;
-        namesMap[ rg.predictedGroup ] ++;
+
     }
 
     // store new ZQ field and set FailedQC flag if it isn't empty
@@ -890,9 +919,26 @@ int main (int argc, char *argv[]) {
     for ( itRG=rgs.begin(); itRG != rgs.end(); itRG++ ){
 	SamReadGroup srg ( itRG->first );	
 	srg.Description  = itRG->second; //description read in index file
-	srgd.Add( srg );       
-	namesMap[ itRG->first ] =0;
+	srgd.Add( srg );       	
+
+	namesMap[ itRG->first ].assigned =0;
+	namesMap[ itRG->first ].unknown  =0;
+	namesMap[ itRG->first ].conflict =0;
+	namesMap[ itRG->first ].wrong    =0;
+
+
+	if(itRG->first == "conflict" || itRG->first == "unknown" || itRG->first == "wrong" ){
+	    cerr<<"ERROR: The RG names cannot contain the words: \"conflict\" or \"unknown\" or \"wrong\""<<endl;
+	    return 1;
+	}
     }
+
+    namesMap[ "unknown" ].assigned=0;
+    namesMap[ "unknown" ].unknown=0;
+    namesMap[ "unknown" ].conflict=0;
+    namesMap[ "unknown" ].wrong=0;
+
+
 
     myHeader.ReadGroups=srgd;
     if(produceUnCompressedBAM)  
@@ -934,27 +980,46 @@ int main (int argc, char *argv[]) {
 
     //Print summary of RG assignment
     if(printSummary){
-     	map<string,int>::iterator it;   
+     	map<string,tallyForRG>::iterator it;   
 	unsigned int totalRG=0;	
 	unsigned int totalAssignRG=0;	
 
-	vector< pair<string,int> > toprintVec;
+	vector< pair<string,tallyForRG> > toprintVec;
 	for ( it=namesMap.begin() ; it != namesMap.end(); it++ ){
 	    toprintVec.push_back(  make_pair( it->first , it->second ) );
-	    totalRG+=it->second;
+	    totalRG+=it->second.assigned+it->second.unknown+it->second.conflict+it->second.wrong;
 	}
 
-	sort (toprintVec.begin(),   toprintVec.end(),   compareNameRG() ); 
+	sort (toprintVec.begin(),   toprintVec.end(),   compareNameTally() ); 
 	ofstream fileSummary;
 	fileSummary.open(filenameSummary.c_str());
 
 	if (fileSummary.is_open()){
 
-	    for(unsigned int i=0;i<toprintVec.size();i++){
-		fileSummary << toprintVec[i].first << "\t" << toprintVec[i].second << "\t"
-                            << 100.0*double(toprintVec[i].second)/double(totalRG) << "%\n" ;
-                totalAssignRG+=toprintVec[i].second;
+	    fileSummary << "RG\ttotal\ttotal%\tassigned\tassigned%\tunknown\tunknown%\tconflict\tconflict%\twrong\twrong%"<<endl;
+	    fileSummary<<dashes<<endl;
+	    for(unsigned int i=0;i<toprintVec.size();i++){		
+		unsigned int totalForRQ=toprintVec[i].second.assigned+toprintVec[i].second.unknown+toprintVec[i].second.conflict+toprintVec[i].second.wrong;
+
+		fileSummary << toprintVec[i].first << "\t" << totalForRQ << "\t"
+                            << 100.0*double(totalForRQ)/double(totalRG) << "%\t" ;
+
+		fileSummary  << toprintVec[i].second.assigned << "\t"
+                            << 100.0*double(toprintVec[i].second.assigned)/double(totalForRQ) << "%\t" ;
+
+		fileSummary  << toprintVec[i].second.unknown << "\t"
+                            << 100.0*double(toprintVec[i].second.unknown)/double(totalForRQ) << "%\t" ;
+
+		fileSummary <<  toprintVec[i].second.conflict << "\t"
+                            << 100.0*double(toprintVec[i].second.conflict)/double(totalForRQ) << "%\t" ;
+
+		fileSummary <<  toprintVec[i].second.wrong << "\t"
+                            << 100.0*double(toprintVec[i].second.wrong)/double(totalForRQ) << "%\n" ;
+		
+		 if(toprintVec[i].first != "unknown" )
+		     totalAssignRG+=toprintVec[i].second.assigned;
 	    }
+
 	    fileSummary<<dashes<<endl;
 	    fileSummary<<"ASSIGNED:\t"<< totalAssignRG<<"\t"<<100.0*double(totalAssignRG)/double(totalRG)<<"%"<<endl;
 	    fileSummary<<"PROBLEMS:\t"<< (totalRG-totalAssignRG)<<"\t"<<100.0*double(totalRG-totalAssignRG)/double(totalRG)<<"%"<<endl;
@@ -969,8 +1034,8 @@ int main (int argc, char *argv[]) {
     //Print over-represented sequences in conflict,unknown,wrong
     if(printError){
 	vector< pair<string,int> > conflictToPrint( conflictSeq.begin(), conflictSeq.end() ) ;
-	vector< pair<string,int> > unknownToPrint( unknownSeq.begin(), unknownSeq.end() ) ;
-	vector< pair<string,int> > wrongToPrint( wrongSeq.begin(), wrongSeq.end() ) ;
+	vector< pair<string,int> > unknownToPrint(  unknownSeq.begin(),  unknownSeq.end() ) ;
+	vector< pair<string,int> > wrongToPrint(    wrongSeq.begin(),    wrongSeq.end() ) ;
      	
 	sort (conflictToPrint.begin(),   conflictToPrint.end(),   compareNameRG() ); 
 	sort (unknownToPrint.begin(),    unknownToPrint.end(),    compareNameRG() ); 

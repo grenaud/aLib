@@ -286,7 +286,7 @@ void filterBAMAlign(BamAlignment * al){
     // 	al->SetIsFailedQC(true);
 
     if(likelihoodFlag){
-	likelihoodOS->write( (char *)&likeSeq, sizeof(likeSeq));
+	likelihoodOS->write( (char *)&avgExp, sizeof(avgExp));
     }
 
     if(entropy || entropyOSFlag  )
