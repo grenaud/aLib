@@ -525,7 +525,9 @@ rgAssignment assignReadGroup(
                                           - sortedLikelihood1[0].second
                                           - sortedLikelihood2[0].second ;
         }else {
-            toReturn.topWrongToTopCorrect = sortedLikelihoodAll[0].second -
+            // we compare one correct pair to two potentially wrong
+            // ones; add 0.3 to make it fair
+            toReturn.topWrongToTopCorrect = sortedLikelihoodAll[0].second + 0.3 -
                 oplus( sortedLikelihood1[0].second + sortedLikelihood2[1].second 
                      , sortedLikelihood1[1].second + sortedLikelihood2[0].second ) ;
         }

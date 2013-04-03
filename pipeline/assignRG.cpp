@@ -39,9 +39,9 @@ struct tallyForRG{
 
 static double rgScoreCutoff  = 80 ;             // two HQ bases can mismatch
 static double fracConflict   = 20 ;             // top shall be 100x more likely
-static double wrongness      = 0 ;              // 50% chance of being wrong
+static double wrongness      = 30 ;             // flag wrong if the wrong pair is 1000x more likely
 static int    mismatchesTrie = 2;
-static int      maxErrorHits = 20;
+static int    maxErrorHits   = 20;
 PrefixTree<string> * trieKnownString;
 static string dashes = "--------------------------------";
 
