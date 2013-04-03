@@ -487,10 +487,10 @@ void updateRecord( BamAlignment &al, const rgAssignment &rg )
     if( rg.predictedGroup.empty() ) {
 	predictedGroup="unknown";
     }
-
-    if( rg.conflict ){ zq += 'C' ; assigned=false; namesMap[predictedGroup].conflict++;  }
-    if( rg.wrong    ){ zq += 'W' ; assigned=false; namesMap[predictedGroup].wrong++;     }
-    if( rg.unknown  ){ zq += 'I' ; assigned=false; namesMap[predictedGroup].unknown++;   }
+    bool incrInTally=false;
+    if( rg.conflict ){ zq += 'C' ; assigned=false; if(!incrInTally){ namesMap[predictedGroup].conflict++; incrInTally=true;}  }
+    if( rg.wrong    ){ zq += 'W' ; assigned=false; if(!incrInTally){ namesMap[predictedGroup].wrong++;    incrInTally=true;}  }
+    if( rg.unknown  ){ zq += 'I' ; assigned=false; if(!incrInTally){ namesMap[predictedGroup].unknown++;  incrInTally=true;}  }
     if(assigned){
 	namesMap[predictedGroup].assigned++;
     }
@@ -739,6 +739,8 @@ int main (int argc, char *argv[]) {
 			      "\t\t"+"-i"+","+"--index"+"\t[index]"+"\t\t\t"+"File describing index sequences used"+"\n"+
 			      "\t\t"+"-o"+","+"--outfile"+"\t[outfile]"+"\t\t"+"Specify output file"+"\n"+
 			      "\t"+"\tOptional:"+"\n"+
+			      
+			      "\t\t"+"--maxerr"+"\t[max err]"+"\t\t"+""+"Print  # wrongly of assigned RG in the error log (--error) ["+stringify(maxErrorHits)+"] \n"+
                               "\t\t"+"-u" +"\t\t\t\t\t"           +"Produce uncompressed bam (good for pipe)"+"\n"+ 
 			      "\t\t"+"-s"+","+"--summary"+"\t[summary file]"+"\t\t"+"Summarize the RG tally in this file"+"\n"+
 			      "\t\t"+"-e"+","+"--error"  +"\t[error file]"+"\t\t"+"Summarize the indices that were not assigned to a RG"+"\n"+
@@ -818,11 +820,22 @@ int main (int argc, char *argv[]) {
 
 
 
+
+
+	if(strcmp(argv[i],"--maxerr") == 0 ){
+	    maxErrorHits =destringify<int>(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+
 	if(strcmp(argv[i],"--rgqual") == 0 ){
 	    rgScoreCutoff =destringify<double>(argv[i+1]);
 	    i++;
 	    continue;
 	}
+
+
 
 	if(strcmp(argv[i],"--fracconf") == 0 ){
 	    fracConflict =destringify<double>(argv[i+1]);

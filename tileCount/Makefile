@@ -1,16 +1,20 @@
 BAMTOOLS= /mnt/solexa/bin/bamtools-2.2.2
+LIBGAB   = /home/gabriel_renaud/lib/
 
+CXXFLAGS+= -O3 -Wall -I${BAMTOOLS}/include/ -I${LIBGAB}
+LDLIBS+= ${BAMTOOLS}/lib/libbamtools.a ${LIBGAB}utils.o -lm -lz
 
-
-CPPFLAGS := -O3 -lm -I${BAMTOOLS}/include/  -L${BAMTOOLS}/lib/ -lz -lbamtools
 
 all:	countClustersBAM count_clocs	
 
-countClustersBAM:	countClustersBAM.cpp
-	g++ $(CPPFLAGS) -o countClustersBAM countClustersBAM.cpp
+%.o: %.cpp
+	${CXX} -c ${CXXFLAGS} $^ 
 
-count_clocs:	count_clocs.cpp
-	g++ -O3 -lm -o count_clocs count_clocs.cpp
+countClustersBAM:	countClustersBAM.o
+	g++ $(LDFLAGS) -o $@ $^ $(LDLIBS)
+
+count_clocs:	count_clocs.o
+	g++ $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 
 clean:

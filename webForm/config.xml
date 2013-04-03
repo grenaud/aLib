@@ -1,16 +1,19 @@
 <?xml version="1.0"?>
 <aLibInfo>
+  <alibdir>/home/gabriel_renaud/projects/aLib/</alibdir>
   <illuminareaddir>/mnt/solexa/</illuminareaddir>
   <illuminawritedir>/mnt/ngs_data/</illuminawritedir>
   <illuminajson>/mnt/solexa/tmp/</illuminajson>
   <sequencers>
     <sequencer id="M00518" type="miseq"/>
-    <sequencer id="SN7001204"  type="hiseq"/>
+    <sequencer id="SN7001204" type="hiseq"/>
+    <sequencer id="SN7001204" type="hiseq"/>
   </sequencers>
   <runstodisplay>30</runstodisplay>
   <emailAddrToSend>gabriel_renaud@eva.mpg.de</emailAddrToSend>
   <genomedirectory>/mnt/solexa/Genomes/</genomedirectory>
-  <outputdirectory>/mnt/solexa/tmp/</outputdirectory>
+  <outputdirectory>/mnt/solexa/tmp/newpipe/</outputdirectory>
+  <tempdirectory>/mnt/solexa/tmp/</tempdirectory>
   <freeibispath>/mnt/solexa/bin/freeIbis/runBaseCalling.py</freeibispath>
   <controlindex>TTGCCGC</controlindex>
   <phixref>/mnt/solexa/Genomes/phiX/control/whole_genome.fa</phixref>

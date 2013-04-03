@@ -14,6 +14,13 @@ if( ! file_exists(getcwd()."/config.xml")  ){
     exit(1);
  }
 
+if( ! file_exists(getcwd()."/json2make.py")  ){
+    echo "Python script does not exist: ".getcwd()."/json2make.py";
+    exit(1);
+}
+
+$json2makePath=getcwd()."/json2make.py";
+
 $xmlconf = simplexml_load_file( getcwd()."/config.xml" );
 
 $emailAddrToSend=$xmlconf->emailAddrToSend;
@@ -32,7 +39,7 @@ $ctrlindex=$xmlconf->controlindex;
 $p7Indices=array();
 $p5Indices=array();
 
-#var_dump($xmlconf);
+//var_dump($xmlconf);
 foreach($xmlconf->p7indices->p7index as $p7ind){
 $p7Indices[ (string)$p7ind["id"] ] = (string)$p7ind["seq"];
 } 
@@ -41,7 +48,13 @@ foreach($xmlconf->p5indices->p5index as $p5ind){
 $p5Indices[ (string)$p5ind["id"] ] = (string)$p5ind["seq"];
 } 
 
+$sequencers=array();
 
+foreach($xmlconf->sequencers->sequencer as $seqelem){
+    /* print "#".(string)$seqelem["id"]."#<BR>"; */
+    /* print "#".(string)$seqelem["type"]."#<BR>"; */
+    $sequencers[ (string)$seqelem["id"] ] = (string)$seqelem["type"];
+}
 
 
 
@@ -51,7 +64,7 @@ function getGenomes(){
     $filelist=array();
     
     while($entryName = readdir($myDirectory)) {
-	#$item = $directoryToCheck."/".$entryName;
+	//$item = $directoryToCheck."/".$entryName;
 	if($entryName != "." and $entryName != ".."){
 	    $filelist[] = $entryName; 
 	}
@@ -63,10 +76,10 @@ function getGenomes(){
     return $filelist;
 }
 
-#variables
-#echo "-------------";
-#var_dump($_POST);
-#echo "-------------";
+/* variables */
+/* echo "-------------"; */
+/* var_dump($_POST); */
+/* echo "-------------"; */
 
 if ( isset( $_POST["step"] ) and $_POST["step"] >= 1 and $_POST["step"]<= 9 ) {
     call_user_func( "processStep" . (int)$_POST["step"] );
@@ -83,11 +96,11 @@ function processStep1() {
 
 function processStep2() {
 
-    #if ( isset( $_POST["submitButton"] ) and $_POST["submitButton"] =="< Back" ) {
+    //if ( isset( $_POST["submitButton"] ) and $_POST["submitButton"] =="< Back" ) {
     displayStep2();
-    #} else {
-	#displayThanks();
-    #}
+    /* } else { */
+    /* 	displayThanks(); */
+    /* } */
 }
 
 function processStep3() {
@@ -130,9 +143,9 @@ function displayStep1($runid) {
     $illuminareaddir="/mnt/solexa/";
 
     echo "<h1>Analysis for ".$runid."</h1>";
-    #gathering run information
+    //gathering run information
 
-    #echo $illuminareaddir;
+    //echo $illuminareaddir;
     $rundirectory=$illuminareaddir."/".$runid;
     $runxml=$rundirectory."/RunInfo.xml";
     $runinformation=array("runid"        => $runid,
@@ -173,7 +186,7 @@ function displayStep1($runid) {
 		    
 		}else{
 		    echo "ERROR: cannot determine type of read in RunInfo.xml";
-		    exit;	 
+		    exit(1);	 
 		}
 	    }
 	}
@@ -190,7 +203,9 @@ function displayStep1($runid) {
 	echo "Warning: The run has no RunInfo.xml file: ".$runxml;
     }
 
-    #var_dump($runinformation);
+    //var_dump($runinformation);
+    $runinformation["expname"]    = implode("_",array_slice(explode("_",$runid),1)); 
+
 
 
     echo "<h3>Step 1: Run Information</h3>";
@@ -199,7 +214,7 @@ function displayStep1($runid) {
     echo "<input type=\"hidden\" name=\"step\" value=\"2\" />";
     
 
-    echo "<label for=\"email\">Your email</label>:\n";
+    echo "<label for=\"email\">Your email (put commas if multiple emails)</label>:\n";
     echo "<input type=\"text\" size=\"12\" maxlength=\"75\" name=\"email\"><br />";
 
     echo "<BR>Number of cycles:<BR>\n";
@@ -227,8 +242,11 @@ function displayStep1($runid) {
 
     echo "<label for=\"TileCount\">Lane count</label>:\n";
     echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"TileCount\" value=\"".$runinformation["TileCount"]."\" readonly><br />";
+
+    echo "<label for=\"Experiment name\">Experiment name</label>:\n";
+    echo "<input type=\"text\" size=\"12\" maxlength=\"100\" name=\"ExperimentName\" value=\"".$runinformation["expname"]."\" readonly><br />";
     
-    #echo "<label for=\"TileCount\">Lane count</label>:\n";
+    //echo "<label for=\"TileCount\">Lane count</label>:\n";
 
     if($runinformation["LaneCount"] != 1){
     echo "<br>Which lanes belong to you ? <br>\n";
@@ -237,7 +255,7 @@ function displayStep1($runid) {
 	    echo $i.":<input type=\"checkbox\" value=\"".$i."\" name=\"lanes".$i."\"><br/>\n";
 	}
     }else{
-	echo "<br>Which lanes belong to you ? <br>\n";
+	echo "<br>Which lane(s) belong to you ? <br>\n";
 	echo "1:<input type=\"checkbox\" value=\"1\" name=\"lanes1\" checked ><br/>\n";
     }
 
@@ -252,6 +270,8 @@ function displayStep1($runid) {
 
 function displayStep2() {
     global $ctrlindex;
+    global $sequencers;
+
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
 
     //////////////////////////////////
@@ -261,17 +281,14 @@ function displayStep2() {
 
     $arrayfield=explode("_",$_POST["runid"]);    
     $seqtype="unknown";
-    #echo "field 1#".$arrayfield[1]."#";
-    $sequencers=array("M00518"     =>   "miseq",
-		      "SN7001204"  =>   "hiseq");
 
 
-    #echo  array_keys($sequencers);
+    /* echo  array_keys($sequencers); */
     if(isset($sequencers[ $arrayfield[1] ])) {
 	$seqtype=$sequencers[ $arrayfield[1] ];
     }else{
-
-	#exit;
+	
+	//exit;
     }
 
     $lanestoanalyze=array();
@@ -288,7 +305,7 @@ function displayStep2() {
 
     if(count($lanestoanalyze) == 0){
 	echo "No lanes selected";
-	exit;
+	exit(1);
     }
 
     if($_POST["cyclesread1"] == 0 &&
@@ -296,17 +313,18 @@ function displayStep2() {
        $_POST["cyclesindx1"] == 0 &&
        $_POST["cyclesindx2"] == 0 ){
 	echo "Cycles are all null";
-	exit;
+	exit(1);
     }
        
     if(!isset($_POST["email"]) ||
        !strstr($_POST["email"],"@") ){
 	echo "Please enter a valid email";
-	exit;
+	exit(1);
     }
       
 
     $runinformation=array("runid"        => $_POST["runid"],
+			  "expname"      => $_POST["ExperimentName"],
 			  "cyclesread1"  => $_POST["cyclesread1"],
 			  "cyclesread2"  => $_POST["cyclesread2"],
 			  "cyclesindx1"  => $_POST["cyclesindx1"],
@@ -317,10 +335,11 @@ function displayStep2() {
 			  "TileCount"    => $_POST["TileCount"],
 			  "email"        => $_POST["email"],
 			  "sequencer"    => $seqtype,
-			  "lanes"        => $lanestoanalyze);
-    #echo "\nvar";
-    #echo var_dump($runinformation);
-    #echo "\nend var\n";
+			  "lanes"        => $lanestoanalyze,
+			  );
+    /* echo "\nvar"; */
+    /* echo var_dump($runinformation); */
+    /* echo "\nend var\n"; */
     //////////////////////////////////
     //END checking step 1 variables
     ////////////////////////////////
@@ -328,18 +347,21 @@ function displayStep2() {
 
 
 
-    #$arrayfield=explode("_",$entryName);
-    #$seqtype="unknown";
-    #if(isset($sequencers[ $arrayfield[1] ])) {
-    #$seqtype=$sequencers[ $arrayfield[1] ];
-    #}
+    /* $arrayfield=explode("_",$entryName); */
+    /* $seqtype="unknown"; */
+    /* if(isset($sequencers[ $arrayfield[1] ])) { */
+    /* $seqtype=$sequencers[ $arrayfield[1] ]; */
+    /* } */
 
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
     echo "<input type=\"hidden\" name=\"step\" value=\"3\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
-    #echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
+    //echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
     echo "<h3>Step 2: Basecalling</h3>";
-    echo "<BR>Basecalling is the process that converts the raw intensities into sequences. The default Illumina basecaller is Bustard and our custom basecaller is freeIbis. freeIbis is more accurate in terms of sequence and quality score but required control sequences. We recommend using Bustad for small MiSeqs and freeIbis for GAs or HiSeqs<BR>";
+    echo "<BR>Basecalling is the process that converts the raw intensities into sequences. The default Illumina basecaller is Bustard and our custom basecaller is freeIbis. freeIbis is more accurate in terms of sequence and quality score but required control sequences. We recommend using Bustard for small MiSeqs and freeIbis for GAs or HiSeqs<BR>";
+
+    echo "<label for=\"LaneCount\">Detected platform</label>:\n";
+    echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"platfType\" value=\"".$seqtype."\" readonly><br><br>";
 
     if($seqtype == "hiseq" || $seqtype == "ga" ){
 	echo "Bustard:<input type=\"checkbox\" value=\"bustard\" name=\"bustard\"\"><br/>\n";
@@ -363,7 +385,7 @@ function displayStep2() {
 	}
     }else{
 	echo "<br>Which lanes were used exclusively for phiX    ? <br>\n";
-	echo "1:<input type=\"checkbox\" value=\"1\" name=\"lanesdedicated1\" checked ><br/>\n";
+	echo "1:<input type=\"checkbox\" value=\"1\" name=\"lanesdedicated1\" ><br/>\n";
     }
     echo "</p>";
     echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
@@ -375,7 +397,7 @@ function displayStep2() {
 
 function displayStep3() {
     global $protocol2chimera;
-    #var_dump($_POST);
+    //var_dump($_POST);
     //////////////////////////////////
     //BEGIN checking step 2 variables
     ////////////////////////////////
@@ -412,7 +434,7 @@ function displayStep3() {
     if($runinformation["spikedin"] == "False" &&
        count($lanesdedicated) == 0 ){
 	echo "Error, you must specify which lanes were used for controls";
-        exit;
+        exit(1);
     } 
 
     //////////////////////////////////
@@ -424,13 +446,13 @@ function displayStep3() {
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
     echo "<input type=\"hidden\" name=\"step\" value=\"4\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
-    #echo "#";
-    #echo var_dump($runinformation);
-    #echo var_dump($protocol2chimera);
+    /* echo "#"; */
+    /* echo var_dump($runinformation); */
+    /* echo var_dump($protocol2chimera); */
     echo "Select the protocol used :<br/>\n";
     echo "<select name=\"protocol\">\n";
     foreach(array_keys($protocol2chimera) as $protocol){
-	#echo "PROT ".var_dump($protocol)."<BR>\n";
+	//echo "PROT ".var_dump($protocol)."<BR>\n";
 	echo "<option value=".$protocol.">". $protocol2chimera[$protocol][0] ."</option>\n";
     }
     echo "</select>\n";
@@ -439,16 +461,16 @@ function displayStep3() {
     echo "<input type=\"radio\" name=\"mergeoverlap\" value=\"False\" checked>after adapter trimming, they overlap completely<br>\n";
     echo "<input type=\"radio\" name=\"mergeoverlap\" value=\"True\" >The above plus if they show partial overlap (recommended for ancient DNA)<br>\n";
 
-    #missing key
-    #echo "<BR><BR>If a key is used, do you allow 1 mismatch in the key ?<BR>\n";
-    #echo "<input type=\"radio\" name=\"allowMissing\" value=\"True\" checked>Yes allow a mismatch  <input type=\"text\" name=\"ctrlindex\" value=\"$ctrlindex\" size=\"7\"><BR><BR>\n";
-    #echo "<input type=\"radio\" name=\"allowMissing\" value=\"False\"><br>\n";
+    /* missing key */
+    /* echo "<BR><BR>If a key is used, do you allow 1 mismatch in the key ?<BR>\n"; */
+    /* echo "<input type=\"radio\" name=\"allowMissing\" value=\"True\" checked>Yes allow a mismatch  <input type=\"text\" name=\"ctrlindex\" value=\"$ctrlindex\" size=\"7\"><BR><BR>\n"; */
+    /* echo "<input type=\"radio\" name=\"allowMissing\" value=\"False\"><br>\n"; */
 
 
     echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
 
     echo "</form>\n";
-    #echo "#";   
+    //echo "#";   
     
     
 }
@@ -461,13 +483,13 @@ function displayStep4() {
     ///////////////////////////////////
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
 
-    #var_dump($_POST);
+    //var_dump($_POST);
     //protocol
-    $runinformation["adapter1"]= $protocol2chimera[ $_POST["protocol"] ][1];
-    $runinformation["adapter2"]= $protocol2chimera[ $_POST["protocol"] ][2];
-    $runinformation["chimeras"]= $protocol2chimera[ $_POST["protocol"] ][3];
-    $runinformation["protocol"]= $_POST["protocol"];
-    $runinformation["mergeoverlap"]= ($_POST["mergeoverlap"]=="True");
+    $runinformation["adapter1"]     = $protocol2chimera[ $_POST["protocol"] ][1];
+    $runinformation["adapter2"]     = $protocol2chimera[ $_POST["protocol"] ][2];
+    $runinformation["chimeras"]     = $protocol2chimera[ $_POST["protocol"] ][3];
+    $runinformation["protocol"]     = $_POST["protocol"];
+    $runinformation["mergeoverlap"] = ($_POST["mergeoverlap"]=="True");
 
     //merging
     
@@ -511,20 +533,18 @@ function displayStep4() {
 
     echo "<input type=\"hidden\" name=\"step\" value=\"5\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
-    echo "Basic filtering:<BR>\n";
+
    echo "This step flags reads with an unusually high number of expected mismatches as failing the QC controls. The sequences remain in the BAM file but are labeled as failing quality controls<BR><BR>";
+    echo "Basic filtering:<BR>\n";
+    echo "<input type=\"radio\" name=\"filterseqexp\" value=\"False\" checked>Do not flag reads<BR>\n";
+    echo "<input type=\"radio\" name=\"filterseqexp\" value=\"True\">Flag reads with a high number of expected mismatches<br>\n";
 
-    echo "<input type=\"radio\" name=\"filterseqexp\" value=\"False\" checked>Do not filter reads<BR>\n";
-    echo "<input type=\"radio\" name=\"filterseqexp\" value=\"True\">Filter reads with a high number of expected mismatches<br>\n";
-
-     #echo "Filter reads with a high number of expected mismatches:<input type=\"checkbox\" value=\"True\" name=\"filterseqexp\" ><br/>\n";
-    #echo "Instead of filtering, trim the low quality bases at the 3' end instead<input type=\"checkbox\" value=\"1\" name=\"lanes1\" checked ><br/>\n";
 
     echo "Threshold for normalized number of expected mismatches  : <input type=\"text\" name=\"seqNormExpcutoff\" value=\"0.01\" size=\"5\"><BR><BR>\n";
-    echo "Additional filtering:<BR>\n";
-    echo "<input type=\"radio\" name=\"addfilters\" value=\"False\" checked>Do not use additional filters<br>\n";
-    echo "<input type=\"radio\" name=\"addfilters\" value=\"entropy\">Apply sequence entropy [0.0-2.0]  filter at:  <input type=\"text\" name=\"entropycutoff\" value=\"0.85\" size=\"5\"> <BR>\n";
-    echo "<input type=\"radio\" name=\"addfilters\" value=\"frequency\">Apply base frequency [0.0-1.0] filter at: <input type=\"text\" name=\"frequencycutoff\" value=\"0.1\" size=\"5\"> <BR>\n";    
+    echo "Additional flagging:<BR>\n";
+    echo "<input type=\"radio\" name=\"addfilters\" value=\"False\" checked>Do not use additional flagging<br>\n";
+    echo "<input type=\"radio\" name=\"addfilters\" value=\"entropy\">Apply sequence entropy [0.0-2.0]  flag at:  <input type=\"text\" name=\"entropycutoff\" value=\"0.85\" size=\"5\"> <BR>\n";
+    echo "<input type=\"radio\" name=\"addfilters\" value=\"frequency\">Apply base frequency [0.0-1.0] flag at: <input type=\"text\" name=\"frequencycutoff\" value=\"0.1\" size=\"5\"> <BR>\n";    
 
     echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
 
@@ -569,7 +589,13 @@ function displayStep5() {
     $runinformation["filterfrequency"] = ($_POST["addfilters"] == "frequency");		    
     $runinformation["entropycutoff"]   = $_POST["entropycutoff"];
     $runinformation["frequencycutoff"] = $_POST["frequencycutoff"];
-		    
+
+    if( !$runinformation["filterseqexp"] &&
+	($runinformation["filterentropy"] || $runinformation["filterfrequency"]) ){
+	echo "Cannot filter on additional without using basic filtering";
+	exit;
+    }
+
 
     //////////////////////////////////
     //END checking step 4 variables //
@@ -625,7 +651,7 @@ function displayStep6() {
     global $p7Indices;
     global $p5Indices;
 
-   # echo "test6";
+    // echo "test6";
     
 
     ///////////////////////////////////
@@ -633,7 +659,11 @@ function displayStep6() {
     ///////////////////////////////////
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
     $indextext  = $_POST["indextext"];
-    $stringToPrint="";
+    if($runinformation["cyclesindx2"] != 0 ){
+	$stringToPrint="#Index1\tIndex2\tName\n";
+    }else{
+	$stringToPrint="#Index1\tName\n";
+    }
 
     $indexOfLines=0;
     $foundControl=0;
@@ -644,16 +674,16 @@ function displayStep6() {
     }
 
     
-    #CHECKING EACH LINE
+    //CHECKING EACH LINE
     foreach(explode("\n",$indextext) as $line){
 	
 	$line=trim($line);
-	#skip empty lines
+	//skip empty lines
 	if(strlen($line) == 0){
 	    continue 1;
 	}
 
-	#$arrayfield=explode("\t",$line);
+	//$arrayfield=explode("\t",$line);
 	$arrayfield=preg_split('/\s+/', $line);
 
 
@@ -672,7 +702,7 @@ function displayStep6() {
 
 
 	if($indexOfLines == 0){
-	    #CHECKING HEADER
+	    //CHECKING HEADER
 	    if($arrayfield[0] != "#index"){
 		echo "ERROR: the first field of the header must be #index (case sensitive)";
 		exit;
@@ -683,7 +713,7 @@ function displayStep6() {
 		exit;
 	    }
 
-	    #if($indextype  == "double"){
+	    //if($indextype  == "double"){
 	    if($runinformation["cyclesindx2"] != 0 ){
 
 		if($arrayfield[2] != "p5"){
@@ -693,7 +723,7 @@ function displayStep6() {
 	    }
 
 	}else{
-	    #CHECKING REMAINING FIELDS
+	    //CHECKING REMAINING FIELDS
 
 	    if(strstr($arrayfield[0],"\"") ||
 	       strstr($arrayfield[0],"'")  || 
@@ -738,10 +768,10 @@ function displayStep6() {
 	    }
 	}
 	$indexOfLines++;
-    } #for each field explode
+    } //for each field explode
 
     if($foundControl == 0){
-	#if($indextype       == "single"){
+	//if($indextype       == "single"){
 	if($runinformation["cyclesindx2"] == 0 ){
 	    $stringToPrint.="TTGCCGC\tcontrol\n";
 	}else{
@@ -753,10 +783,10 @@ function displayStep6() {
     //////////////////////////////////
     //END checking step 5 variables //
     //////////////////////////////////
-   # $runinformation["indicesseq"]=$stringToPrint;
-   # $runinformation["indicesraw"]= $_POST["indextext"];
+     /* $runinformation["indicesseq"]=$stringToPrint; */
+     /* $runinformation["indicesraw"]= $_POST["indextext"]; */
 
-    #var_dump($runinformation);
+    //var_dump($runinformation);
     echo "<h3>Step 6: Verify indices</h3>";
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
 
@@ -766,7 +796,7 @@ function displayStep6() {
     echo "The following indices will be used:<BR>\n";
     echo "<textarea readonly rows=\"20\" cols=\"100\" name=\"textindex\" wrap=\"physical\">".$stringToPrint."</textarea><br />\n";
     echo "<input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
-    #echo "<button onclick=\"history.go(-1);\">cancel</button>\n";
+    //echo "<button onclick=\"history.go(-1);\">cancel</button>\n";
     
 
     echo "</form>\n";
@@ -785,7 +815,7 @@ function displayStep7() {
     $runinformation["indicesseq"]= $_POST["textindex"];
     $runinformation["indicesraw"]= $_POST["testindexorig"];
 
-    #var_dump($runinformation);
+    //var_dump($runinformation);
 
 
     //////////////////////////////////
@@ -795,7 +825,7 @@ function displayStep7() {
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
     echo "<input type=\"hidden\" name=\"step\" value=\"8\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
-    #echo "Mapping using BWA<BR>\n";
+    //echo "Mapping using BWA<BR>\n";
     echo "Mapping using BWA:  <input type=\"checkbox\" value=\"True\" name=\"usebwa\" checked ><br/>\n";
     $arrayofGenomes=getGenomes();
     natcasesort($arrayofGenomes);
@@ -829,7 +859,7 @@ function displayStep8() {
 
 
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
-    $runinformation["usebwa"]     = $_POST["usebwa"];
+    $runinformation["usebwa"]     = isset($_POST["usebwa"]);
     $runinformation["genomebwa"]  = $_POST["genomebwa"];
     $runinformation["parambwa"]   = $_POST["parambwa"];
 
@@ -840,17 +870,19 @@ function displayStep8() {
 
     echo "<h3>Step 8: Summary</h3>";
 
-    #echo "Please review the following information prior to pressing submit:<BR>\n";
+    //echo "Please review the following information prior to pressing submit:<BR>\n";
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
     echo "<input type=\"hidden\" name=\"step\" value=\"9\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
-#    var_dump($runinformation);
+    //    var_dump($runinformation);
     echo "<BR>Please review the following information prior to submitting (submit buttom at the bottom of the page):<BR>\n";
     echo "<table   border=0>\n";
     echo "<TR><TD nowrap>      </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap> </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap>General:      </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap>Run ID      :</TD><TD> ".$runinformation["runid"]."</TD></TR>\n";
+    echo "<TR><TD nowrap>Experiment name:</TD><TD> ".$runinformation["expname"]."</TD></TR>\n";
+
     echo "<TR><TD nowrap>Sequencer      :</TD><TD> ".$runinformation["sequencer"]."</TD></TR>\n";
     echo "<TR><TD nowrap>Your email      :</TD><TD> ".$runinformation["email"]."</TD></TR>\n";
     echo "<TR><TD nowrap>Cycle for read1 :</TD><TD> ".$runinformation["cyclesread1"]."</TD></TR>\n";
@@ -858,7 +890,7 @@ function displayStep8() {
     echo "<TR><TD nowrap>Cycle for index 1 :</TD><TD> ".$runinformation["cyclesindx1"]."</TD></TR>\n";
     echo "<TR><TD nowrap>Cycle for index 2 :</TD><TD> ".$runinformation["cyclesindx2"]."</TD></TR>\n";
     echo "<TR><TD nowrap>Lanes to analyze:</TD><TD> ".implode(",",$runinformation["lanes"])."</TD></TR>\n";
-# echo "<TR><TD nowrap>Lanes to analyze:</TD><TD> ".implode(",",$runinformation["lanes"])."</TD></TR>\n";
+    // echo "<TR><TD nowrap>Lanes to analyze:</TD><TD> ".implode(",",$runinformation["lanes"])."</TD></TR>\n";
     echo "<TR><TD nowrap> </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap>      </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap>Basecalling:      </TD><TD></TD></TR>\n";
@@ -897,11 +929,11 @@ function displayStep8() {
     echo "<BR>Indices to use  :<BR><PRE>\n".($runinformation["indicesseq"])."</PRE><BR>\n";
     echo "<BR>Indices raw     :<BR><PRE>\n".($runinformation["indicesraw"])."</PRE><BR>\n";
 
-    #echo json_encode($runinformation);
+    //echo json_encode($runinformation);
     $runid=$runinformation["runid"];
     $targetfile=$outputdirectory."/".$runid."_".implode(",",$runinformation["lanes"]).".json";
     if(file_exists ( $targetfile )){
-       echo "<font color=red size=+2>Warning:</font> file ".$targetfile." already exists <br><br>";
+       echo "<font color=red size=+2>Warning:</font> file:<BR>".$targetfile." <BR>already exists, pressing submit will overwrite the data <br><br>";
     }
     echo "<input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Submit\" />\n";
 
@@ -913,41 +945,115 @@ function displayStep8() {
 function displayStep9() {
     global $outputdirectory;
     global $emailAddrToSend;
-
-
+    global $json2makePath;
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
+
+
+    //build directory 
     $runid=$runinformation["runid"];
-    $emailuser=$runinformation["email"];
 
-    $targetfile=$outputdirectory."/".$runid."_".implode(",",$runinformation["lanes"]).".json";
-    echo "printing to ".$targetfile."\n";
-    echo "printing to ".json_encode($runinformation)."\n";
+    if(!file_exists($outputdirectory."/".$runid."/")){
+	if(!mkdir($outputdirectory."/".$runid."/")){
+	    echo "ERROR: cannot create directory ".$outputdirectory."/".$runid."\n";
+	    exit;
+	}
+    }
+
+    if(!file_exists($outputdirectory."/".$runid."/build/")){
+	if(!mkdir($outputdirectory."/".$runid."/build/")){
+	    echo "ERROR: cannot create directory ".$outputdirectory."/".$runid."/build/"."\n";
+	    exit;
+	}
+    }
+
+    foreach($runinformation["lanes"] as $lanetouse){
+
+	if(!file_exists($outputdirectory."/".$runid."/build/lane".$lanetouse."/")){
+	    if(!mkdir($outputdirectory."/".$runid."/build/lane".$lanetouse."/")){
+		echo "ERROR: cannot create directory ".$outputdirectory."/".$runid."/build/lane".$lanetouse."/"."\n";
+		exit;
+	    }
+	}
+    
+    }
+    
+
+
+    $runid     = $runinformation["runid"];
+    $emailuser = $runinformation["email"];
+
+    $targetfile=$outputdirectory."/".$runid."/build/".$runid."_".implode(",",$runinformation["lanes"]).".json";
+    echo "printing to ".$targetfile."<BR>\n";
+    //echo "printing to ".json_encode($runinformation)."\n";
     $stringtoprint=json_encode($runinformation);
-
+    
     $fh = fopen($targetfile, 'w') or die("can't open $targetfile");
     fwrite($fh, $stringtoprint);
     fclose($fh);
-
-    #call json2make    
     
+    //call json2make    
+    //$json2makePath
+    if(0){
+	foreach($runinformation["lanes"] as $lanetouse){	
+	    $cmdToRun="python ".$json2makePath." --lanes ".$lanetouse." -o ".$outputdirectory."/".$runid."/build/ $targetfile";
+	    echo "<BR>".$cmdToRun."<BR><BR>";
+	    $outputStore="";
+	    $returnCode=1;
+
+	    exec($cmdToRun,$outputStore,$returnCode);
+	    if($returnCode != 0){
+		echo "Following command failed:<BR> ".$cmdToRun."<BR><BR>please contact directly ".$emailAddrToSend."<BR><BR>got the following output: ".var_dump($outputStore)." <br>\n";
+		exit;
+	    }
+	}    
+    }    
+
+    //send user email
+    $mailu = new EMail;
+    $mailu->Username = 'sbsuser';
+    $mailu->Password = 'sbs123';
+
+      
+    $mailu->SetFrom("sbsuser@eva.mpg.de","");  // Name is optional
+
+    foreach(explode(",",$emailuser) as $emailAddrTo){ //for each email in the array above
+	$mailu->AddTo($emailAddrTo,""); // Name is optional
+    }
+
+    $mailu->Subject = "Analysis submitted for run ".$runid;
+    $mailu->Message = "This is an automated message so please do not reply.\n------------------\nThe following user(s): ".$emailuser."\n".
+	"Submitted a request for analysis for run ".$runid.".\nPlease keep this email for your own personnal record\n\n\n------------------\nThe following parameters will be used: ".$targetfile."\n".
+	 "\n\n\n------------------:json file\n".json_encode($runinformation);
+    $mailu->ConnectTimeout = 30;  // Socket connect timeout (sec)
+    $mailu->ResponseTimeout = 8;  // CMD response timeout (sec)
+    $success = $mailu->Send();
+    $stringforscreen="";
+
+    if($success != 1){
+	$stringforscreen.="the user notification email WAS NOT sent successfully, contact directly ".$emailAddrToSend."<br>\n";
+    }else{
+	$stringforscreen.="the user notification email was sent successfully <br>\n";
+    }
+
+
+    //send admin email
     $mail = new EMail;
     $mail->Username = 'sbsuser';
     $mail->Password = 'sbs123';
     
     $mail->SetFrom("sbsuser@eva.mpg.de","");  // Name is optional
 
-    foreach($emailAddrToSend as $emailAddrTo){ //for each email in the array above
+    foreach(explode(",",$emailAddrToSend) as $emailAddrTo){ //for each email in the array above
 	$mail->AddTo($emailAddrTo,""); // Name is optional
     }
 
-    $mail->Subject = "Analysis submitted for run ".$runid;
+    $mail->Subject = "User submitted request for run ".$runid;
     $mail->Message = "User email ".$emailuser."\n".
 	 "Created the following file : ".$targetfile."\n".
 	 "with the following contents:\n------------------\n".json_encode($runinformation);
     $mail->ConnectTimeout = 30;  // Socket connect timeout (sec)
     $mail->ResponseTimeout = 8;  // CMD response timeout (sec)
     $success = $mail->Send();
-    $stringforscreen="";
     if($success != 1){
 	$stringforscreen.="the admin notification email WAS NOT sent successfully, contact directly ".implode(",",$emailAddrToSend)."<br>\n";
     }else{
@@ -955,9 +1061,6 @@ function displayStep9() {
     }
     
 
-    if(0){
-    
-    }
     
     
 

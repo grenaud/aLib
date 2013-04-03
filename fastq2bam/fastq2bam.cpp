@@ -93,13 +93,14 @@ int main (int argc, char *argv[]) {
     for(int i=0;i<(argc);i++){
         pCommandLine += (string(argv[i])+" ");
     }
-    putProgramInHeader(&header,pID,pName,pCommandLine);
+    putProgramInHeader(&header,pID,pName,pCommandLine,returnGitHubVersion(string(argv[0]),".."));
 
     //adding @RG in read group
     if(!readgroup.empty()){
 	
 	SamReadGroupDictionary  srgd;
 	SamReadGroup srg ( readgroup );	
+	srg.Sample        =readgroup;
 	srgd.Add( srg );       
 	header.ReadGroups=srgd;
     }
@@ -124,15 +125,33 @@ int main (int argc, char *argv[]) {
 	FastQObj * fo2=fqp2.getData();
 	vector<string> def1=allTokens( *(fo1->getID()), ' '  );
 	vector<string> def2=allTokens( *(fo2->getID()), ' ' );
-	if(def1[0] != def2[0]){
+	string def1s=def1[0];
+	string def2s=def2[0];
+
+	if(strEndsWith(def1s,"/1")){
+	    def1s=def1s.substr(0,def1s.size()-2);
+	}
+	if(strEndsWith(def2s,"/2")){
+	    def2s=def2s.substr(0,def2s.size()-2);
+	}
+
+	if(strBeginsWith(def1s,"@")){
+	    def1s=def1s.substr(1,def1s.size()-1);
+	}
+	if(strBeginsWith(def2s,"@")){
+	    def2s=def2s.substr(1,def2s.size()-1);
+	}
+
+
+	if(def1s != def2s){
 	    cerr << "ERROR: Discrepency between fastq files, different names " << *(fo1->getID()) <<" and "<< *(fo2->getID()) <<endl;
 	    return 1;
 	}
 	
 	BamAlignment toWrite1;
 	BamAlignment toWrite2;
-	toWrite1.Name=def1[0];
-	toWrite2.Name=def2[0];
+	toWrite1.Name=def1s;
+	toWrite2.Name=def2s;
 
 	toWrite1.AlignmentFlag=flagFirstPair;
 	toWrite2.AlignmentFlag=flagSecondPair;
