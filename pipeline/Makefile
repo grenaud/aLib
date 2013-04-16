@@ -23,5 +23,5 @@ errorRatePerCycle: errorRatePerCycle.o   ${LIBGAB}ReconsReferenceBAM.o
 	${CXX} -o $@ $^ $(LDLIBS)
 
 clean:
-	rm -f mergeTrimReadsBAM MergeTrimReads.o PrefixTree.o RGAssign.o assignRG filterReads errorRatePerCycle errorRatePerCycle.o
+	rm -f mergeTrimReadsBAM  assignRG filterReads errorRatePerCycle *.o
 

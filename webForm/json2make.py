@@ -127,7 +127,7 @@ def checkPrograms():
   
 
 parser = OptionParser(usage="usage: %prog [options] <json doc>");
-parser.add_option("-o", "--outdir", dest="outdir", help="Out directory to put the makefile");
+parser.add_option("-o", "--outdir", dest="outdir", help="Out directory to put the makefile, will create directories like [outdir]/../Report/ etc");
 parser.add_option("--trainlanes",dest="trainlanes", help="Consider only a subset of lanes for training freeIbis (default use data from json)",default="1-8")
 parser.add_option("--lanes",     dest="lanes",help="Consider only a subset of lanes for the Makefile (default use all from json)")
 
@@ -415,6 +415,7 @@ for lanetopredict in lanesToUse:
 #GENERATE REPORT
 #################################################
 
+makeWrite[int(lanetopredict)].write("Default:\n\tall");
 
 for lanetopredict in lanesToUse:
 
@@ -681,7 +682,7 @@ for baseCaller in BasecallersUsed:
     cmdTileCounter =  Tilecounter;
     cmdTileCounter += " -o "+str(outBaseDirectory+"/"+baseCaller+"/QC/");
     cmdTileCounter += " -b "+str(",".join(listOfBAMfilesToCheck[lanetopredict]));
-    cmdTileCounter += " -r "+str(illuminareaddir+"/"+jsondata["runid"])
+    cmdTileCounter += " -r "+str(illuminareaddir+"/"+jsondata["runid"]+"/Data/Intensities/")
     cmdTileCounter += " -l "+str(lanetopredict);
     makeWrite[int(lanetopredict)].write("\t"+cmdTileCounter+"\n");
 
@@ -852,7 +853,7 @@ makeGeneralWrite.write(".PHONY: subdirs $(SUBDIRS)\n\n");
 makeGeneralWrite.write("subdirs: $(SUBDIRS)\n\n");
 
 makeGeneralWrite.write("$(SUBDIRS):\n");
-makeGeneralWrite.write("\t$(MAKE) -C $@\n\n");
+makeGeneralWrite.write("\t$(MAKE) -C $@ all\n\n");
 
 for cleantarg in typesofclean:
   makeGeneralWrite.write(cleantarg+":\n");

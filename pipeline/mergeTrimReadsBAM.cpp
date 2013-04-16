@@ -68,7 +68,8 @@ int main (int argc, char *argv[]) {
     string key="";
     bool allowMissing=false;
     int trimCutoff=1;
-    
+
+    bool allowAligned=false;
     bool printLog=false;
     string logFileName;
 
@@ -93,6 +94,7 @@ int main (int argc, char *argv[]) {
 
 			      //	"\t"+" , --outprefix" +"\n\t\t"+"Prefix for output files (default '"+outprefix+"')."+"\n"+
 			      //"\t"+" , --SAM" +"\n\t\t"+"Output SAM not BAM."+"\n"+
+			      "\t"+"--aligned" +"\t\t"+"Allow reads to be aligned (default "+boolStringify(allowAligned)+")"+"\n"+
 			      "\t"+"-v , --verbose" +"\t\t"+"Turn all messages on (default "+boolStringify(verbose)+")"+"\n"+
 			      "\t"+"--log [log file]" +"\t"+"Print a tally of merged reads to this log file (default only to stderr)"+"\n"+
 			      
@@ -136,6 +138,13 @@ int main (int argc, char *argv[]) {
 	    produceUnCompressedBAM=true;
 	    continue;
 	}
+
+	if(strcmp(argv[i],"--aligned") == 0  ){
+	    allowAligned=true;
+	    continue;
+	}
+
+
 
 	if(strcmp(argv[i],"-o") == 0 || strcmp(argv[i],"--outfile") == 0 ){
 	    bamFileOUT =string(argv[i+1]);
@@ -278,9 +287,14 @@ int main (int argc, char *argv[]) {
     
     while ( reader.GetNextAlignment(al) ) {
 
+	
 	if(al.IsMapped() || al.HasTag("NM") || al.HasTag("MD")  ){
-	    cerr << "Reads should not be aligned" << endl;
-	    return 1;
+	    if(!allowAligned){
+		cerr << "Reads should not be aligned" << endl;
+		return 1;
+	    }else{
+		//should we remove tags ?
+	    }
 	}
 
 
