@@ -1,0 +1,7 @@
+**/*.o
+**/*.a
+**/tags
+pipeline/assignRG
+pipeline/errorRatePerCycle
+pipeline/filterReads
+pipeline/mergeTrimReadsBAM
