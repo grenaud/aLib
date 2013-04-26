@@ -192,7 +192,7 @@ indexData intern_readIndex(string filename){
                                     if(toReturn.isDoubleIndex){
                                         //duplicated names
                                         foundName=line.substr(lastOneNW,i-lastOneNW);
-
+					
                                         if(toReturn.namesMap.find(  foundName  ) !=  toReturn.namesMap.end()){
                                             cerr<<"Warning: The sequence name is duplicated "<<foundName<<endl;
                                             //exit(1);

@@ -423,7 +423,7 @@ static string get_string_field( BamAlignment &al, const char* name )
     if(al.HasTag(name)) {
         char ttype;
         if( !al.GetTagType(name,ttype) ) {
-            cerr << "Unable to get tag type" << endl;
+            cerr << "Unable to get tag ("<<name<<") type for read  " << al.Name<<endl;
             exit(1);
         }
         if( ttype=='Z' || ttype=='H' ) {
@@ -503,6 +503,7 @@ void updateRecord( BamAlignment &al, const rgAssignment &rg )
         al.RemoveTag("Z2");
         zq += 'I';
 	//namesMap[ "unknown" ] ++;
+	//        al.EditTag("RG","Z","unknown");
     } else    {
 	//namesMap[ predictedGroup ] ++;
         al.EditTag("RG","Z",rg.predictedGroup);
