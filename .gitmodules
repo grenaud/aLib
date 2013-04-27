@@ -5,3 +5,6 @@
 [submodule "libgab"]
 	path = libgab
 	url = https://github.com/grenaud/libgab
+[submodule "network-aware-bwa"]
+	path = network-aware-bwa
+	url = git@github.com:udo-stenzel/network-aware-bwa.git

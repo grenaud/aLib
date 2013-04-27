@@ -525,6 +525,11 @@ int main (int argc, char *argv[]) {
 		}else{
 		    if( result.code == ' ')
 			count_nothing++;
+            //if we use the Dup flag ourselves, clear it
+            if(keepOrig){ 
+                al.SetIsDuplicate(false);
+                al2.SetIsDuplicate(false);
+            }
 		    //keep the sequences as pairs
 		    writer.SaveAlignment(al2);
 		    writer.SaveAlignment(al);
