@@ -309,16 +309,6 @@ if(jsondata["usebwa"] == "true"):
     print "Target BWA index file not found "+TARGETGENOMEBWA;
     sys.exit(1);
 
-#BEGIN Writing indices
-
-fileWithIndices=options.outdir+"indices.txt";
-indicesWrite = open (fileWithIndices , 'w' ) ;
-indicesWrite.write( jsondata["indicesseq"] ); 
-indicesWrite.close();
-
-#END Writing indices
-
-
 
 
 
@@ -401,6 +391,8 @@ for l in range(int(jsondata["LaneCount"])+1):
   print "l"+str(l)+"\n";
   makeWrite.append(None);
 
+
+
 #for l in range(1,int(jsondata["LaneCount"])+1):
 #  print "l2 "+str(l)+"\n";
 #  makeWrite.append(None);
@@ -408,6 +400,12 @@ for l in range(int(jsondata["LaneCount"])+1):
 for lanetopredict in lanesToUse:
   makefilePath=options.outdir+"/lane"+str(lanetopredict)+"/Makefile";
   makeWrite[int(lanetopredict)] = open (makefilePath , 'w' ) ;
+#BEGIN Writing indices
+  fileWithIndices=options.outdir+"/lane"+str(lanetopredict)+"/indices.txt";
+  indicesWrite = open (fileWithIndices , 'w' ) ;
+  indicesWrite.write( jsondata["indicesseq"] ); 
+  indicesWrite.close();
+#END Writing indices
 
 
 
@@ -415,17 +413,17 @@ for lanetopredict in lanesToUse:
 #GENERATE REPORT
 #################################################
 
-makeWrite[int(lanetopredict)].write("Default:\n\tall");
+makeWrite[int(lanetopredict)].write("Default:\tall\n\n");
 
 for lanetopredict in lanesToUse:
 
   if(not listOfFilesBasecall[lanetopredict]):#empty
-    listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/Report/Summary.htm");
+    listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/Report/Summary.html");
 
   if(jsondata["sequencer"] == "miseq"):
-    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Report/Summary.htm:\n\t"+rtaReportHask+" -o "+outBaseDirectory+"/Report/ "+illuminareaddir+"/"+jsondata["runid"]+"\n\n");
+    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Report/Summary.html:\n\t"+rtaReportHask+" -o "+outBaseDirectory+"/Report/ "+illuminareaddir+"/"+jsondata["runid"]+"\n\n");
   else:
-    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Report/Summary.htm:\n\t"+rtaReportPython+" -o "+outBaseDirectory+"/Report/ "+illuminareaddir+"/"+jsondata["runid"]+"\n\n");
+    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Report/Summary.html:\n\t"+rtaReportPython+" -o "+outBaseDirectory+"/Report/ "+illuminareaddir+"/"+jsondata["runid"]+"\n\n");
 
 
 
@@ -670,7 +668,7 @@ for baseCaller in BasecallersUsed:
 #QC CONTROL
 #################################################
   listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/*");
-  listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/*");
+  #listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/*");
   listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/qscores/*");
       
   for lanetopredict in lanesToUse:
@@ -743,7 +741,7 @@ for baseCaller in BasecallersUsed:
       makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam:\t"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_ctrl.bam\n");
       listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam");
 
-      cmdBWACTRL = "bwa bam2bam -t 1 -g "+BWAGENOMES+"/"+jsondata["genomebwa"]+"bwa-0.4.9"+" -f "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam"+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_ctrl.bam";
+      cmdBWACTRL = "bwa bam2bam -t 1 -g "+BWAGENOMES+"/"+jsondata["genomebwa"]+"/bwa-0.4.9"+" -f "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam"+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_ctrl.bam";
       makeWrite[int(lanetopredict)].write("\t"+cmdBWACTRL+"\n");
 
 
@@ -759,7 +757,7 @@ for baseCaller in BasecallersUsed:
 #QC SCORES, OBS VS PREDICTED
       readlengths=str(jsondata["cyclesread1"]);
       if(jsondata["cyclesread2"] != 0):
-        readlengths=","+str(jsondata["cyclesread2"]);
+        readlengths=readlengths+","+str(jsondata["cyclesread2"]);
 
 
       makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam.baseobspred6:\t"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam\n");    
@@ -769,8 +767,8 @@ for baseCaller in BasecallersUsed:
       cmdDataOBSPRED += " "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam"+" /dev/null "+readlengths;#replace with actual mask files for freeIbis
       makeWrite[int(lanetopredict)].write("\t"+cmdDataOBSPRED+"\n");
 
-      makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam.baseobspred.dens.pdf :\t"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam.baseobspred6\n");
-      listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam.baseobspred6.dens.pdf ");
+      makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam.baseobspred.dens.pdf:\t"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam.baseobspred6\n");
+      listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam.baseobspred.dens.pdf ");
       cmdDataOBSPREDR = "R CMD BATCH --vanilla --quiet ";
       cmdDataOBSPREDR += "  '--args "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam"+" "+jsondata["expname"]+" ' ";
       cmdDataOBSPREDR += PredvsobsR;

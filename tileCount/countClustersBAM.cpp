@@ -18,14 +18,21 @@ using namespace std;
 using namespace BamTools;
 
 int main (int argc, char *argv[]) {
+    bool ignorePCRDup=false;
     if( (argc== 1) ||
 	(argc== 2 && string(argv[1]) == "-h") ||
 	(argc== 2 && string(argv[1]) == "-help") ||
 	(argc== 2 && string(argv[1]) == "--help") ){
 	cout<<"Usage:"<<endl;
 	cout<<""<<endl;
-	cout<<"countClustersBAM file1.bam [file2.bam file3.bam ..]"<<endl;
+	cout<<"countClustersBAM [options] file1.bam [file2.bam file3.bam ..]\nOptions:\n\t-i ignore those reads marked as PCR duplicates"<<endl;
 	return 1;
+    }
+
+    for(int argument=1;argument<argc;argument++){
+	if(string(argv[argument]) == "-i"){
+	    ignorePCRDup=true;
+	}
     }
 
     unsigned long counter=0;
@@ -45,6 +52,9 @@ int main (int argc, char *argv[]) {
 	BamAlignment al;
 	//    while ( reader.GetNextAlignment(al) ) {
 	while ( reader.GetNextAlignmentCore(al) ) {
+	    //skip PCR duplicates if the flag was set
+	    if(ignorePCRDup && al.IsDuplicate())
+		continue;
 
 	    if(al.IsPaired()){
 		if(al.IsFirstMate()){

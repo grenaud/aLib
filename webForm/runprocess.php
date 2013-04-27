@@ -357,7 +357,7 @@ function displayStep2() {
     echo "<input type=\"hidden\" name=\"step\" value=\"3\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
     //echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
-    echo "<h3>Step 2: Basecalling</h3>";
+    echo "<h3>Step 2: Basecalling (run id: ".$runinformation["runid"].") </h3><br>\n";   
     echo "<BR>Basecalling is the process that converts the raw intensities into sequences. The default Illumina basecaller is Bustard and our custom basecaller is freeIbis. freeIbis is more accurate in terms of sequence and quality score but required control sequences. We recommend using Bustard for small MiSeqs and freeIbis for GAs or HiSeqs<BR>";
 
     echo "<label for=\"LaneCount\">Detected platform</label>:\n";
@@ -441,7 +441,7 @@ function displayStep3() {
     //END checking step 2 variables
     ////////////////////////////////
 
-    echo "<h3>Step 3: Merging/trimming adapters</h3>";
+    echo "<h3>Step 3: Merging/trimming adapters (run id: ".$runinformation["runid"].") </h3><br>\n";   
 
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
     echo "<input type=\"hidden\" name=\"step\" value=\"4\" />\n";
@@ -449,16 +449,19 @@ function displayStep3() {
     /* echo "#"; */
     /* echo var_dump($runinformation); */
     /* echo var_dump($protocol2chimera); */
-    echo "Select the protocol used :<br/>\n";
+    echo "<b>Select the protocol used</b>:<br/>\n";
     echo "<select name=\"protocol\">\n";
     foreach(array_keys($protocol2chimera) as $protocol){
 	//echo "PROT ".var_dump($protocol)."<BR>\n";
 	echo "<option value=".$protocol.">". $protocol2chimera[$protocol][0] ."</option>\n";
     }
     echo "</select>\n";
-    echo "<BR><BR><img src=\"images/diagramOverlapseq.gif\" alt=\"merge diagram\"  height=\"500\" width=\"600\">\n";
-    echo "<BR><BR>Merge paired reads if<BR>\n";
-    echo "<input type=\"radio\" name=\"mergeoverlap\" value=\"False\" checked>after adapter trimming, they overlap completely<br>\n";
+
+    echo "<BR><BR><b>Merging/trimming</b>:<br/>\n";
+
+    echo "<BR><img src=\"images/diagramOverlapseq.gif\" alt=\"merge diagram\"  height=\"500\" width=\"600\">\n";
+    echo "<BR>Merge paired reads if<BR>\n";
+    echo "<input type=\"radio\" name=\"mergeoverlap\" value=\"False\" checked>after adapter trimming, if they overlap completely<br>\n";
     echo "<input type=\"radio\" name=\"mergeoverlap\" value=\"True\" >The above plus if they show partial overlap (recommended for ancient DNA)<br>\n";
 
     /* missing key */
@@ -509,7 +512,7 @@ function displayStep4() {
 
 
     if($keypossible){
-	echo "<h3>Step 4: Key and Quality flagging</h3>\n";
+	echo "<h3>Step 4: Key and Quality flagging  (run id: ".$runinformation["runid"].")</h3><br>\n";   
 	echo "<form action=\"runprocess.php\" method=\"post\">\n";   
 	echo "The library protocol allows for reading a key in the beginning of a read, specify the key:<BR>\n";
 	if($runinformation["cyclesread2"] == 0 ){ //single-end
@@ -521,7 +524,7 @@ function displayStep4() {
 	}
 	echo "<BR><BR>";
     }else{
-	echo "<h3>Step 4: Quality flagging</h3>";
+	echo "<h3>Step 4: Quality flagging (run id: ".$runinformation["runid"].")</h3><br>\n";   
 	echo "<form action=\"runprocess.php\" method=\"post\">\n";
 	echo "<input type=\"hidden\" name=\"key1\" value=\"\" />\n";
 	echo "<input type=\"hidden\" name=\"key2\" value=\"\" />\n";
@@ -602,7 +605,7 @@ function displayStep5() {
     //////////////////////////////////
 
 
-    echo "<h3>Step 5: Read group assignment</h3>";
+    echo "<h3>Step 5: Read group assignment (run id: ".$runinformation["runid"].") </h3><br>\n";   
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
 
     echo "<input type=\"hidden\" name=\"step\" value=\"6\" />\n";
@@ -787,7 +790,7 @@ function displayStep6() {
      /* $runinformation["indicesraw"]= $_POST["indextext"]; */
 
     //var_dump($runinformation);
-    echo "<h3>Step 6: Verify indices</h3>";
+    echo "<h3>Step 6: Verify indices (run id: ".$runinformation["runid"].")</h3><br>\n";   
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
 
     echo "<input type=\"hidden\" name=\"step\" value=\"7\" />\n";
@@ -821,7 +824,8 @@ function displayStep7() {
     //////////////////////////////////
     //END checking step 6 variables //
     //////////////////////////////////
-    echo "<h3>Step 7: Mapping</h3>";
+    echo "<h3>Step 7: Mapping (run id: ".$runinformation["runid"].")</h3><br>\n"; 
+
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
     echo "<input type=\"hidden\" name=\"step\" value=\"8\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
@@ -875,7 +879,7 @@ function displayStep8() {
     echo "<input type=\"hidden\" name=\"step\" value=\"9\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
     //    var_dump($runinformation);
-    echo "<BR>Please review the following information prior to submitting (submit buttom at the bottom of the page):<BR>\n";
+    echo "<BR>Please review the following information prior to submitting (\"submit\" buttom at the bottom of the page):<BR>\n";
     echo "<table   border=0>\n";
     echo "<TR><TD nowrap>      </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap> </TD><TD></TD></TR>\n";
@@ -910,13 +914,20 @@ function displayStep8() {
     echo "<TR><TD nowrap>      </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap>Quality filtering:      </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap>Flag sequences with high exp. of mismatch  :</TD><TD> ".(($runinformation["filterseqexp"]=="1")?"yes":"no")."</TD></TR>\n";
-    echo "<TR><TD nowrap>Normalized expectency of mismatch cutoff    :</TD><TD> ".($runinformation["seqNormExpcutoff"])."</TD></TR>\n";
-
+    if( ($runinformation["filterseqexp"]=="1") ){
+	echo "<TR><TD nowrap>Normalized expectency of mismatch cutoff    :</TD><TD> ".($runinformation["seqNormExpcutoff"])."</TD></TR>\n";
+    }
+    
     echo "<TR><TD nowrap>Flag sequences based on  entropy  :</TD><TD> ".(($runinformation["filterentropy"])?"yes":"no")."</TD></TR>\n";
-    echo "<TR><TD nowrap>Entropy cutoff  :</TD><TD> ".($runinformation["entropycutoff"])."</TD></TR>\n";
 
+    if( ($runinformation["filterentropy"]=="1") ){
+	echo "<TR><TD nowrap>Entropy cutoff  :</TD><TD> ".($runinformation["entropycutoff"])."</TD></TR>\n";
+    }
     echo "<TR><TD nowrap>Flag sequences using frequency  :</TD><TD> ".(($runinformation["filterfrequency"])?"yes":"no")."</TD></TR>\n";
-    echo "<TR><TD nowrap>Frequency cutoff  :</TD><TD> ".($runinformation["frequencycutoff"])."</TD></TR>\n";
+
+    if( ($runinformation["filterfrequency"]=="1") ){
+	echo "<TR><TD nowrap>Frequency cutoff  :</TD><TD> ".($runinformation["frequencycutoff"])."</TD></TR>\n";
+    }
     echo "<TR><TD nowrap> </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap>      </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap>BWA mapping:     </TD><TD></TD></TR>\n";
@@ -993,7 +1004,7 @@ function displayStep9() {
     
     //call json2make    
     //$json2makePath
-    if(0){
+    if(1){
 	foreach($runinformation["lanes"] as $lanetouse){	
 	    $cmdToRun="python ".$json2makePath." --lanes ".$lanetouse." -o ".$outputdirectory."/".$runid."/build/ $targetfile";
 	    echo "<BR>".$cmdToRun."<BR><BR>";

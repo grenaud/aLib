@@ -54,12 +54,12 @@ int main (int argc, char *argv[]) {
     bool unsurePEorSE=true;
     bool pe=true;
     int strLength=-1;
-    int vecLengthToUse;
+    int vecLengthToUse=-1;
 
-    map<short,unsigned long>  ** counterA;
-    map<short,unsigned long>  ** counterC;
-    map<short,unsigned long>  ** counterG;
-    map<short,unsigned long>  ** counterT;
+    map<short,unsigned long>  ** counterA = 0;
+    map<short,unsigned long>  ** counterC = 0;
+    map<short,unsigned long>  ** counterG = 0;
+    map<short,unsigned long>  ** counterT = 0;
     
     int lengthIndex1=0;
     int lengthIndex2=0;
@@ -129,7 +129,7 @@ int main (int argc, char *argv[]) {
 	    cerr << "Cannot have different lengths for sequence and quality" << endl;
 	    return 1;
 	}
-	if(al.QueryBases.length() !=  strLength){
+	if(int(al.QueryBases.length()) !=  strLength){
 	    cerr << "Cannot have different lengths for sequence and quality" << endl;
 	    return 1;
 	}
@@ -151,7 +151,7 @@ int main (int argc, char *argv[]) {
 
 
 	//cycle
-	for(int i=0;i<al.QueryBases.length();i++){
+	for(unsigned int i=0;i<al.QueryBases.length();i++){
 	    short x=(short(al.Qualities[i])-qualOffset);
 	    if(al.QueryBases[i] == 'A'){
 	    	(*counterA[i])[x]++;
@@ -194,7 +194,7 @@ int main (int argc, char *argv[]) {
 	if(pe){
 	    offsetInd2=al.QueryBases.length()+lengthIndex1+al2.QueryBases.length();
 	    int j;
-	    for(int i=0;i<al2.QueryBases.length();i++){
+	    for(unsigned int i=0;i<al2.QueryBases.length();i++){
 		j=i+al.QueryBases.length()+lengthIndex1;
 		short x=(short(al2.Qualities[i])-qualOffset);
 		if(al2.QueryBases[i] == 'A'){
