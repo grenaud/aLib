@@ -416,7 +416,7 @@ function displayStep3() {
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
     $runinformation["freeibis"]   = isset($_POST["freeibis"]);
     $runinformation["bustard"]    = isset($_POST["bustard"]);
-    $runinformation["spikedin"]   = $_POST["spikedin"];
+    $runinformation["spikedin"]   = ($_POST["spikedin"] == "True");
     $runinformation["ctrlindex"]  = $_POST["ctrlindex"];
 
     $lanesdedicated=array();

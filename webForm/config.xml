@@ -12,7 +12,7 @@
   <runstodisplay>30</runstodisplay>
   <emailAddrToSend>gabriel_renaud@eva.mpg.de</emailAddrToSend>
   <genomedirectory>/mnt/solexa/Genomes/</genomedirectory>
-  <outputdirectory>/mnt/solexa/tmp/newpipe/</outputdirectory>
+  <outputdirectory>/mnt/ngs_data/</outputdirectory>
   <tempdirectory>/mnt/solexa/tmp/</tempdirectory>
   <freeibispath>/mnt/solexa/bin/freeIbis/runBaseCalling.py</freeibispath>
   <controlindex>TTGCCGC</controlindex>
