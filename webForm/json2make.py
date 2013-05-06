@@ -103,8 +103,8 @@ pathToConfig=sys.argv[0];
 pathToConfig=os.path.dirname(os.path.abspath(pathToConfig))+"/config.xml";
 #alibdir=os.path.dirname(os.path.abspath( sys.argv[0]+"/../"))
 
-print pathToConfig;
-print alibdir;
+#print pathToConfig;
+#print alibdir;
 try:
   tree =ET.parse(pathToConfig);
 except IOError:
@@ -269,7 +269,7 @@ if not os.path.exists(FastQCreport):
 
 
 
-print illuminareaddir;
+#print illuminareaddir;
 
 try:
   fileHandle = open ( sys.argv[-1] );
@@ -289,7 +289,7 @@ fileHandle.close();
 #print jsonstring;
 jsondata=json.loads(jsonstring);
 
-
+#pprint.pprint(jsondata);
 lanesToUse=[];
 
 if(options.lanes):
@@ -297,7 +297,7 @@ if(options.lanes):
 else:
   lanesToUse = jsondata["lanes"]
 
-print "LANE "+str(lanesToUse);
+#print "LANE "+str(lanesToUse);
 #sys.exit(1);
 
 if( jsondata["usebwa"] ):
@@ -390,7 +390,7 @@ if(jsondata["freeibis"]):
 
 makeWrite=[]
 for l in range(int(jsondata["LaneCount"])+1):
-  print "l"+str(l)+"\n";
+  #print "l"+str(l)+"\n";
   makeWrite.append(None);
 
 
@@ -436,7 +436,7 @@ for lanetopredict in lanesToUse:
 #BUSTARD
 if(jsondata["bustard"]):
   for lanetopredict in lanesToUse:
-    print lanetopredict;
+    #print lanetopredict;
     listOfBAMfilesToCheck[lanetopredict].append(outBaseDirectory+"/Bustard/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam");
     listOfFilesBasecall[lanetopredict].append(outBaseDirectory+"/Bustard/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam");
     listOfFilesBasecall[lanetopredict].append(outBaseDirectory+"/Bustard/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished");
@@ -445,7 +445,8 @@ if(jsondata["bustard"]):
 
     makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Bustard/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished: "+illuminareaddir+"/"+jsondata["runid"]+"/Run.completed \n\t"+
                     BCL2BAM+
-                    " -f "+jsondata["cyclesread1"]+" -r "+jsondata["cyclesread2"]+
+                    " -f "+jsondata["cyclesread1"]+
+                    " -r "+jsondata["cyclesread2"]+
                     " -i "+jsondata["cyclesindx1"]+
                     " -j "+jsondata["cyclesindx2"]+
                     " -p "+illuminareaddir+"/"+jsondata["runid"]+"/Data/Intensities/"+
@@ -476,14 +477,14 @@ if(jsondata["freeibis"]):
     clen = len(jsondata["key1"]);
     clen2= len(jsondata["key2"]);
 
-    if(jsondata["cyclesread2"] > 0):
+    if(int(jsondata["cyclesread2"]) > 0):
       if (clen > 0) and (clen2 == 0): 
-        start=str(clen+2)+","+str(jsondata["cyclesread1"]+jsondata["cyclesindx1"]+1+clen2);
+        start=str(clen+2)+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+1+clen2);
       elif (clen == 0) and (clen2 > 0): 
-        start=str(clen+1)+","+str(jsondata["cyclesread1"]+jsondata["cyclesindx1"]+2+clen2);
+        start=str(clen+1)+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+2+clen2);
       else:  #both keys are zero
-        start=str(clen+2)+","+str(jsondata["cyclesread1"]+jsondata["cyclesindx1"]+2+clen2);
-        end=str(jsondata["cyclesread1"])+","+str(jsondata["cyclesread1"]+jsondata["cyclesindx1"]+jsondata["cyclesread2"]);
+        start=str(clen+2)+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+2+clen2);
+        end=str(int(jsondata["cyclesread1"]))+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+int(jsondata["cyclesread2"]));
     else:
       if clen > 0: 
         start=str(clen+2)
@@ -513,7 +514,7 @@ if(jsondata["freeibis"]):
 
     #ERROR PROFILE
   makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Ibis/error_profile.pdf:\t"+(" ".join(finishedFiles)) );
-  makeWrite[int(lanetopredict)].write("\t"+FREEIBIS+"/plot_error.cmd.R "+outBaseDirectory+"/Ibis/Raw_Sequences/Models/SVMlight_models.index outBaseDirectory+"/Ibis/error_profile.pdf );
+  makeWrite[int(lanetopredict)].write("\t"+FREEIBIS+"/plot_error.cmd.R "+outBaseDirectory+"/Ibis/Raw_Sequences/Models/SVMlight_models.index "+outBaseDirectory+"/Ibis/error_profile.pdf" );
     
     
 makeWrite[int(lanetopredict)].write("\n");
@@ -570,7 +571,7 @@ for baseCaller in BasecallersUsed:
 
     conversion_str = MergeReads + " ";
 
-    if(jsondata["cyclesread2"] > 0):
+    if(int(jsondata["cyclesread2"]) > 0):
       conversion_str += " -k '%s,%s' -f '%s' -s '%s' -c '%s' "%( jsondata["key1"] ,jsondata["key2"],jsondata["adapter1"] ,jsondata["adapter2"],jsondata["chimeras"])
       if jsondata["mergeoverlap"] :
         conversion_str += "--mergeoverlap "
@@ -761,7 +762,7 @@ for baseCaller in BasecallersUsed:
 
 #QC SCORES, OBS VS PREDICTED
       readlengths=str(jsondata["cyclesread1"]);
-      if(jsondata["cyclesread2"] != 0):
+      if(int(jsondata["cyclesread2"]) != 0):
         readlengths=readlengths+","+str(jsondata["cyclesread2"]);
 
 
