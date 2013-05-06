@@ -562,6 +562,7 @@ If you plan to genotype, the first one might improve calls for low-coverage data
 
     echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n<BR><BR><hline>";
     echo "<a name=\"expmism\">
+<b>Explanation of the expected mismatches filter:</b><BR>
 Every base that is sequenced has a quality score. This quality score indicates the probability that the sequenced base is different from the one on the flowcell. For example, if the quality score is 0.001, the probability of error is 1/1000 and the probability of correctness is 999/1000. For this given base, the average expectation of mismatches is also 0.001. When summing up the average expected mismatches over the sequence, we can compute the expected number of mismatches for this given sequence. If you want to filter sequences that have an expected number of mismatches greater than 1 mismatch over 100 bases, use the first filter and use the 0.01 threshold.</a>\n";
 
     echo "</form>\n";
