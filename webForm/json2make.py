@@ -68,7 +68,7 @@ BCL2BAM              = "BCL2BAM/bcl2bam"
 FREEIBIS             = ""
 
 rtaReportHask        = "pipeline/generate_report"
-rtaReportPython      = "pipeline/generate_report.py"
+#rtaReportPython      = "pipeline/generate_report.py"
 
 MergeReads           = "pipeline/mergeTrimReadsBAM"
 IndexReassign        = "pipeline/assignRG"
@@ -195,10 +195,10 @@ if not os.path.exists(rtaReportHask):
   print "Required executable file not found "+rtaReportHask;
   sys.exit(1);
 
-rtaReportPython = alibdir+"/"+rtaReportPython;
-if not os.path.exists(rtaReportPython):
-  print "Required executable file not found "+rtaReportPython;
-  sys.exit(1);
+#rtaReportPython = alibdir+"/"+rtaReportPython;
+#if not os.path.exists(rtaReportPython):
+#  print "Required executable file not found "+rtaReportPython;
+#  sys.exit(1);
 
 IndexReassign = alibdir+"/"+IndexReassign;
 if not os.path.exists(IndexReassign):
@@ -266,7 +266,9 @@ if not os.path.exists(FastQCreport):
   sys.exit(1);
 
 
-
+if not os.path.exists(FREEIBIS+"/runBaseCalling.py"):
+  print "Required executable file not found "+FREEIBIS+"/runBaseCalling.py";
+  sys.exit(1);
 
 
 #print illuminareaddir;
@@ -422,10 +424,10 @@ for lanetopredict in lanesToUse:
   if(not listOfFilesBasecall[lanetopredict]):#empty
     listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/Report/Summary.html");
 
-  if(jsondata["sequencer"] == "miseq"):
-    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Report/Summary.html:\n\t"+rtaReportHask+" -o "+outBaseDirectory+"/Report/ "+illuminareaddir+"/"+jsondata["runid"]+"\n\n");
-  else:
-    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Report/Summary.html:\n\t"+rtaReportPython+" -o "+outBaseDirectory+"/Report/ "+illuminareaddir+"/"+jsondata["runid"]+"\n\n");
+  #if(jsondata["sequencer"] == "miseq"):
+  makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Report/Summary.html:\n\t"+rtaReportHask+" -o "+outBaseDirectory+"/Report/ "+illuminareaddir+"/"+jsondata["runid"]+"\n\n");
+  #else:
+  #  makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Report/Summary.html:\n\t"+rtaReportPython+" -o "+outBaseDirectory+"/Report/ "+illuminareaddir+"/"+jsondata["runid"]+"\n\n");
 
 
 

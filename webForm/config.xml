@@ -15,7 +15,7 @@
   <genomedirectory>/mnt/solexa/Genomes/</genomedirectory>
   <outputdirectory>/mnt/ngs_data/</outputdirectory>
   <tempdirectory>/mnt/solexa/tmp/</tempdirectory>
-  <freeibispath>/mnt/solexa/bin/freeIbis/runBaseCalling.py</freeibispath>
+  <freeibispath>/mnt/solexa/bin/freeIbis/</freeibispath>
   <controlindex>TTGCCGC</controlindex>
   <phixref>/mnt/solexa/Genomes/phiX/control/whole_genome.fa</phixref>
   <chimeras>
