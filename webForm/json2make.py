@@ -122,7 +122,7 @@ alibdir          = XMLconfig.find("alibdir").text;
 FREEIBIS         = XMLconfig.find("freeibispath").text;
 BWAGENOMES       = XMLconfig.find("genomedirectory").text;
 
-FastQCreport     =  XMLconfig.find("fastqcdir").text+"/"+FastQCreport;
+FastQCreport     = XMLconfig.find("fastqcdir").text+"/"+FastQCreport;
 
 def checkPrograms():
   global alibdir;
@@ -260,7 +260,7 @@ if not os.path.exists(PredvsobsR):
   print "Required executable file not found "+PredvsobsR;
   sys.exit(1);
 
-FastQCreport = alibdir+"/"+FastQCreport;
+FastQCreport = FastQCreport;
 if not os.path.exists(FastQCreport):
   print "Required executable file not found "+FastQCreport;
   sys.exit(1);
