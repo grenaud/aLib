@@ -2,6 +2,8 @@
 
 import sys,os
 import xml.etree.ElementTree as ET
+import shutil
+
 from datetime import date
 from optparse import OptionParser
 from optparse import OptionGroup
@@ -78,7 +80,8 @@ def delDirectory(dirtodel):
         print "deleting "+dirtodel;
     else:
         print "deleting "+dirtodel;
-        os.removedirs(dirtodel);
+        #os.removedirs(dirtodel);
+        shutil.rmtree(dirtodel);
 
 for filename in os.listdir(illuminareaddir):
     originaldirname=filename;
