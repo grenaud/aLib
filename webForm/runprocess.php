@@ -541,14 +541,14 @@ function displayStep4() {
     echo "<input type=\"hidden\" name=\"step\" value=\"5\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
 
-    echo "This section defines quality filters that can be applied on resulting sequences. Please note that the sequences will <b>not<b> be removed, they will simply be marked as QC fail in the BAM file (more information about BAM flags: http://samtools.sourceforge.net/samtools.shtml#5)<BR> We define two types of filtering  procedures:<BR>
+    echo "This section defines quality filters that can be applied on resulting sequences. Please note that the sequences will <b>not</b> be removed, they will simply be marked as QC fail in the BAM file (more information about BAM flags: http://samtools.sourceforge.net/samtools.shtml#5)<BR> We define two types of filtering  procedures:<BR>
 <UL>
-<LI> Standard filtering based on expected number of mismatches using quality scores
+<LI> Standard filtering based on expected number of mismatches using quality scores 
 <LI> Additional filtering based on the complexity of the sequence per se
 </UL>
-If you plan to genotype, the first one might improve calls for low-coverage data at the cost of a lesser amount of sequences while the second might improve <i>de novo</i> genome assemblies by removing low complexity sequences<BR>";
+If you plan to genotype, the first one might improve calls for low-coverage data at the cost of a lesser amount of sequences<BR> If you plan to do <i>de novo</i> genome assembly, the second might help by removing low complexity sequences<BR>";
 
-    echo "This step flags reads with an unusually high number of expected mismatches as failing the QC controls.<BR><BR>";
+    echo "This step flags reads with an unusually high number of expected mismatches as failing the QC controls. (more verbose description <a href=\"#expmism\">below</a>)<BR><BR>";
     echo "Basic filtering:<BR>\n";
     echo "<input type=\"radio\" name=\"filterseqexp\" value=\"False\" checked>Do not flag reads<BR>\n";
     echo "<input type=\"radio\" name=\"filterseqexp\" value=\"True\">Flag reads with a high number of expected mismatches<br>\n";
@@ -560,7 +560,9 @@ If you plan to genotype, the first one might improve calls for low-coverage data
     echo "<input type=\"radio\" name=\"addfilters\" value=\"entropy\">Apply sequence entropy [0.0-2.0]  flag at:  <input type=\"text\" name=\"entropycutoff\" value=\"0.85\" size=\"5\"> <BR>\n";
     echo "<input type=\"radio\" name=\"addfilters\" value=\"frequency\">Apply base frequency [0.0-1.0] flag at: <input type=\"text\" name=\"frequencycutoff\" value=\"0.1\" size=\"5\"> <BR>\n";    
 
-    echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
+    echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n<BR><BR><hline>";
+    echo "<a name=\"expmism\">
+Every base that is sequenced has a quality score. This quality score indicates the probability that the sequenced base is different from the one on the flowcell. For example, if the quality score is 0.001, the probability of error is 1/1000 and the probability of correctness is 999/1000. For this given base, the average expectation of mismatches is also 0.001. When summing up the average expected mismatches over the sequence, we can compute the expected number of mismatches for this given sequence. If you want to filter sequences that have an expected number of mismatches greater than 1 mismatch over 100 bases, use the first filter and use the 0.01 threshold.</a>\n";
 
     echo "</form>\n";
 
@@ -1017,8 +1019,8 @@ function displayStep9() {
     //$json2makePath
     if(1){
 	foreach($runinformation["lanes"] as $lanetouse){	
-	    $cmdToRun="python ".$json2makePath." --lanes ".$lanetouse." -o ".$outputdirectory."/".$runid."/build/ $targetfile";
-	    echo "<BR>".$cmdToRun."<BR><BR>";
+	    $cmdToRun="python ".$json2makePath." -o ".$outputdirectory."/".$runid."/build/ $targetfile";
+	    echo "<BR> Running command".$cmdToRun."<BR><BR>";
 	    $outputStore="";
 	    $returnCode=1;
 
@@ -1026,7 +1028,10 @@ function displayStep9() {
 	    if($returnCode != 0){
 		echo "Following command failed:<BR> ".$cmdToRun."<BR><BR>please contact directly ".$emailAddrToSend."<BR><BR>got the following output: ".var_dump($outputStore)." <br>\n";
 		exit;
+	    }else{
+		echo "<BR>succes!<BR>";
 	    }
+
 	}    
     }    
 

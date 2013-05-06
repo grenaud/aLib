@@ -279,15 +279,18 @@ map<string,string>  readIndexFile(string filename,int mismatchesTrie,bool _shift
     if(values.isDoubleIndex){
 	indTrie2 = new PrefixTree<int>  ();
     }
-
+    // PrefixTree<int> pairsOfIndex;
     for(int i=0;i<int(values.names.size());i++){
 
 	indTrie1->insertIntoTree( values.indices1[i].c_str() , i);
-	if(values.isDoubleIndex)
+	if(values.isDoubleIndex){
 	    indTrie2->insertIntoTree( values.indices2[i].c_str() , i);
-	
+	    //pairsOfIndex->insertIntoTree( values.indices1[i].c_str()+values.indices2[i].c_str() , i);	    
+	}	
     }
-
+    
+    
+    
     //detect conflicts ?
     cerr<<"Conflicts for index1:"<<endl;
     for(int i=0;i<int(values.names.size());i++){
@@ -324,6 +327,32 @@ map<string,string>  readIndexFile(string filename,int mismatchesTrie,bool _shift
 		cerr<<values.indices1[i]<<" from "<<values.names[i]<<" causes a conflict with "<<toPrint<<endl;
 	    }
 	}
+
+	cerr<<"Conflicts for pairs:"<<endl;
+	for(int i=0;i<int(values.names.size());i++){
+	    vector< int > matchesind1;
+	    vector< int > matchesind2;
+
+	    indTrie1->searchMismatch(values.indices1[i].c_str(),&matchesind1,mismatchesTrie);	    
+	    indTrie2->searchMismatch(values.indices2[i].c_str(),&matchesind2,mismatchesTrie);
+
+	    string toPrint="";
+
+	    for(unsigned int j=0;j<matchesind1.size();j++){
+		//found in second as well
+		if( find(matchesind2.begin(),
+			 matchesind2.end(),
+			 matchesind1[j]) != matchesind2.end() 
+		    &&
+		    matchesind1[j] != i)
+		    toPrint+=values.names[ matchesind1[j]  ]+" ";
+	    }
+
+	    if(toPrint.length() > 0){
+		cerr<<values.indices1[i]+"#"+values.indices2[i]<<" from "<<values.names[i]<<" causes a conflict with "<<toPrint<<endl;
+	    }
+	}
+	
     }
 
     return values.namesMap ;

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <aLibInfo>
-  <alibdir>/home/gabriel_renaud/projects/aLib/</alibdir>
+  <alibdir>/mnt/solexa/bin/aLib/</alibdir>
   <illuminareaddir>/mnt/solexa/</illuminareaddir>
   <illuminawritedir>/mnt/ngs_data/</illuminawritedir>
   <illuminajson>/mnt/solexa/tmp/</illuminajson>
