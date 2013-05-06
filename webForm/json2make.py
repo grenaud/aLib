@@ -86,7 +86,7 @@ Qualplotter          = "plotQualScores/plotQualScores.py";
 Ctrlextract          = "extractControlReadsBam/getCtrlReadsBAM";
 Predvsobs            = "qualScoreC++/qualScoresObsVsPred";
 PredvsobsR           = "qualScoreC++/generateplot.R";
-FastQCreport         = "FastQC/fastqc"
+FastQCreport         = "fastqc"
 
 
 
@@ -122,6 +122,7 @@ alibdir          = XMLconfig.find("alibdir").text;
 FREEIBIS         = XMLconfig.find("freeibispath").text;
 BWAGENOMES       = XMLconfig.find("genomedirectory").text;
 
+FastQCreport     =  XMLconfig.find("fastqcdir").text+"/"+FastQCreport;
 
 def checkPrograms():
   global alibdir;

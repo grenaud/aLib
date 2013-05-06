@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <aLibInfo>
   <alibdir>/mnt/solexa/bin/aLib/</alibdir>
+  <fastqcdir>/mnt/solexa/bin/FastQC/</fastqcdir>
   <illuminareaddir>/mnt/solexa/</illuminareaddir>
   <illuminawritedir>/mnt/ngs_data/</illuminawritedir>
   <illuminajson>/mnt/solexa/tmp/</illuminajson>
