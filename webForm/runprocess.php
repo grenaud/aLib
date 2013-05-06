@@ -209,6 +209,9 @@ function displayStep1($runid) {
 
 
     echo "<h3>Step 1: Run Information</h3>";
+
+
+    echo "This series of steps allows you to fill information about the basic computational processing of sequencing data. Please note that the processing will be identical for all lanes for the lanes that you select. If you have multiple lanes on a single run and you want different processing (lanes have different read groups for example), please fill the form once for each set of lanes for which you want identical processing.<BR>";
     echo "<form action=\"runprocess.php\" method=\"post\">";
     echo "<input type=\"hidden\" name=\"runid\" value=\"".$runid."\" />\n";
     echo "<input type=\"hidden\" name=\"step\" value=\"2\" />";
@@ -217,7 +220,7 @@ function displayStep1($runid) {
     echo "<label for=\"email\">Your email (put commas if multiple emails)</label>:\n";
     echo "<input type=\"text\" size=\"12\" maxlength=\"75\" name=\"email\"><br />";
 
-    echo "<BR>Number of cycles:<BR>\n";
+    echo "<BR>Verify number of cycles: (Please note these values are used for the analysis hence, put the values observed not the ones that were planned i.e if a run had 2x76bp+double indices of 7bp but the machine was stopped after the first index, enter 0 for both the second index and read)<BR>\n";
     echo "<label for=\"cyclesread1\">Cycles for read#1</label>:\n";
     echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"cyclesread1\" value=\"".$runinformation["cyclesread1"]."\"><br />";
 
@@ -371,6 +374,7 @@ function displayStep2() {
 	echo "freeIbis:<input type=\"checkbox\" value=\"freeibis\" name=\"freeibis\"\"><br/>\n";
     }
 
+    echo "Most runs spike-in PhiX DNA (for which we know the sequence in advance) used a control sequences to determine how successful a run was. freeIbis works by training on those control sequences<BR>"; 
     echo "<BR>If you picked freeIbis, how were control sequence (phiX) specified ?<BR>";
     echo "<input type=\"radio\" name=\"spikedin\" value=\"True\" checked>Spiked-in controls using P7 index:   <input type=\"text\" name=\"ctrlindex\" value=\"$ctrlindex\" size=\"7\"><BR>\n";
     echo "<input type=\"radio\" name=\"spikedin\" value=\"False\">Dedicated lane (specify which below)\n";
@@ -431,7 +435,7 @@ function displayStep3() {
     if(isset($_POST["lanesdedicated8"]) ){ array_push($lanesdedicated,8); }
 
     $runinformation["lanesdedicated"]  = $lanesdedicated;
-    if($runinformation["spikedin"] == "False" &&
+    if(!$runinformation["spikedin"]  &&
        count($lanesdedicated) == 0 ){
 	echo "Error, you must specify which lanes were used for controls";
         exit(1);
@@ -537,7 +541,14 @@ function displayStep4() {
     echo "<input type=\"hidden\" name=\"step\" value=\"5\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
 
-   echo "This step flags reads with an unusually high number of expected mismatches as failing the QC controls. The sequences remain in the BAM file but are labeled as failing quality controls<BR><BR>";
+    echo "This section defines quality filters that can be applied on resulting sequences. Please note that the sequences will <b>not<b> be removed, they will simply be marked as QC fail in the BAM file (more information about BAM flags: http://samtools.sourceforge.net/samtools.shtml#5)<BR> We define two types of filtering  procedures:<BR>
+<UL>
+<LI> Standard filtering based on expected number of mismatches using quality scores
+<LI> Additional filtering based on the complexity of the sequence per se
+</UL>
+If you plan to genotype, the first one might improve calls for low-coverage data at the cost of a lesser amount of sequences while the second might improve <i>de novo</i> genome assemblies by removing low complexity sequences<BR>";
+
+    echo "This step flags reads with an unusually high number of expected mismatches as failing the QC controls.<BR><BR>";
     echo "Basic filtering:<BR>\n";
     echo "<input type=\"radio\" name=\"filterseqexp\" value=\"False\" checked>Do not flag reads<BR>\n";
     echo "<input type=\"radio\" name=\"filterseqexp\" value=\"True\">Flag reads with a high number of expected mismatches<br>\n";
@@ -693,12 +704,12 @@ function displayStep6() {
 
 	if($runinformation["cyclesindx2"] == 0 ){
 	    if(count($arrayfield) != 2){
-		echo "ERROR: For single index, lines must have 2 fields check line \"".$line."\"";
+		echo "ERROR: For single index (you entered a value of 0 for the second index at step 1), lines must have 2 fields check line \"".$line."\"";
 		exit;
 	    }
 	}else{
 	    if(count($arrayfield) != 3){
-		echo "ERROR: For double index, lines must have 3 fields check line \"".$line."\"";
+		echo "ERROR: For double index (you entered a positive value for the second index at step 1), lines must have 3 fields check line \"".$line."\"";
 		exit;
 	    }
 	}
@@ -903,7 +914,7 @@ function displayStep8() {
     echo "<TR><TD nowrap> </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap>      </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap>Merging/trimming:      </TD></TR>\n";
-    echo "<TR><TD nowrap>Merge partially overlapping sequencing     :</TD><TD> ".($runinformation["mergeoverlap"]=="True"?"yes":"no")."</TD></TR>\n";
+    echo "<TR><TD nowrap>Merge partially overlapping sequencing     :</TD><TD> ".($runinformation["mergeoverlap"]?"yes":"no")."</TD></TR>\n";
     echo "<TR><TD nowrap>Adapter 1     :</TD><TD> ".($runinformation["adapter1"])."</TD></TR>\n";
     echo "<TR><TD nowrap>Adapter 2     :</TD><TD> ".($runinformation["adapter2"])."</TD></TR>\n";
     echo "<TR><TD nowrap>Potential chimeras     :</TD><TD> ".($runinformation["chimeras"])."</TD></TR>\n";
@@ -931,7 +942,7 @@ function displayStep8() {
     echo "<TR><TD nowrap> </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap>      </TD><TD></TD></TR>\n";
     echo "<TR><TD nowrap>BWA mapping:     </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>Map using BWA  :</TD><TD> ".(($runinformation["usebwa"]=="True")?"yes":"no")."</TD></TR>\n";
+    echo "<TR><TD nowrap>Map using BWA  :</TD><TD> ".(($runinformation["usebwa"])?"yes":"no")."</TD></TR>\n";
     echo "<TR><TD nowrap>Genome to use  :</TD><TD> ".($runinformation["genomebwa"])."</TD></TR>\n";
     echo "<TR><TD nowrap>BWA parameters  :</TD><TD> ".($runinformation["parambwa"])."</TD></TR>\n";
     // echo "<TR><TD nowrap>Indices:     </TD><TD></TD></TR>\n";

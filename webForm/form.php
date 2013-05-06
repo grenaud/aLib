@@ -310,7 +310,7 @@ $stringWithTable.="<TABLE border=1>\n";
 $stringWithTable.="<TR>\n";
 $stringWithTable.="<TD>Run name</TD>\n";  
 $stringWithTable.="<TD>Sequencer</TD>\n";  
-$stringWithTable.="<TD>Sequencing</TD>\n";  
+$stringWithTable.="<TD>Sequencing<BR>progress<BR>I=Intensities<BR>B=basecalls</TD>\n";  
 $stringWithTable.="<TD>Analysis</TD>\n";  
 
 $stringWithTable.="<TD>Request</TD>\n";  
