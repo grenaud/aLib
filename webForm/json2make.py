@@ -17,6 +17,7 @@ import xml.etree.ElementTree as ET
 import pprint;
 from optparse import OptionParser
 from optparse import OptionGroup
+from random import randint
 
 # directory variables
 def makedirs(path):
@@ -468,58 +469,68 @@ if(jsondata["freeibis"]):
     listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/Ibis/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished");
 
     finishedFiles.append(outBaseDirectory+"/Ibis/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished");
-    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Ibis/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished:  "+illuminareaddir+"/"+jsondata["runid"]+"/Run.completed \n\t"+
+    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Ibis/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished:  "+illuminareaddir+"/"+jsondata["runid"]+"/Run.completed \n\t"+"sleep "+str(randint(10,100))+"\n\t"+
                     FREEIBIS+"/runBaseCalling.py "            
                     " --NoFinishCheck -c "+str(options.cores)+" "+
-                    
-                    " -e "+jsondata["expname"]+
-                    " --indexlength="+str(jsondata["cyclesindx1"] )+" --2nd_indexlength="+str( jsondata["cyclesindx2"] ));
+                    " -o "+outBaseDirectory+"/Ibis/Raw_Sequences/ "+
+                    " -b "+illuminareaddir+"/"+jsondata["runid"]+"/Data/Intensities/BaseCalls/ "+
+                    " --temp="+tempdir+" "
+                    " -e "+jsondata["expname"]+" "
+                    " --indexlength="+str(jsondata["cyclesindx1"] )+" --2nd_indexlength="+str( jsondata["cyclesindx2"] )+" ");
     start="";
     end  ="";
     clen = len(jsondata["key1"]);
     clen2= len(jsondata["key2"]);
 
-    if(int(jsondata["cyclesread2"]) > 0):
-      if (clen > 0) and (clen2 == 0): 
-        start=str(clen+2)+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+1+clen2);
-      elif (clen == 0) and (clen2 > 0): 
-        start=str(clen+1)+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+2+clen2);
-      else:  #both keys are zero
-        start=str(clen+2)+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+2+clen2);
-        end=str(int(jsondata["cyclesread1"]))+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+int(jsondata["cyclesread2"]));
+    if(int(jsondata["cyclesread2"]) > 0): #double index
+      start = str(clen+1)+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+1+clen2);
+      end   = str(int(jsondata["cyclesread1"]))+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+int(jsondata["cyclesread2"]));
+#      if (clen > 0) and (clen2 == 0):  
+#        start=str(clen+2)+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+1+clen2);
+#      elif (clen == 0) and (clen2 > 0): 
+#        start=str(clen+1)+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+2+clen2);
+#      else:  #both keys are zero
+#        start=str(clen+2)+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+2+clen2);
+#        end=str(int(jsondata["cyclesread1"]))+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+int(jsondata["cyclesread2"]));
     else:
-      if clen > 0: 
-        start=str(clen+2)
-      else: 
-        start=str(clen+1)
-        end=str(readlength)
+      start=str(clen+1)
+      end=str(readlength)
 
-
-        lanesToUseTrain=[];
-
+    #checking lanes
+    lanesToUseTrain=[];
         
-        if(jsondata["spikedin"]):
-          makeWrite[int(lanetopredict)].write(" --control_index="+jsondata["ctrlindex"] +" ");
-          if(options.trainlanes):
-            lanesToUseTrain = parse_rangestr(options.trainlanes);
-          else:
-            lanesToUseTrain=",".join( range(1,jsondata["LaneCount"]) );
-            
-        else:
-          lanesToUseTrain = jsondata["lanesdedicated"]
+    if(jsondata["spikedin"]):
+      makeWrite[int(lanetopredict)].write(" --control_index="+jsondata["ctrlindex"] +" ");
+      if(options.trainlanes):
+        lanesToUseTrain = parse_rangestr(options.trainlanes);
+      else:
+        lanesToUseTrain=",".join( range(1,jsondata["LaneCount"]) );
+    else:
+      lanesToUseTrain = jsondata["lanesdedicated"]
 
-        if(len(lanesdedicated) == 0):
-          print "Error: no lanes selected for training";
-          sys.exit(1);
-        makeWrite[int(lanetopredict)].write("--start="+start+" --end="+end+"  -l "+(",".join(lanesToUseTrain))+" --recalibration --plotqual --lock ");
-        makeWrite[int(lanetopredict)].write(" -r="+XMLconfig.find("phixref").text+" ");
+    if(len(lanesToUseTrain) == 0):
+      print "Error: no lanes selected for training";
+      sys.exit(1);
+
+    #checking tiles
+    tilesToUse=[];
+
+    for tile in range(1,int(jsondata["TileCount"])+1):
+        for swath in range(1,int(jsondata["SwathCount"])+1):
+          for surface in range(1,int(jsondata["SurfaceCount"])+1):
+            tilesToUse.append("%d%d%02d" % (surface, swath, tile));
+
+    
+    makeWrite[int(lanetopredict)].write(" --start="+start+" --end="+end+"  -l '"+(",".join(lanesToUseTrain))+"'    -t '"+(",".join(tilesToUse))+"' --recalibration --plotqual --lock ");
+    makeWrite[int(lanetopredict)].write(" --reference="+XMLconfig.find("phixref").text+" ");
+    makeWrite[int(lanetopredict)].write("\n\n");
 
     #ERROR PROFILE
-  makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Ibis/error_profile.pdf:\t"+(" ".join(finishedFiles)) );
-  makeWrite[int(lanetopredict)].write("\t"+FREEIBIS+"/plot_error.cmd.R "+outBaseDirectory+"/Ibis/Raw_Sequences/Models/SVMlight_models.index "+outBaseDirectory+"/Ibis/error_profile.pdf" );
+    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Ibis/error_profile.pdf:\t"+(" ".join(finishedFiles)) +"\n");
+    makeWrite[int(lanetopredict)].write("\t"+FREEIBIS+"/plot_error.cmd.R "+outBaseDirectory+"/Ibis/Raw_Sequences/Models/SVMlight_models.index "+outBaseDirectory+"/Ibis/error_profile.pdf\n\n" );
     
     
-makeWrite[int(lanetopredict)].write("\n");
+#makeWrite[int(lanetopredict)].write("\n");
 
 
 
