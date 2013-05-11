@@ -1,7 +1,4 @@
-
-CXX      = g++
-BAMTOOLS= /mnt/solexa/bin/bamtools-2.2.2/
-LIBGAB   = /home/gabriel_renaud/lib/
+include ../makefile.defs
 
 CXXFLAGS  = -lm -O3 -Wall -I${LIBGAB}   -I${BAMTOOLS}/include/ -c
 LDLIBS   += ${BAMTOOLS}/lib/libbamtools.a -lm -lz

@@ -418,10 +418,10 @@ for lanetopredict in lanesToUse:
 #GENERATE REPORT
 #################################################
 
-makeWrite[int(lanetopredict)].write("Default:\tall\n\n");
+
 
 for lanetopredict in lanesToUse:
-
+  makeWrite[int(lanetopredict)].write("Default:\tall\n\n");  
   if(not listOfFilesBasecall[lanetopredict]):#empty
     listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/Report/Summary.html");
 
@@ -440,7 +440,7 @@ for lanetopredict in lanesToUse:
 if(jsondata["bustard"]):
   for lanetopredict in lanesToUse:
     #print lanetopredict;
-    listOfBAMfilesToCheck[lanetopredict].append(outBaseDirectory+"/Bustard/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam");
+    listOfBAMfilesToCheck[lanetopredict].append(outBaseDirectory+"/Bustard/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished");
     listOfFilesBasecall[lanetopredict].append(outBaseDirectory+"/Bustard/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam");
     listOfFilesBasecall[lanetopredict].append(outBaseDirectory+"/Bustard/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished");
 
@@ -462,7 +462,7 @@ if(jsondata["freeibis"]):
   finishedFiles=[];
   for lanetopredict in lanesToUse:
     #print lanetopredict;
-    listOfBAMfilesToCheck[lanetopredict].append(outBaseDirectory+"/Ibis/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam");
+    listOfBAMfilesToCheck[lanetopredict].append(outBaseDirectory+"/Ibis/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished");
     listOfFilesBasecall[lanetopredict].append(outBaseDirectory+"/Ibis/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam");
     listOfFilesBasecall[lanetopredict].append(outBaseDirectory+"/Ibis/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished");
 
@@ -493,8 +493,8 @@ if(jsondata["freeibis"]):
 #        start=str(clen+2)+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+2+clen2);
 #        end=str(int(jsondata["cyclesread1"]))+","+str(int(jsondata["cyclesread1"])+int(jsondata["cyclesindx1"])+int(jsondata["cyclesread2"]));
     else:
-      start=str(clen+1)
-      end=str(readlength)
+      start = str(clen+1);
+      end   = str(int(jsondata["cyclesread1"]));
 
     #checking lanes
     lanesToUseTrain=[];
@@ -585,7 +585,7 @@ for baseCaller in BasecallersUsed:
     conversion_str = MergeReads + " ";
 
     if(int(jsondata["cyclesread2"]) > 0):
-      conversion_str += " -k '%s,%s' -f '%s' -s '%s' -c '%s' "%( jsondata["key1"] ,jsondata["key2"],jsondata["adapter1"] ,jsondata["adapter2"],jsondata["chimeras"])
+      conversion_str += " -k '%s,%s' -f %s -s %s -c %s "%( jsondata["key1"] ,jsondata["key2"],jsondata["adapter1"] ,jsondata["adapter2"],jsondata["chimeras"])
       if jsondata["mergeoverlap"] :
         conversion_str += "--mergeoverlap "
     else:
@@ -698,7 +698,7 @@ for baseCaller in BasecallersUsed:
 
     cmdTileCounter =  Tilecounter;
     cmdTileCounter += " -o "+str(outBaseDirectory+"/"+baseCaller+"/QC/");
-    cmdTileCounter += " -b "+str(",".join(listOfBAMfilesToCheck[lanetopredict]));
+    cmdTileCounter += " -b "+str(",".join(listOfBAMfilesToCheck[lanetopredict])).replace(".finished","");
     cmdTileCounter += " -r "+str(illuminareaddir+"/"+str(jsondata["runid"])+"/Data/Intensities/")
     cmdTileCounter += " -l "+str(lanetopredict);
     makeWrite[int(lanetopredict)].write("\t"+cmdTileCounter+"\n");

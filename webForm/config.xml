@@ -4,7 +4,6 @@
   <fastqcdir>/mnt/solexa/bin/FastQC/</fastqcdir>
   <illuminareaddir>/mnt/solexa/</illuminareaddir>
   <illuminawritedir>/mnt/ngs_data/</illuminawritedir>
-  <illuminajson>/mnt/solexa/tmp/</illuminajson>
   <sequencers>
     <sequencer id="M00518" type="miseq"/>
     <sequencer id="SN7001204" type="hiseq"/>

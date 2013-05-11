@@ -237,13 +237,13 @@ function displayStep1($runid) {
     echo "<label for=\"LaneCount\">Lane count</label>:\n";
     echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"LaneCount\" value=\"".$runinformation["LaneCount"]."\" readonly><br />";
 
-    echo "<label for=\"SurfaceCount\">Lane count</label>:\n";
+    echo "<label for=\"SurfaceCount\">Surface count</label>:\n";
     echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"SurfaceCount\" value=\"".$runinformation["SurfaceCount"]."\" readonly><br />";
 
-    echo "<label for=\"SwathCount\">Lane count</label>:\n";
+    echo "<label for=\"SwathCount\">Swath count</label>:\n";
     echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"SwathCount\" value=\"".$runinformation["SwathCount"]."\" readonly><br />";
 
-    echo "<label for=\"TileCount\">Lane count</label>:\n";
+    echo "<label for=\"TileCount\">Tile count</label>:\n";
     echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"TileCount\" value=\"".$runinformation["TileCount"]."\" readonly><br />";
 
     echo "<label for=\"Experiment name\">Experiment name</label>:\n";
@@ -1030,7 +1030,7 @@ function displayStep9() {
 		echo "Following command failed:<BR> ".$cmdToRun."<BR><BR>please contact directly ".$emailAddrToSend."<BR><BR>got the following output: ".var_dump($outputStore)." <br>\n";
 		exit;
 	    }else{
-		echo "<BR>succes!<BR>";
+		echo "<BR>success!<BR>";
 	    }
 
 	}    

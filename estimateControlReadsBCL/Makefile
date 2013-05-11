@@ -1,8 +1,9 @@
-CPPFLAGS := -lm -Wall
+
+include ../makefile.defs
 
 
 estimateControlReadsBCL:	estimateControlReadsBCL.cpp
-	g++ $(CPPFLAGS) -o estimateControlReadsBCL estimateControlReadsBCL.cpp
+	${CXX} $(CPPFLAGS) -o estimateControlReadsBCL estimateControlReadsBCL.cpp
 
 clean:
 	rm -f estimateControlReadsBCL

@@ -57,6 +57,7 @@ vector<unsigned int> mismatches;
 vector< vector<unsigned int> > typesOfMismatches;
 
 
+//increases the counters mismatches and typesOfMismatches of a given BamAlignment object
 inline void increaseCounters(BamAlignment & al,string & reconstructedReference,int firstCycleRead,int increment){
 
     char refeBase;

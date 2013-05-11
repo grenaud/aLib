@@ -14,16 +14,16 @@ $xmlconf = simplexml_load_file( getcwd()."/config.xml" );
 //CONFIG DATA
 $illuminareaddir  = $xmlconf->illuminareaddir;
 $illuminawritedir = $xmlconf->illuminawritedir;
-$illuminajson     = $xmlconf->illuminajson;
+//$illuminajson     = $xmlconf->illuminajson;
 $sequencers=array();
 foreach($xmlconf->sequencers->sequencer as $seqelem){
     $sequencers[ (string)$seqelem["id"] ]= (string)$seqelem["type"];
 }
 $runstodisplay= $xmlconf->runstodisplay;
 
-#exit(1);
+//#exit(1);
 //global vars
-$analysisrequests = array();
+//$analysisrequests = array();
 
 
 // $illuminareaddir="/mnt/solexa/";
@@ -98,25 +98,25 @@ function checkrun($runid) {
 } 
 
 
-function checkAnalysisRequest($runid,$numberLanes) {
-    global $illuminajson;
-    global $analysisrequests;
+/* function checkAnalysisRequest($runid,$numberLanes) { */
+/*     global $illuminajson; */
+/*     //    global $analysisrequests; */
 
-    #$arrayfile=glob($illuminajson."/".);
-    #return var_dump($arrayfile);
-    $lanesSent=array();
-    foreach($analysisrequests as $jsonfile){
-	if( !strncmp($jsonfile,$runid,strlen($runid)) ){
-	    $lanesSent=array_merge($lanesSent,explode(",",substr($jsonfile,strlen($runid)+1,-5)));
-	}
-    }
+/*     #$arrayfile=glob($illuminajson."/".); */
+/*     #return var_dump($arrayfile); */
+/*     $lanesSent=array(); */
+/*     foreach($analysisrequests as $jsonfile){ */
+/* 	if( !strncmp($jsonfile,$runid,strlen($runid)) ){ */
+/* 	    $lanesSent=array_merge($lanesSent,explode(",",substr($jsonfile,strlen($runid)+1,-5))); */
+/* 	} */
+/*     } */
 
-    if(count($lanesSent) != 0){
-	return "Submitted: ".implode(",",$lanesSent);
-    }else{
-	return "none";
-    }
-}
+/*     if(count($lanesSent) != 0){ */
+/* 	return "Submitted: ".implode(",",$lanesSent); */
+/*     }else{ */
+/* 	return "none"; */
+/*     } */
+/* } */
 
 function checkAnalysisStatus($runid,$numberLanes) {
     global $illuminawritedir;
@@ -171,49 +171,49 @@ function checkAnalysisStatus($runid,$numberLanes) {
 	    return "folder created";
 	}
 		
-	return $stringtoReturn;
 
-	// //check if finished
-	// for($lane=1;$lane<=$numberLanes;$lane++){
-	//     if( file_exists($illuminawritedir."/".$runid."/Bustard/QC/clusterTally_".$lane.".OK" ) ){
-	// 	array_push($bustardFinished,$lane);
-	//     }
-
-	//     if( file_exists($illuminawritedir."/".$runid."/Ibis/QC/clusterTally_".$lane.".OK" ) ){
-	// 	array_push($freeibiFinished,$lane);
-	//     }
-	// }
-
-	// if(sizeof($bustardFinished) == $numberLanes){
-	//     return "Bustard analysis done";
-	// }elseif(sizeof($bustardFinished) >1){
-	//     $stringtoReturn.="Bustard done: ".implode(",",$bustardFinished);
-	// }
-
-	// if(sizeof($freeibiFinished) == $numberLanes){
-	//     return "freeIbis analysis done";
-	// }elseif(sizeof($bustardFinished) >1){
-	//     $stringtoReturn.="freeIbis done for: ".implode(",",$bustardFinished);
-	// }
-
-	// $bustardProcessing=array();
-	// $freeibiProcessing=array();
-	// //check if finished
-	// for($lane=1;$lane<=$numberLanes;$lane++){
-	//     if( file_exists($illuminawritedir."/".$runid."/Bustard/QC/clusterTally_".$lane.".OK" ) ){
-	// 	array_push($bustardFinished,$lane);
-	//     }
-
-	//     if( file_exists($illuminawritedir."/".$runid."/Ibis/QC/clusterTally_".$lane.".OK" ) ){
-	// 	array_push($freeibiFinished,$lane);
-	//     }
-	// }
 	
 	return $stringtoReturn;
 
     }else{
 	return "not started";
     }
+}
+
+
+function checkAnalysisRequest($runid,$numberLanes) {
+    global $illuminawritedir;
+    if( file_exists($illuminawritedir."/".$runid ) ){
+	
+	if( file_exists($illuminawritedir."/".$runid."/build/" ) ){
+	    $lanesSent=array();
+	    /* print $illuminawritedir."/".$runid."/build/"; */
+	    //exit;
+	    $myDirectory = opendir($illuminawritedir."/".$runid."/build/");
+	    
+	    while($entryName = readdir($myDirectory)) {
+		if($entryName != "." and $entryName != ".."){		    
+
+		    if(substr($entryName,-5) == ".json"){ 
+			/* print $entryName; */
+			/* exit; */
+			$lanesSent=array_merge($lanesSent,explode(",",substr($entryName,strlen($runid)+1,-5)));
+		    }
+		}
+	    }
+
+	    if(count($lanesSent) != 0){
+		return "Submitted: ".implode(",",$lanesSent);
+	    }else{
+		return "none";
+	    }
+
+
+	}
+
+	return "none";
+    }
+    return "none";
 }
 
 #function fecho($string) {
@@ -262,19 +262,19 @@ closedir($myDirectory);
 
 // echo "ok2";
 
-$myDirectory = opendir($illuminajson);
+/* $myDirectory = opendir($illuminajson); */
 
-while($entryName = readdir($myDirectory)) {
+/* while($entryName = readdir($myDirectory)) { */
 
-    if($entryName != "." and $entryName != ".."){
-	#echo "#".$entryName."#\n#".substr($entryName,-4)."#\n";
-	if(substr($entryName,-5) == ".json"){ 
-	    array_push($analysisrequests,$entryName);
-	}
-    }
- }
+/*     if($entryName != "." and $entryName != ".."){ */
+/* 	#echo "#".$entryName."#\n#".substr($entryName,-4)."#\n"; */
+/* 	if(substr($entryName,-5) == ".json"){  */
+/* 	    array_push($analysisrequests,$entryName); */
+/* 	} */
+/*     } */
+/* } */
 
-closedir($myDirectory);
+/* closedir($myDirectory); */
 // echo "ok3";
 #
 
