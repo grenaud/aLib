@@ -1,4 +1,3 @@
-
 ==========================================================
   aLib: a sequencing pipeline for ancient and modern DNA
 ==========================================================
@@ -25,6 +24,8 @@ Requirements:
 - libgab (https://github.com/grenaud/libgab)
 - freeIbis (https://github.com/grenaud/freeIbis)
 - fastqc (http://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
-- 
+
+
+
 
 Replace the path in the makefiles with yours and take make. Sorry for the lack of elegance, it will be corrected soon.
