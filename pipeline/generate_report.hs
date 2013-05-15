@@ -601,9 +601,12 @@ main = do
 
 
     progress "Determining average error rates..."
-    errors <- read_error_stats (repfolder </> "ErrorMetricsOut.bin")
+    error_image <- do e <- doesFileExist (repfolder </> "ErrorMetricsOut.bin")
+                      if e then do errors <- read_error_stats (repfolder </> "ErrorMetricsOut.bin")
+                                   image <- generate_image_error outfolder (ranges run_cycles) (fmap (fmap mean_of_im) errors)
+                                   return $ Just (errors, image)
+                           else return Nothing        
     -- det_mean_cycle_error(run_info['read_ranges'],run_info['lanes'],run_info['tiles'],args[0]+"/Data/reports/ErrorRate/Chart_")
-    error_image <- generate_image_error outfolder (ranges run_cycles) (fmap (fmap mean_of_im) errors)
 
     progress "Reading tile intensity and focus values..."
     tile_stats <- read_intensities $ repfolder </> "ExtractionMetricsOut.bin" 
@@ -642,8 +645,9 @@ main = do
             -- opt flowcell_overview_images        -- missing :(
 
             h3 "Sequencing Error"
-            error_image
-            zipWithM_ (error_stats_html errors) business_reads ["Forward", "Reverse"]
+            case error_image of
+                Nothing -> p $ "Not available."
+                Just (er,ei) -> ei >> zipWithM_ (error_stats_html er) business_reads ["Forward", "Reverse"]
             
             opt $ do intensities_dev_images
                      focus_dev_images
