@@ -3,6 +3,7 @@
 
 // #define DEBUG
 // #define DEBUG2
+//#define DEBUG3
 
 PrefixTree<int> * indTrie1;
 PrefixTree<int> * indTrie2;
@@ -576,11 +577,11 @@ rgAssignment assignReadGroup(
     if(sortedLikelihoodAll.size() > 1){
 	double probRG2nd    = sortedLikelihoodAll[1].second;
         for( size_t i = 2 ; i != sortedLikelihoodAll.size() ; ++i )
-            probRG2nd = oplus( probRG2nd, sortedLikelihoodAll[i].second ) ;
+            probRG2nd = oplus( probRG2nd, sortedLikelihoodAll[i].second ) ; //oplus= log10( pow(10,x)+pow(10,y) )
 
 	toReturn.logRatioTopToSecond = probRG2nd - oplus(probRG,probRG2nd) ;
 	double temporaryD=-10.0*toReturn.logRatioTopToSecond;
-	if(flag_ratioValues && toReturn.logRatioTopToSecond > -5) //to avoid very small values
+	if(flag_ratioValues ) // && toReturn.logRatioTopToSecond > -5) //to avoid very small values
 	    ratioValues->write( (char *)&(temporaryD), sizeof(toReturn.logRatioTopToSecond));
     }else{
 	toReturn.logRatioTopToSecond = 1;
@@ -590,5 +591,13 @@ rgAssignment assignReadGroup(
 	double temporaryD=-10.0*toReturn.logLikelihoodScore;
 	rgqual->write( (char *)&(temporaryD), sizeof(toReturn.logLikelihoodScore));
     }
+
+#ifdef DEBUG3
+    cerr<<endl;
+    cerr<<toReturn.topWrongToTopCorrect<<endl;
+    cerr<<toReturn.logLikelihoodScore<<endl;
+    cerr<<toReturn.logRatioTopToSecond<<endl;
+#endif
+    
     return toReturn;
 }

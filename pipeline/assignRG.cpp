@@ -45,6 +45,8 @@ static int    maxErrorHits   = 20;
 PrefixTree<string> * trieKnownString;
 static string dashes = "--------------------------------";
 
+
+//replace this with reading config.xml
 static const string  p7_block300[] = {"TCGCAGG",
 				      "CTCTGCA",
 				      "CCTAGGT",
@@ -507,12 +509,15 @@ void updateRecord( BamAlignment &al, const rgAssignment &rg )
     } else    {
 	//namesMap[ predictedGroup ] ++;
         al.EditTag("RG","Z",rg.predictedGroup);
+
         al.EditTag("Z0","i",(int)round(-10 * rg.logLikelihoodScore));
+
         if( rg.logRatioTopToSecond <= 0 )
             al.EditTag("Z1","i",(int)round(-10 * rg.logRatioTopToSecond));
         else
             al.RemoveTag("Z1") ;
-        if( (10 * rg.topWrongToTopCorrect) < rgScoreCutoff ) 
+
+        if( (rg.topWrongToTopCorrect) <= 0) 
             al.EditTag("Z2","i",(int)round(-10 * rg.topWrongToTopCorrect));
         else
             al.RemoveTag("Z2") ;
@@ -521,8 +526,10 @@ void updateRecord( BamAlignment &al, const rgAssignment &rg )
 
     // store new ZQ field and set FailedQC flag if it isn't empty
     al.SetIsFailedQC( !zq.empty() ) ;
-    if( zq.empty() ) al.RemoveTag("ZQ") ;
-    else al.EditTag( "ZQ", "Z", zq ) ;
+    if( zq.empty() ) 
+	al.RemoveTag("ZQ") ;
+    else 
+	al.EditTag( "ZQ", "Z", zq ) ;
 }
 
 inline bool containsNoNs(const string & sN){
@@ -992,6 +999,9 @@ int main (int argc, char *argv[]) {
     reader.Close();
     writer.Close();
 
+
+
+
     //Print summary of RG assignment
     if(printSummary){
      	map<string,tallyForRG>::iterator it;   
@@ -1045,6 +1055,9 @@ int main (int argc, char *argv[]) {
 	fileSummary.close();
     }
 
+
+
+
     //Print over-represented sequences in conflict,unknown,wrong
     if(printError){
 	vector< pair<string,int> > conflictToPrint( conflictSeq.begin(), conflictSeq.end() ) ;
@@ -1072,6 +1085,8 @@ int main (int argc, char *argv[]) {
 	}
 	fileError.close();
     }
+
+
 
     //cleaning up
     deallocate();

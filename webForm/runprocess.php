@@ -25,7 +25,7 @@ $xmlconf = simplexml_load_file( getcwd()."/config.xml" );
 
 $emailAddrToSend=$xmlconf->emailAddrToSend;
 $genomedirectory=$xmlconf->genomedirectory;
-$outputdirectory=$xmlconf->outputdirectory;
+$illuminawritedir=$xmlconf->illuminawritedir;
 $protocol2chimera = array();
 foreach($xmlconf->chimeras->chimera as $chimlem){
 $protocol2chimera[ (string)$chimlem["protocol"] ] = array((string)$chimlem["name"],
@@ -35,18 +35,43 @@ $protocol2chimera[ (string)$chimlem["protocol"] ] = array((string)$chimlem["name
 }
 $ctrlindex=$xmlconf->controlindex;
 
-
+//first key is indexing scheme, second is number
 $p7Indices=array();
 $p5Indices=array();
+/* $indexSchemes=array(); */
 
-//var_dump($xmlconf);
-foreach($xmlconf->p7indices->p7index as $p7ind){
-$p7Indices[ (string)$p7ind["id"] ] = (string)$p7ind["seq"];
-} 
+/* foreach($xmlconf->indices as $indexscheme){ */
+/*     $indexscheme=(string)$indexscheme; */
+/*     $indexSchemes[ $indexscheme ] = 1; */
+/*     $p7Indices[ $indexscheme ]=array(); */
+/*     $p5Indices[ $indexscheme ]=array(); */
+    
+/*     echo $indexscheme; */
+/*     //var_dump($xmlconf->indices); */
+/*     var_dump($xmlconf->indices->$indexscheme); */
+    
+/*     foreach($xmlconf->indices->p7indices->p7index as $p7ind){ */
+/*     	$p7Indices[ $indexscheme ][ (string)$p7ind["id"] ] = (string)$p7ind["seq"]; */
+/*     } */
 
-foreach($xmlconf->p5indices->p5index as $p5ind){
-$p5Indices[ (string)$p5ind["id"] ] = (string)$p5ind["seq"];
-} 
+/*     foreach($xmlconf->in->p5indices->p5index as $p5ind){ */
+/*     	$p5Indices[ $indexscheme ][ (string)$p5ind["id"] ] = (string)$p5ind["seq"]; */
+/*     } */
+
+/* } */
+
+
+//var_dump($xmlconf->p7indices); 
+
+foreach($xmlconf->indices->p7indices->p7index as $p7ind){
+    $p7Indices[ (string)$p7ind["id"] ] = (string)$p7ind["seq"];
+}
+
+foreach($xmlconf->indices->p5indices->p5index as $p5ind){
+    $p5Indices[ (string)$p5ind["id"] ] = (string)$p5ind["seq"];
+}
+
+/* exit; */
 
 $sequencers=array();
 
@@ -211,7 +236,7 @@ function displayStep1($runid) {
     echo "<h3>Step 1: Run Information</h3>";
 
 
-    echo "This series of steps allows you to fill information about the basic computational processing of sequencing data. Please note that the processing will be identical for all lanes for the lanes that you select. If you have multiple lanes on a single run and you want different processing (lanes have different read groups for example), please fill the form once for each set of lanes for which you want identical processing.<BR>";
+    echo "This series of steps allows you to fill information about the basic computational processing of sequencing data. Please note that the processing will be identical for the lanes that you select. If you have multiple lanes on a single run and you want different processing (lanes have different read groups for example), please fill the form once for each set of lanes for which you want identical processing.<BR>";
     echo "<form action=\"runprocess.php\" method=\"post\">";
     echo "<input type=\"hidden\" name=\"runid\" value=\"".$runid."\" />\n";
     echo "<input type=\"hidden\" name=\"step\" value=\"2\" />";
@@ -622,16 +647,32 @@ function displayStep5() {
     echo "<h3>Step 5: Read group assignment (run id: ".$runinformation["runid"].") </h3><br>\n";   
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
 
+    
+    //    echo "<input type=\"radio\" name=\"spikedin\" value=\"True\" checked>Spiked-in controls using P7 index:   <input type=\"text\" name=\"ctrlindex\" value=\"$ctrlindex\" size=\"7\"><BR>\n";
+    //echo "<input type=\"radio\" name=\"spikedin\" value=\"False\">Dedicated lane (specify which below)\n";
+    /* foreach($indexSchemes as $indexscheme){ */
+    /* 	echo "<input type=\"".$indexscheme."\" name=\"".$indexscheme."\" value=\"True\" checked><BR>\n"; */
+    /* } */
+
     echo "<input type=\"hidden\" name=\"step\" value=\"6\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
 		    
     ?>
 	Put your indices here : (see format below)<br />
+	<B>NOTE:</B> For TruSeq, enter a t before the number (e.g. : t4)<br />
+
 	<br />
 	<br />
 
 	<textarea rows="20" cols="100" name="indextext" wrap="physical" placeholder="Paste your indices here, if a particular RG has only an index for the first adapter and is mixed with a multiplexed paired-end run, use is4 as the second index"></textarea>
 	<br>
+	Maximum number of mismatches for lookup among the indices:  
+						    <select name="mmrgassign">
+						    <option value="2">2</option>
+						    <option value="1">1</option>
+						    <option value="0">0</option>
+						    </select>
+						    <BR>
 	<input type="submit" name="submitButton" id="nextButton" value="Next &gt;" />
         <br>
 	<input type="reset" value="Clear fields" />
@@ -665,6 +706,7 @@ function displayStep5() {
 
 
 function displayStep6() {
+    //var_dump($_POST);
     global $p7Indices;
     global $p5Indices;
 
@@ -675,7 +717,9 @@ function displayStep6() {
     //BEGIN checking step 5 variables//
     ///////////////////////////////////
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
-    $indextext  = $_POST["indextext"];
+    $indextext      = $_POST["indextext"];
+    $runinformation["mmrgassign"] = (int)$_POST["mmrgassign"];
+
     if($runinformation["cyclesindx2"] != 0 ){
 	$stringToPrint="#Index1\tIndex2\tName\n";
     }else{
@@ -686,7 +730,7 @@ function displayStep6() {
     $foundControl=0;
 
     if(!$indextext ){
-	echo "ERROR: please enter your indices in the text field";
+	echo "ERROR: please enter your indices in the text field or enter an empty header if you do not want demultiplexing";
 	exit;	 
     }
 
@@ -858,6 +902,8 @@ function displayStep7() {
     }
     echo "</select><BR><BR>\n";
     echo "Selecting the parameters for BWA:<BR><BR>\n";
+    echo "Normally, the following are used:<BR> for modern DNA: \"-n 0.04 -o 1\"<BR>for ancient DNA: \"-n 0.01 -o 2 -l 16500\"<BR><BR>\n";
+    
     echo "<select name=\"parambwa\" size=\"1\">\n";
     echo "<option value=\"default\" >Default parameters (modern DNA)</option>\n";
     echo "<option value=\"ancient\" >Ancient parameters (ancient DNA)</option>\n";
@@ -869,7 +915,7 @@ function displayStep7() {
 
 
 function displayStep8() {
-    global $outputdirectory;
+    global $illuminawritedir;
     ////////////////////////////////////
     //BEGIN checking step 7 variables //
     ////////////////////////////////////
@@ -894,69 +940,77 @@ function displayStep8() {
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
     //    var_dump($runinformation);
     echo "<BR>Please review the following information prior to submitting (\"submit\" buttom at the bottom of the page):<BR>\n";
-    echo "<table   border=0>\n";
-    echo "<TR><TD nowrap>      </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap> </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>General:      </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>Run ID      :</TD><TD> ".$runinformation["runid"]."</TD></TR>\n";
-    echo "<TR><TD nowrap>Experiment name:</TD><TD> ".$runinformation["expname"]."</TD></TR>\n";
 
-    echo "<TR><TD nowrap>Sequencer      :</TD><TD> ".$runinformation["sequencer"]."</TD></TR>\n";
-    echo "<TR><TD nowrap>Your email      :</TD><TD> ".$runinformation["email"]."</TD></TR>\n";
-    echo "<TR><TD nowrap>Cycle for read1 :</TD><TD> ".$runinformation["cyclesread1"]."</TD></TR>\n";
-    echo "<TR><TD nowrap>Cycle for read2 :</TD><TD> ".$runinformation["cyclesread2"]."</TD></TR>\n";
-    echo "<TR><TD nowrap>Cycle for index 1 :</TD><TD> ".$runinformation["cyclesindx1"]."</TD></TR>\n";
-    echo "<TR><TD nowrap>Cycle for index 2 :</TD><TD> ".$runinformation["cyclesindx2"]."</TD></TR>\n";
-    echo "<TR><TD nowrap>Lanes to analyze:</TD><TD> ".implode(",",$runinformation["lanes"])."</TD></TR>\n";
-    // echo "<TR><TD nowrap>Lanes to analyze:</TD><TD> ".implode(",",$runinformation["lanes"])."</TD></TR>\n";
-    echo "<TR><TD nowrap> </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>      </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>Basecalling:      </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>Basecalling using Bustard      :</TD><TD> ".($runinformation["bustard"]?"yes":"no")."</TD></TR>\n";
-    echo "<TR><TD nowrap>Basecalling using freeIbis     :</TD><TD> ".($runinformation["freeibis"]?"yes":"no")."</TD></TR>\n";
-    echo "<TR><TD nowrap> </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>      </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>Merging/trimming:      </TD></TR>\n";
-    echo "<TR><TD nowrap>Merge partially overlapping sequencing     :</TD><TD> ".($runinformation["mergeoverlap"]?"yes":"no")."</TD></TR>\n";
-    echo "<TR><TD nowrap>Adapter 1     :</TD><TD> ".($runinformation["adapter1"])."</TD></TR>\n";
-    echo "<TR><TD nowrap>Adapter 2     :</TD><TD> ".($runinformation["adapter2"])."</TD></TR>\n";
-    echo "<TR><TD nowrap>Potential chimeras     :</TD><TD> ".($runinformation["chimeras"])."</TD></TR>\n";
-    echo "<TR><TD nowrap>Protocol       :</TD><TD> ".($runinformation["protocol"])."</TD></TR>\n";
-    echo "<TR><TD nowrap>Key read#1     :</TD><TD> ".(strlen($runinformation["key1"])==0?"none":$runinformation["key1"])."</TD></TR>\n";
-    echo "<TR><TD nowrap>Key read#2     :</TD><TD> ".(strlen($runinformation["key2"])==0?"none":$runinformation["key2"])."</TD></TR>\n";
-    echo "<TR><TD nowrap> </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>      </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>Quality filtering:      </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>Flag sequences with high exp. of mismatch  :</TD><TD> ".(($runinformation["filterseqexp"]=="1")?"yes":"no")."</TD></TR>\n";
+    $htmltable="";
+
+    $htmltable.="<table   border=0>\n";
+    $htmltable.="<TR><TD nowrap>      </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>General:      </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Run ID      :</TD><TD> ".$runinformation["runid"]."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Experiment name:</TD><TD> ".$runinformation["expname"]."</TD></TR>\n";
+
+    $htmltable.="<TR><TD nowrap>Sequencer      :</TD><TD> ".$runinformation["sequencer"]."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Your email      :</TD><TD> ".$runinformation["email"]."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Cycle for read1 :</TD><TD> ".$runinformation["cyclesread1"]."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Cycle for read2 :</TD><TD> ".$runinformation["cyclesread2"]."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Cycle for index 1 :</TD><TD> ".$runinformation["cyclesindx1"]."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Cycle for index 2 :</TD><TD> ".$runinformation["cyclesindx2"]."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Lanes to analyze:</TD><TD> ".implode(",",$runinformation["lanes"])."</TD></TR>\n";
+
+    $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>      </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Basecalling:      </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Basecalling using Bustard      :</TD><TD> ".($runinformation["bustard"]?"yes":"no")."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Basecalling using freeIbis     :</TD><TD> ".($runinformation["freeibis"]?"yes":"no")."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>      </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Merging/trimming:      </TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Merge partially overlapping sequencing     :</TD><TD> ".($runinformation["mergeoverlap"]?"yes":"no")."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Adapter 1     :</TD><TD> ".($runinformation["adapter1"])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Adapter 2     :</TD><TD> ".($runinformation["adapter2"])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Potential chimeras     :</TD><TD> ".($runinformation["chimeras"])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Protocol       :</TD><TD> ".($runinformation["protocol"])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Key read#1     :</TD><TD> ".(strlen($runinformation["key1"])==0?"none":$runinformation["key1"])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Key read#2     :</TD><TD> ".(strlen($runinformation["key2"])==0?"none":$runinformation["key2"])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Maximum number of mismatches for lookup in RG :</TD><TD> ".($runinformation["mmrgassign"])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Quality filtering:      </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Flag sequences with high exp. of mismatch  :</TD><TD> ".(($runinformation["filterseqexp"]=="1")?"yes":"no")."</TD></TR>\n";
     if( ($runinformation["filterseqexp"]=="1") ){
-	echo "<TR><TD nowrap>Normalized expectency of mismatch cutoff    :</TD><TD> ".($runinformation["seqNormExpcutoff"])."</TD></TR>\n";
+	$htmltable.="<TR><TD nowrap>Normalized expectency of mismatch cutoff    :</TD><TD> ".($runinformation["seqNormExpcutoff"])."</TD></TR>\n";
     }
     
-    echo "<TR><TD nowrap>Flag sequences based on  entropy  :</TD><TD> ".(($runinformation["filterentropy"])?"yes":"no")."</TD></TR>\n";
-
+    $htmltable.="<TR><TD nowrap>Flag sequences based on  entropy  :</TD><TD> ".(($runinformation["filterentropy"])?"yes":"no")."</TD></TR>\n";
     if( ($runinformation["filterentropy"]=="1") ){
-	echo "<TR><TD nowrap>Entropy cutoff  :</TD><TD> ".($runinformation["entropycutoff"])."</TD></TR>\n";
+	$htmltable.="<TR><TD nowrap>Entropy cutoff  :</TD><TD> ".($runinformation["entropycutoff"])."</TD></TR>\n";
     }
-    echo "<TR><TD nowrap>Flag sequences using frequency  :</TD><TD> ".(($runinformation["filterfrequency"])?"yes":"no")."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Flag sequences using frequency  :</TD><TD> ".(($runinformation["filterfrequency"])?"yes":"no")."</TD></TR>\n";
 
     if( ($runinformation["filterfrequency"]=="1") ){
-	echo "<TR><TD nowrap>Frequency cutoff  :</TD><TD> ".($runinformation["frequencycutoff"])."</TD></TR>\n";
+	$htmltable.="<TR><TD nowrap>Frequency cutoff  :</TD><TD> ".($runinformation["frequencycutoff"])."</TD></TR>\n";
     }
-    echo "<TR><TD nowrap> </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>      </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>BWA mapping:     </TD><TD></TD></TR>\n";
-    echo "<TR><TD nowrap>Map using BWA  :</TD><TD> ".(($runinformation["usebwa"])?"yes":"no")."</TD></TR>\n";
-    echo "<TR><TD nowrap>Genome to use  :</TD><TD> ".($runinformation["genomebwa"])."</TD></TR>\n";
-    echo "<TR><TD nowrap>BWA parameters  :</TD><TD> ".($runinformation["parambwa"])."</TD></TR>\n";
-    // echo "<TR><TD nowrap>Indices:     </TD><TD></TD></TR>\n";
-    echo "</table>\n";
+    $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>      </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>BWA mapping:     </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Map using BWA  :</TD><TD> ".(($runinformation["usebwa"])?"yes":"no")."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Genome to use  :</TD><TD> ".($runinformation["genomebwa"])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>BWA parameters  :</TD><TD> ".($runinformation["parambwa"])."</TD></TR>\n";
+    // $htmltable.="<TR><TD nowrap>Indices:     </TD><TD></TD></TR>\n";
+    $htmltable.="</table>\n";
 
-    echo "<BR>Indices to use  :<BR><PRE>\n".($runinformation["indicesseq"])."</PRE><BR>\n";
-    echo "<BR>Indices raw     :<BR><PRE>\n".($runinformation["indicesraw"])."</PRE><BR>\n";
+    $htmltable.="<BR>Indices to use  :<BR><PRE>\n".($runinformation["indicesseq"])."</PRE><BR>\n";
+    $htmltable.="<BR>Indices raw     :<BR><PRE>\n".($runinformation["indicesraw"])."</PRE><BR>\n";
+
+    echo $htmltable;
+    //$runinformation["htmltable"] = $htmltable;
+    echo "<input type=\"hidden\" name=\"htmltable\" value=\"".$htmltable."\" />\n";
 
     //echo json_encode($runinformation);
     $runid=$runinformation["runid"];
-    $targetfile=$outputdirectory."/".$runid."_".implode(",",$runinformation["lanes"]).".json";
+    $targetfile=$illuminawritedir."/".$runid."_".implode(",",$runinformation["lanes"]).".json";
     if(file_exists ( $targetfile )){
        echo "<font color=red size=+2>Warning:</font> file:<BR>".$targetfile." <BR>already exists, pressing submit will overwrite the data <br><br>";
     }
@@ -968,7 +1022,7 @@ function displayStep8() {
 
 
 function displayStep9() {
-    global $outputdirectory;
+    global $illuminawritedir;
     global $emailAddrToSend;
     global $json2makePath;
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
@@ -977,25 +1031,25 @@ function displayStep9() {
     //build directory 
     $runid=$runinformation["runid"];
 
-    if(!file_exists($outputdirectory."/".$runid."/")){
-	if(!mkdir($outputdirectory."/".$runid."/")){
-	    echo "ERROR: cannot create directory ".$outputdirectory."/".$runid."\n";
+    if(!file_exists($illuminawritedir."/".$runid."/")){
+	if(!mkdir($illuminawritedir."/".$runid."/")){
+	    echo "ERROR: cannot create directory ".$illuminawritedir."/".$runid."\n";
 	    exit;
 	}
     }
 
-    if(!file_exists($outputdirectory."/".$runid."/build/")){
-	if(!mkdir($outputdirectory."/".$runid."/build/")){
-	    echo "ERROR: cannot create directory ".$outputdirectory."/".$runid."/build/"."\n";
+    if(!file_exists($illuminawritedir."/".$runid."/build/")){
+	if(!mkdir($illuminawritedir."/".$runid."/build/")){
+	    echo "ERROR: cannot create directory ".$illuminawritedir."/".$runid."/build/"."\n";
 	    exit;
 	}
     }
 
     foreach($runinformation["lanes"] as $lanetouse){
 
-	if(!file_exists($outputdirectory."/".$runid."/build/lane".$lanetouse."/")){
-	    if(!mkdir($outputdirectory."/".$runid."/build/lane".$lanetouse."/")){
-		echo "ERROR: cannot create directory ".$outputdirectory."/".$runid."/build/lane".$lanetouse."/"."\n";
+	if(!file_exists($illuminawritedir."/".$runid."/build/lane".$lanetouse."/")){
+	    if(!mkdir($illuminawritedir."/".$runid."/build/lane".$lanetouse."/")){
+		echo "ERROR: cannot create directory ".$illuminawritedir."/".$runid."/build/lane".$lanetouse."/"."\n";
 		exit;
 	    }
 	}
@@ -1003,11 +1057,15 @@ function displayStep9() {
     }
     
 
-
+    /* var_dump($runinformation); */
     $runid     = $runinformation["runid"];
     $emailuser = $runinformation["email"];
+    $htmltable = $_POST["htmltable"];
+    $htmltable = str_replace(array("<TR>","<TD>","</TD>","<TD nowrap>","<BR>","<PRE>","</PRE>","</table>","<table","border=0>") ,"" , $htmltable);
+    $htmltable = str_replace(array("</TR>",) ,"" , $htmltable);
+    /* echo $htmltable; */
 
-    $targetfile=$outputdirectory."/".$runid."/build/".$runid."_".implode(",",$runinformation["lanes"]).".json";
+    $targetfile=$illuminawritedir."/".$runid."/build/".$runid."_".implode(",",$runinformation["lanes"]).".json";
     echo "printing to ".$targetfile."<BR>\n";
     //echo "printing to ".json_encode($runinformation)."\n";
     $stringtoprint=json_encode($runinformation);
@@ -1020,7 +1078,7 @@ function displayStep9() {
     //$json2makePath
     if(1){
 	foreach($runinformation["lanes"] as $lanetouse){	
-	    $cmdToRun="python ".$json2makePath." -o ".$outputdirectory."/".$runid."/build/ $targetfile";
+	    $cmdToRun="python ".$json2makePath." -o ".$illuminawritedir."/".$runid."/build/ $targetfile";
 	    echo "<BR> Running command".$cmdToRun."<BR><BR>";
 	    $outputStore="";
 	    $returnCode=1;
@@ -1050,8 +1108,7 @@ function displayStep9() {
 
     $mailu->Subject = "Analysis submitted for run ".$runid;
     $mailu->Message = "This is an automated message so please do not reply.\n------------------\nThe following user(s): ".$emailuser."\n".
-	"Submitted a request for analysis for run ".$runid.".\nPlease keep this email for your own personnal record\n\n\n------------------\nThe following parameters will be used: ".$targetfile."\n".
-	 "\n\n\n------------------:json file\n".json_encode($runinformation);
+	"Submitted a request for analysis for run ".$runid.".\nPlease keep this email for your own personnal record\n\n\n------------------\nThe following parameters will be used: ".$targetfile."\n------------------\n\n".$htmltable."\n\n\n------------------\njson file\n------------------\n".json_encode($runinformation);
     $mailu->ConnectTimeout = 30;  // Socket connect timeout (sec)
     $mailu->ResponseTimeout = 8;  // CMD response timeout (sec)
     $success = $mailu->Send();

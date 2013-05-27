@@ -90,6 +90,8 @@ PredvsobsR           = "qualScoreC++/generateplot.R";
 FastQCreport         = "fastqc"
 
 
+sendemail            = "webForm/sendemail.php"
+
 
 
 def chomp(s):
@@ -125,6 +127,7 @@ BWAGENOMES       = XMLconfig.find("genomedirectory").text;
 
 FastQCreport     = XMLconfig.find("fastqcdir").text+"/"+FastQCreport;
 
+
 def checkPrograms():
   global alibdir;
   
@@ -132,6 +135,8 @@ def checkPrograms():
 parser = OptionParser(usage="usage: %prog [options] <json doc>");
 parser.add_option("-o", "--outdir", dest="outdir", help="Out directory to put the makefile, will create directories like [outdir]/../Report/ etc");
 parser.add_option("--trainlanes",dest="trainlanes", help="Consider only a subset of lanes for training freeIbis (default use data from json)",default="1-8")
+parser.add_option("--tempdir",dest="tempdir", help="Use this directory as temporary directory",default=tempdir)
+
 parser.add_option("--lanes",     dest="lanes",help="Consider only a subset of lanes for the Makefile (default use all from json)")
 
 parser.add_option("-c", "--cores", dest="cores", help="Maximum number of CPU cores to be used for freeIbis(default 8)",default=8,type="int")
@@ -154,7 +159,7 @@ if options.outdir == None or not os.path.isdir(options.outdir):
   sys.exit()
   
 
-
+options.outdir=os.path.abspath(options.outdir);
 outBaseDirectory=os.path.abspath(options.outdir+"/../");
 
 
@@ -175,6 +180,7 @@ if not os.path.exists(CTRLGENOMEBWA):
   print "Control BWA index file not found "+CTRLGENOMEBWA;
   sys.exit(1);
 
+CTRLGENOMEBWA = BWAGENOMES +"/"+"phiX/control/bwa-0.4.9";
 
 
 
@@ -359,6 +365,8 @@ listOfFilesBWA={};
 listOfFilesQC={};
 #all files from QC
 listOfTargetFiles={};
+#all files from QC
+listOfFilesWithIndices={};
 
 
 
@@ -410,6 +418,9 @@ for lanetopredict in lanesToUse:
   indicesWrite = open (fileWithIndices , 'w' ) ;
   indicesWrite.write( jsondata["indicesseq"] ); 
   indicesWrite.close();
+
+  listOfFilesWithIndices[int(lanetopredict)] =  fileWithIndices;
+
 #END Writing indices
 
 
@@ -443,7 +454,6 @@ if(jsondata["bustard"]):
     listOfBAMfilesToCheck[lanetopredict].append(outBaseDirectory+"/Bustard/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished");
     listOfFilesBasecall[lanetopredict].append(outBaseDirectory+"/Bustard/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam");
     listOfFilesBasecall[lanetopredict].append(outBaseDirectory+"/Bustard/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished");
-
     listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/Bustard/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished");
 
     makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Bustard/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished: "+illuminareaddir+"/"+jsondata["runid"]+"/Run.completed \n\t"+
@@ -474,7 +484,7 @@ if(jsondata["freeibis"]):
                     " --NoFinishCheck -c "+str(options.cores)+" "+
                     " -o "+outBaseDirectory+"/Ibis/Raw_Sequences/ "+
                     " -b "+illuminareaddir+"/"+jsondata["runid"]+"/Data/Intensities/BaseCalls/ "+
-                    " --temp="+tempdir+" "
+                    " --temp="+options.tempdir+" "
                     " -e "+jsondata["expname"]+" "
                     " --indexlength="+str(jsondata["cyclesindx1"] )+" --2nd_indexlength="+str( jsondata["cyclesindx2"] )+" ");
     start="";
@@ -526,11 +536,29 @@ if(jsondata["freeibis"]):
     makeWrite[int(lanetopredict)].write("\n\n");
 
     #ERROR PROFILE
+    listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/Ibis/error_profile.pdf");
+
     makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Ibis/error_profile.pdf:\t"+(" ".join(finishedFiles)) +"\n");
     makeWrite[int(lanetopredict)].write("\t"+FREEIBIS+"/plot_error.cmd.R "+outBaseDirectory+"/Ibis/Raw_Sequences/Models/SVMlight_models.index "+outBaseDirectory+"/Ibis/error_profile.pdf\n\n" );
     
     
 #makeWrite[int(lanetopredict)].write("\n");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -569,16 +597,39 @@ for baseCaller in BasecallersUsed:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #################################################
 #MERGE/TRIM + QC FILTER + RGASSIGN
 #################################################
 
   for lanetopredict in lanesToUse:
-    listOfBAMfilesToCheck[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam");
+    listOfBAMfilesToCheck[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished");
     listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam");
-    listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam");
+    listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished");
+    
+    listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished");
 
-    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam:\t"+outBaseDirectory+"/"+baseCaller+"/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished\n");
+    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished:\t"+outBaseDirectory+"/"+baseCaller+"/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished\n");
 
 
 
@@ -621,7 +672,10 @@ for baseCaller in BasecallersUsed:
        conversion_str += " /dev/stdin ";
     conversion_str += "| "+IndexReassign+" --summary "+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_rg_summary.txt" 
     listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_rg_summary.txt"); 
-    conversion_str +=  " -i "+fileWithIndices+ " ";
+
+
+    conversion_str +=  " -i "+listOfFilesWithIndices[lanetopredict]+ " ";
+    conversion_str +=  " --mm "+str(jsondata["mmrgassign"])+ " ";
 
     conversion_str += " --error "+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_unassigned.txt";
     listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_unassigned.txt");
@@ -636,7 +690,25 @@ for baseCaller in BasecallersUsed:
 
 
 
-    makeWrite[int(lanetopredict)].write("\t"+conversion_str+"\n\n");
+    makeWrite[int(lanetopredict)].write("\t"+conversion_str+"\n\ttouch "+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished\n\n");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -656,7 +728,7 @@ for baseCaller in BasecallersUsed:
       listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam");
       listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam");
 
-      makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam:\t"+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam\n");
+      makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam:\t"+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished\n");
       bwaparameter="";
       if(str(jsondata["parambwa"]) == "default"):
         bwaparameter="";
@@ -669,10 +741,10 @@ for baseCaller in BasecallersUsed:
 
 
       conversion_str = "bwa bam2bam -t %d -f %s -g  %s %s %s "%(max_threads,
-                                                                outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam",
-                                                               BWAGENOMES+"/"+str(jsondata["genomebwa"])+"/bwa-0.4.9",
-                                                               bwaparameter,
-                                                               outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam");
+                                                                outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam_",
+                                                                BWAGENOMES+"/"+str(jsondata["genomebwa"])+"/bwa-0.4.9",
+                                                                bwaparameter,
+                                                                outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam");
       
       conversion_str +=  ("\n\n"+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx: "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam"+"\n\tsam flagstatx "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam  > "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx\n");
 
@@ -680,6 +752,21 @@ for baseCaller in BasecallersUsed:
 
 
       makeWrite[int(lanetopredict)].write("\t"+conversion_str+"\n\n");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -715,7 +802,7 @@ for baseCaller in BasecallersUsed:
     makeWrite[int(lanetopredict)].write(cmdQualPlot+"\n");
 
 #RG QUAL PLOT
-    makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_rgqual.pdf:\t"+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam\n");  
+    makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_rgqual.pdf:\t"+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished\n");  
     listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_rgqual.pdf");
 
     cmdRGQual  = "\t"+IndexReassignRGR;
@@ -724,7 +811,7 @@ for baseCaller in BasecallersUsed:
     makeWrite[int(lanetopredict)].write(cmdRGQual+"\n");
 
 #RG QUAL PLOT (2)
-    makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_ratio.pdf: "+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam\n\t");  
+    makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_ratio.pdf: "+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished\n\t");  
     listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_ratio.pdf");
 
     cmdRatioPlot  = IndexReassignRATIOR;
@@ -734,7 +821,7 @@ for baseCaller in BasecallersUsed:
 
 #SEQ LIKELIHOOD
     if(jsondata["filterseqexp"]):
-      makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/filter/s_"+str(lanetopredict)+"_likelihood.pdf: "+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam\n\t");  
+      makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/filter/s_"+str(lanetopredict)+"_likelihood.pdf: "+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished\n\t");  
 
       listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/filter/s_"+str(lanetopredict)+"_likelihood.pdf");
       cmdQualPlot  = BAMFilterLIKER;
@@ -760,7 +847,7 @@ for baseCaller in BasecallersUsed:
       makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam:\t"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_ctrl.bam\n");
       listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam");
 
-      cmdBWACTRL = "bwa bam2bam -t 1 -g "+BWAGENOMES+"/"+jsondata["genomebwa"]+"/bwa-0.4.9"+" -f "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam"+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_ctrl.bam";
+      cmdBWACTRL = "bwa bam2bam -t 1 -g "+CTRLGENOMEBWA+" -f "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam_"+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_ctrl.bam";
       makeWrite[int(lanetopredict)].write("\t"+cmdBWACTRL+"\n");
 
 
@@ -769,9 +856,16 @@ for baseCaller in BasecallersUsed:
       makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.dat:\t"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam\n");    
 
       listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.dat");
-      cmdBWACTRLC = ERRORPERCYCLE+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam"+" > "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.dat";#                                                                                    cmdBWACTRLC = ERRORPERCYCLER+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.dat")+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.all.pdf")+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.type.pdf");
+      cmdBWACTRLC = ERRORPERCYCLE+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.bam"+" > "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.dat";
+      # cmdBWACTRLC = ERRORPERCYCLER+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.dat")+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.all.pdf")+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.type.pdf");
       makeWrite[int(lanetopredict)].write("\t"+cmdBWACTRLC+"\n");
 
+
+      makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.type.pdf:\t"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.dat\n");
+      listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.type.pdf");
+
+      cmdBWACTRLCR = ERRORPERCYCLER+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.dat "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.type.pdf";
+      makeWrite[int(lanetopredict)].write("\t"+cmdBWACTRLCR+"\n");
 
 #QC SCORES, OBS VS PREDICTED
       readlengths=str(jsondata["cyclesread1"]);
@@ -799,6 +893,8 @@ for baseCaller in BasecallersUsed:
 
 
 typesofclean=[];
+
+
 
 for lanetopredict in lanesToUse: 
 
@@ -843,9 +939,11 @@ for lanetopredict in lanesToUse:
                                       #(" ".join(listOfFilesBWA[lanetopredict]))+" "+
                                       (" ".join(listOfFilesQC[lanetopredict]))+"\n\n");
 
+  
+  makeWrite[int(lanetopredict)].write("\n"+"sendemail:\t"+outBaseDirectory+"/"+baseCaller+"/QC/clusterTally_"+str(lanetopredict)+".OK\n");
+  makeWrite[int(lanetopredict)].write("\tphp "+alibdir+"/"+sendemail+" "+jsondata["email"]+" "+jsondata["runid"]+" "+illuminawritedir+"/"+jsondata["runid"]+" "+str(lanetopredict)+"\n");
+
   makeWrite[int(lanetopredict)].close();
-
-
 
 
 #################################################
@@ -870,13 +968,20 @@ makeGeneralWrite.write(".PHONY: subdirs $(SUBDIRS)\n\n");
 makeGeneralWrite.write("subdirs: $(SUBDIRS)\n\n");
 
 makeGeneralWrite.write("$(SUBDIRS):\n");
-makeGeneralWrite.write("\t$(MAKE) -C $@ all\n\n");
+makeGeneralWrite.write("\t$(MAKE) -j 1 -C $@ all\n\n");
 
+makeGeneralWrite.write("sendemail:\n");
+makeGeneralWrite.write("\tfor dir in $(SUBDIRS); do ");
+makeGeneralWrite.write(" $(MAKE) -C $$dir sendemail; ");
+makeGeneralWrite.write(" done\n\n");
+
+#I need to fix this:
 for cleantarg in typesofclean:
   makeGeneralWrite.write(cleantarg+":\n");
-  makeGeneralWrite.write("\tfor dir in $(SUBDIRS); do \ \n");
-  makeGeneralWrite.write("\t\t$(MAKE) -C $$dir "+cleantarg+"; \ \n");
-  makeGeneralWrite.write("\tdone\n\n");
+  makeGeneralWrite.write("\tfor dir in $(SUBDIRS); do ");
+  makeGeneralWrite.write(" $(MAKE) -C $$dir "+cleantarg+"; ");
+  makeGeneralWrite.write(" done \n\n");
 #
 #
-#makeGeneralWrite.close();
+
+makeGeneralWrite.close();

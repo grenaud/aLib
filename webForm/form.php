@@ -21,7 +21,23 @@ foreach($xmlconf->sequencers->sequencer as $seqelem){
 }
 $runstodisplay= $xmlconf->runstodisplay;
 
-//#exit(1);
+$admin=0;
+if (!isset($_GET["admin"]) || empty($_GET["admin"])) { 
+    $admin=0;
+}else{
+    $admin=1;
+}
+
+$showall=0;
+if (!isset($_GET["showall"]) || empty($_GET["showall"])) { 
+    $showall=0;
+}else{
+    $showall=1;
+}
+
+
+/* echo $admin; */
+/* exit(1); */
 //global vars
 //$analysisrequests = array();
 
@@ -96,7 +112,6 @@ function checkrun($runid) {
 
     return 1;   //something failed
 } 
-
 
 /* function checkAnalysisRequest($runid,$numberLanes) { */
 /*     global $illuminajson; */
@@ -203,7 +218,8 @@ function checkAnalysisRequest($runid,$numberLanes) {
 	    }
 
 	    if(count($lanesSent) != 0){
-		return "Submitted: ".implode(",",$lanesSent);
+		sort($lanesSent, SORT_NUMERIC);
+		return "Submitted: ".implode(",",$lanesSent );
 	    }else{
 		return "none";
 	    }
@@ -216,10 +232,6 @@ function checkAnalysisRequest($runid,$numberLanes) {
     return "none";
 }
 
-#function fecho($string) {
-#    echo $string;
-#    ob_flush();
-#}
 
 
 
@@ -303,8 +315,16 @@ usort($runlist, "cmp");
 
 
 $stringWithTable="";
+$stringWithTable=
+"<script type=\"text/javascript\">\n
+function myFunction(my_string)\n
+{\n
+alert(my_string);\n
+}\n
+</script>\n";
 
-$stringWithTable.="<form action=\"runprocess.php\" method=\"post\">\n";
+//$stringWithTable.="<form action=\"runprocess.php\" method=\"post\">\n";
+
 $stringWithTable.="<TABLE border=1>\n";
 
 $stringWithTable.="<TR>\n";
@@ -315,14 +335,24 @@ $stringWithTable.="<TD>Analysis</TD>\n";
 
 $stringWithTable.="<TD>Request</TD>\n";  
 
+
+/* if($admin==1){ */
+/*     $stringWithTable.="<TD>Write comment</TD>\n";   */
+/* } */
 $stringWithTable.="<TD>Launch</TD>\n";  
 
-#echo "<TD>status</TD>\n";  
+ $stringWithTable.="<TD>Report</TD>\n";  
+/* #echo "<TD>status</TD>\n";   */
 
 $stringWithTable.="</TR>\n";
 
 
-$runlist =  array_slice($runlist,0,$runstodisplay);
+if($showall){
+    //no limit to display
+}else{
+    $runlist =  array_slice($runlist,0,$runstodisplay);
+}
+
 
 
 $numberFound=1;
@@ -344,6 +374,7 @@ foreach($runlist as $one_file) {
     //sleep(1);
 
     // store the information.
+    $stringWithTable.="<form action=\"runprocess.php\" method=\"post\">\n";
     $stringWithTable.="<TR>\n";
     $stringWithTable.="<TD>".$one_file['name']."</TD>\n";  
     $stringWithTable.="<TD>".$one_file['technology']."</TD>\n";  
@@ -366,9 +397,19 @@ foreach($runlist as $one_file) {
     // 	$stringWithTable.="<TD>".checkAnalysisStatus( $one_file['name'],1)."</TD>\n";  
     // 	$stringWithTable.="<TD>".checkAnalysisRequest($one_file['name'],1)."</TD>\n";  
     // }
-    #}
+    //}
 
-    $stringWithTable.="<TD><input type=\"submit\" value=\"launch\" name=\"".$one_file['name']."\"><TD>\n";
+    /* $stringWithTable.="<TD><input type=\"button\" onclick=\"myFunction(\"".$one_file['name']."\")\" value=\"view\" name=\"".$one_file['name']."\"></TD>\n"; */
+    /* if($admin==1){ */
+    /* 	$stringWithTable.="<TD><input type=\"submit\" value=\"write\" name=\"".$one_file['name']."\"></TD>\n"; */
+    /* } */
+
+    $stringWithTable.="<TD><input type=\"submit\" value=\"launch\" name=\"".$one_file['name']."\"></TD>\n";
+    $stringWithTable.="</form>\n";
+    $stringWithTable.="<form action=\"generatereport.php\" method=\"post\">\n";
+    $stringWithTable.="<TD><input type=\"submit\" value=\"generate\" name=\"".$one_file['name']."\"></TD>\n";
+    $stringWithTable.="</form>\n";
+
     $stringWithTable.="</TR>\n";
     $numberFound++;
 } 
@@ -379,7 +420,7 @@ echo '<script language="javascript">
     </script>';
 echo str_repeat(' ',1024*64);
 flush();
-$stringWithTable.="</form>\n";
+//$stringWithTable.="</form>\n";
 
 $stringWithTable.="</TABLE>\n";
 $stringWithTable.="</HTML>";
