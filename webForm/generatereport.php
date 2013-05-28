@@ -65,8 +65,8 @@ function convertToPng($imagePath,$basedirScript,$percent){
 	}
 	exec($cmdToRun,$outputStore,$returnCode);
 	if($returnCode != 0){
-	    echo "Following command failed:<BR> ".$cmdToRun."<BR><BR>output : ".var_dump($outputStore)." please contact directly the webmaster <br>\n";
-	    exit;
+	    echo "Following command failed:<BR> ".$cmdToRun."<BR><BR>output : ".var_dump($outputStore)." please contact the webmaster <br>\n";
+	    // exit;
 	}
 	
 	$endname=implode("/",array_slice(explode("/",$tmpfname),-2));

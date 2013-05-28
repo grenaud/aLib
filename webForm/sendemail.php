@@ -13,13 +13,6 @@ $runid           = $argv[2];
 $runfolder       = $argv[3];
 $lane            = $argv[4];
 
-echo $emailAddrToSend;
-echo $runid;
-echo $runfolder;
-echo $lane;
-
-//die;
-
 $mail = new EMail;
 $mail->Username = 'sbsuser';
 $mail->Password = 'sbs123';

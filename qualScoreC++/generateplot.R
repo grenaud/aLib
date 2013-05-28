@@ -72,7 +72,7 @@ ylimmax<-max(density(xA,weights=(yA+zA), bw = bwtouse)$y,
 
 pdf(paste(filetoopen,".dens.pdf",sep=""));
                                         #main="Distribution of predicted quality score",
-plot(density(xA,weights=(yA+zA), bw = bwtouse),main="",main=title,xlim=c(0,42),ylim=c(0,ylimmax),xlab="Predicted score",ylab="Distribution",col=2,type="n");
+plot(density(xA,weights=(yA+zA), bw = bwtouse),main=title,xlim=c(0,42),ylim=c(0,ylimmax),xlab="Predicted score",ylab="Distribution",col=2,type="n");
 lines(density(xA,weights=(yA+zA), bw = bwtouse),col=3,type="l",pch=20);
 lines(density(xC,weights=(yC+zC), bw = bwtouse),col=4,type="l",pch=20);
 lines(density(xG,weights=(yG+zG), bw = bwtouse),col=1,type="l",pch=20);
@@ -106,7 +106,7 @@ for(file in c(paste(run,".baseobspredcycle1",sep=""),
 
 
   pdf(paste(file,"cycle.pdf",sep=""));
-  plot(seq(1,numberofcs,by=1),-10*log(data[23,oddvals]/(data[23,oddvals]+data[23,evenvals]))/log(10),main=title,ylim=c(0,maxqual+5),type="n", main="Predicted vs observed quality score per cycle",xlab="Cycle",ylab="Obsverved score")   
+  plot(seq(1,numberofcs,by=1),-10*log(data[23,oddvals]/(data[23,oddvals]+data[23,evenvals]))/log(10),ylim=c(0,maxqual+5),type="n", main="Predicted vs observed quality score per cycle",xlab="Cycle",ylab="Obsverved score")   
   xpos<-5;
   color<-1
   colortouse=rainbow(length(steps),v=0.8)[color]
