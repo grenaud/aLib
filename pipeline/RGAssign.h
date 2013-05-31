@@ -38,6 +38,7 @@ typedef struct{
     double logRatioTopToSecond;            // ~~ conflict
     double logLikelihoodScore;             // ~~ unknown
     double topWrongToTopCorrect;        // ~~ wrong
+    int numberOfMismatches;          //total # of mismatches
 } rgAssignment;
 
 string toUpperCase(string toCheck);

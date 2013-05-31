@@ -538,8 +538,8 @@ if(jsondata["freeibis"]):
     #ERROR PROFILE
     listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/Ibis/error_profile.pdf");
 
-    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Ibis/error_profile.pdf:\t"+(" ".join(finishedFiles)) +"\n");
-    makeWrite[int(lanetopredict)].write("\t"+FREEIBIS+"/plot_error.cmd.R "+outBaseDirectory+"/Ibis/Raw_Sequences/Models/SVMlight_models.index "+outBaseDirectory+"/Ibis/error_profile.pdf\n\n" );
+    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/Ibis/error_profile.pdf:\t"+outBaseDirectory+"/Ibis/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished\n");
+    makeWrite[int(lanetopredict)].write("\t"+FREEIBIS+"/plot_error.cmd.R "+outBaseDirectory+"/Ibis/Raw_Sequences/Models/SVMlight_models.index "+outBaseDirectory+"/Ibis/error_profile.pdf\n\n");
     
     
 #makeWrite[int(lanetopredict)].write("\n");
@@ -894,7 +894,7 @@ for baseCaller in BasecallersUsed:
 
 typesofclean=[];
 
-
+firstPassClean=True;
 
 for lanetopredict in lanesToUse: 
 
@@ -903,8 +903,8 @@ for lanetopredict in lanesToUse:
   makeWrite[int(lanetopredict)].write((" ".join(listOfTargetFiles[lanetopredict]))+"\n\n");
   
 
-
-  typesofclean.append("cleanall");
+  if(firstPassClean):
+    typesofclean.append("cleanall");
   makeWrite[int(lanetopredict)].write("\n"+"cleanall:\n"+"\trm -fv ");
 
   makeWrite[int(lanetopredict)].write((" ".join(listOfFilesBasecall[lanetopredict]))+" "+
@@ -913,8 +913,8 @@ for lanetopredict in lanesToUse:
                                       (" ".join(listOfFilesQC[lanetopredict]))+"\n\n");
 
   
-
-  typesofclean.append("cleanfromfinal");
+  if(firstPassClean):
+    typesofclean.append("cleanfromfinal");
   makeWrite[int(lanetopredict)].write("\n"+"cleanfromfinal:\n"+"\trm -fv ");
 
   makeWrite[int(lanetopredict)].write(#(" ".join(listOfFilesBasecall[lanetopredict]))+" "+
@@ -922,7 +922,8 @@ for lanetopredict in lanesToUse:
                                       (" ".join(listOfFilesBWA[lanetopredict]))+" "+
                                       (" ".join(listOfFilesQC[lanetopredict]))+"\n\n");
 
-  typesofclean.append("cleanfrombwa");
+  if(firstPassClean):
+    typesofclean.append("cleanfrombwa");
   makeWrite[int(lanetopredict)].write("\n"+"cleanfrombwa:\n"+"\trm -fv ");
 
   makeWrite[int(lanetopredict)].write(#(" ".join(listOfFilesBasecall[lanetopredict]))+" "+
@@ -930,8 +931,8 @@ for lanetopredict in lanesToUse:
                                       (" ".join(listOfFilesBWA[lanetopredict]))+" "+
                                       (" ".join(listOfFilesQC[lanetopredict]))+"\n\n");
 
-
-  typesofclean.append("cleanfromqc");
+  if(firstPassClean):
+    typesofclean.append("cleanfromqc");
   makeWrite[int(lanetopredict)].write("\n"+"cleanfromqc:\n"+"\trm -fv ");
 
   makeWrite[int(lanetopredict)].write(#(" ".join(listOfFilesBasecall[lanetopredict]))+" "+
@@ -945,6 +946,7 @@ for lanetopredict in lanesToUse:
 
   makeWrite[int(lanetopredict)].close();
 
+  firstPassClean=False;
 
 #################################################
 #                                               #

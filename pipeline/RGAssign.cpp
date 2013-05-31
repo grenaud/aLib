@@ -90,7 +90,7 @@ indexData intern_readIndex(string filename){
     //initialize the values for the likelihood of matches or mismatches 
     for(int i=0;i<64;i++){
 	if(i == 0)
-	    likeMatch[i]    = -3.0; // this is worgn, hope it's never accessed
+	    likeMatch[i]    = -3.0; // this is vrong, hope it's never accessed
 	else
 	    likeMatch[i]    = log1p( -pow(10.0,i/-10.0) )/log(10);
 	
@@ -395,11 +395,28 @@ inline double computeLike(const string & indexRef,const string & indexRead,const
     return toReturn;
 }
 
-rgAssignment assignReadGroup(
-        string &index1, string &index1q, string &index2,
-        string &index2q, double rgScoreCutoff, double fracConflict,
-        int mismatchesTrie )
-{
+
+
+//computes mismatches between index ref and index from the read
+inline int computeMM(const string & indexRef,const string & indexRead){
+    int toReturn=0;
+    for(unsigned int i=0;i<min(indexRef.length(),indexRead.length());i++){
+	
+	if( indexRef[i] != indexRead[i] )   
+	    toReturn++;
+	    
+    }
+
+    return toReturn;
+}
+
+rgAssignment assignReadGroup(string &index1, 
+			     string &index1q, 
+			     string &index2,
+			     string &index2q, 
+			     double rgScoreCutoff,
+			     double fracConflict,
+			     int mismatchesTrie){
     //BEGIN DEBUG
     // cout<<"DEBUG"<<endl;
     // vector< int > * test1=new vector<int>();
@@ -475,7 +492,7 @@ rgAssignment assignReadGroup(
     for (set<int>::iterator sit=foundIndices.begin(); sit!=foundIndices.end(); sit++){
 
 	like1      =  computeLike(index1,values.indices1[ *sit ],&quals1);
-
+	
 	if(shiftByOne){ //check if shifting by one improves the likelihood
 	    like1      =  max(like1,
 			      max(
@@ -513,6 +530,7 @@ rgAssignment assignReadGroup(
 	toReturn.predictedGroup.clear();
 	return toReturn;
     }
+    //At this point, we will return a RG 
 
     //sorting by likelihood
     sort (sortedLikelihood1.begin(),   sortedLikelihood1.end(),   comparePair()); 
@@ -592,11 +610,21 @@ rgAssignment assignReadGroup(
 	rgqual->write( (char *)&(temporaryD), sizeof(toReturn.logLikelihoodScore));
     }
 
-#ifdef DEBUG3
-    cerr<<endl;
-    cerr<<toReturn.topWrongToTopCorrect<<endl;
-    cerr<<toReturn.logLikelihoodScore<<endl;
-    cerr<<toReturn.logRatioTopToSecond<<endl;
+
+#ifdef DEBUG3    
+
+    toReturn.numberOfMismatches      = computeMM(index1,values.indices1[ sortedLikelihoodAll[0].first ]);
+    if(!index2.empty())
+	toReturn.numberOfMismatches += computeMM(index2,values.indices2[ sortedLikelihoodAll[0].first ]);
+    
+    //cerr<<endl;
+    // if(toReturn.numberOfMismatches!=0){
+    // 	cerr<<toReturn.logLikelihoodScore<<endl;
+    // cerr<<toReturn.topWrongToTopCorrect<<endl;
+    // cerr<<toReturn.logRatioTopToSecond<<endl;
+    //cerr<<"MM"<<toReturn.numberOfMismatches<<endl;
+    //}
+    //cerr<<toReturn.numberOfMismatches<<"\t"<<toReturn.logLikelihoodScore<<endl;
 #endif
     
     return toReturn;

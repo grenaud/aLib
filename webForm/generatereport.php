@@ -174,6 +174,17 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	    if( file_exists($illuminawritedir."/".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/")){
 		//print $illuminawritedir."/".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/";
 
+		echo "<H3>Duplication levels for ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";
+		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/duplication_levels.png",$basedirScript,30);
+	    }
+	}
+    }
+
+    for($lane=1;$lane<=8;$lane++){//
+	foreach(array("Bustard","Ibis") as $basecaller){
+	    if( file_exists($illuminawritedir."/".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/")){
+		//print $illuminawritedir."/".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/";
+
 		echo "<H3>Kmer profile for ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";
 		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/kmer_profiles.png",$basedirScript,30);
 	    }
