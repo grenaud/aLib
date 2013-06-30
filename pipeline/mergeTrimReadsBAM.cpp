@@ -52,6 +52,28 @@ inline string sortUniqueChar(string v){
     return toReturn;
 }
 
+//! return true iff successful
+int set_extra_flag( BamAlignment &al, int32_t f )
+{
+    char tp=0;
+    if(!al.GetTagType(MERGEDBAMFLAG,tp)) {
+        if(al.AddTag(MERGEDBAMFLAG,"i",f)) return 1;
+    }
+    else {
+        int v=0;
+        switch(tp) {
+            case 'i': case 'I': case 's': case 'S': case 'c': case 'C': 
+                al.GetTag(MERGEDBAMFLAG,v);
+                al.RemoveTag(MERGEDBAMFLAG);
+                if(al.AddTag(MERGEDBAMFLAG,"i",v|f)) return 1;
+                break ;
+            default:
+                cerr << "Oh shit, " << MERGEDBAMFLAG << " has type " << tp << endl;
+        }
+    }
+    cerr << "Unable to add tag " << MERGEDBAMFLAG << endl;
+    return 0;
+}
 
 
 int main (int argc, char *argv[]) {
@@ -409,30 +431,13 @@ int main (int argc, char *argv[]) {
 		  if( result.code == ' '){
 		      if( result.sequence.length() > max(read1.length(),read2.length())){
 			  count_merged_overlap ++;			  
-			  if(!al.AddTag(MERGEDBAMFLAG,"i",MERGEDFLAG)){
-			      cerr << "Unable to add tag" << endl;
-			      return 1;
-			  }
-
-			  if(!al2.AddTag(MERGEDBAMFLAG,"i",MERGEDFLAG)){
-			      cerr << "Unable to add tag" << endl;
-			      return 1;
-			  }
-
-
+                          if( !set_extra_flag(al,  MERGEDFLAG) ) return 1 ;
+                          if( !set_extra_flag(al2, MERGEDFLAG) ) return 1 ;
 		      }else{
 			  count_merged++;
-		
-			  if(!al.AddTag(MERGEDBAMFLAG,"i",TRIMMEDMERGEDFLAG)){
-			      cerr << "Unable to add tag" << endl;
-			      return 1;
-			  }
-			  if(!al2.AddTag(MERGEDBAMFLAG,"i",TRIMMEDMERGEDFLAG)){
-			      cerr << "Unable to add tag" << endl;
-			      return 1;
-			  }
-
-		      }
+                          if( !set_extra_flag(al,  TRIMMEDMERGEDFLAG) ) return 1 ;
+                          if( !set_extra_flag(al2, TRIMMEDMERGEDFLAG) ) return 1 ;
+                      }
 		  }
 		  
 		  toWrite.AlignmentFlag=4;
@@ -591,20 +596,12 @@ int main (int argc, char *argv[]) {
 		if(result.sequence != ""){ //new sequence
 
 		    BamAlignment toWrite (al);//build from the previous al
-
 		    toWrite.MapQuality=0;
 
-
-		    if(!al.AddTag(MERGEDBAMFLAG,"i",TRIMMEDFLAG)){
-		      cerr << "Unable to add tag" << endl;
-		      return 1;
-		    }
-
-		    
 		    toWrite.QueryBases = result.sequence;
 		    toWrite.Qualities  = result.quality;
 		    toWrite.SetIsMapped(false);
-		    toWrite.TagData=al.TagData; //copy tag info
+            if(!set_extra_flag( toWrite, TRIMMEDFLAG )) return 1; 
 
 		    toWrite.Position    =-1;
 		    toWrite.MatePosition=-1;		    
