@@ -5,3 +5,4 @@ pipeline/assignRG
 pipeline/errorRatePerCycle
 pipeline/filterReads
 pipeline/mergeTrimReadsBAM
+pipeline/generate_report
