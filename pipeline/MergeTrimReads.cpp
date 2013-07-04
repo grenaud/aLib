@@ -1,36 +1,43 @@
 #include "MergeTrimReads.h"
 
-bool   initialized       = false;
-double cutoff_merge_trim = 0.80;
-size_t maxadapter_comp=30;
-size_t min_overlap_seqs=10;
-double cutoff_merge_seqs_early = 0.95;
-double cutoff_merge_seqs = 0.90;
 
-//  Key variables ///
-bool handle_key           = false;
-bool options_allowMissing = false;
+//#define DEBUGSR
+//#define DEBUGPR
+//#define DEBUGADAPT
+//#define DEBUGOVERLAP
+//#define DEBUGTOTALOV
+// #define DEBUGPARTIALOV
+// #define CONSBASEPROB
+
+
+
+
+
+
+// bool   initialized       = false;
+// double cutoff_merge_trim = 0.80;
+size_t maxadapter_comp  = 30;
+size_t min_overlap_seqs = 10;
+// double cutoff_merge_seqs_early = 0.95;
+// double cutoff_merge_seqs = 0.90;
+
+// //  Key variables ///
+ bool handle_key           = false;
 string keys0="";
 string keys1="";
 int len_key1=0;
 int len_key2=0;
-size_t options_trimCutoff =1;
-bool options_mergeoverlap = false;
 
 
-static string returnFirstToken(string * toparse,string delim){
-    size_t found;
-    string toreturn;
-    found=toparse->find(delim);
-    if (found!=string::npos){
-	toreturn=toparse->substr(0,found);
-	toparse->erase(0,found+delim.length());
-	return toreturn;
-    }
-    toreturn=(*toparse);
-    toparse->erase(0,toparse->length());    
-    return toreturn;
-}
+size_t  options_trimCutoff   = 1;
+bool    options_mergeoverlap = false;
+bool    options_allowMissing = false;
+
+double likeMatch[64];
+double likeMismatch[64];
+
+double probForQual[64];
+
 
 static inline char revComp(char c){
     if(c ==    'A')
@@ -48,71 +55,62 @@ static inline char revComp(char c){
     if(c ==    'N')
 	return 'N';
     
-    cerr<<"Wrong base in revComp function "<<endl;
+    cerr<<"Wrong base in revComp function = "<<c<<endl;
     exit(1);
 }
 
-static inline int edits(const string seq1,const string seq2){
-    int lmin = min(seq1.length(),seq2.length());
-    int lmax = max(seq1.length(),seq2.length());
-    int dist = lmax-lmin;
-    int  pos=0;
-    while(pos<lmin){
-	if (seq1[pos] != seq2[pos]) 
-	    dist+=1;
-	pos++;
-    }
-    return dist;
-}
-
-//! Function to convert quality string to log scores (int) on the phred scale (0-40)
-/*!
-  \param qualstring : string containing the quality scores
-  \return Vector of ints containing the log scores
-*/
-static inline vector<int>  convert_quality_logprob(const string qualstring){
-    vector<int> toReturn;
-    unsigned int i=0;
-    while(i<qualstring.length()){
-	// cout<<(int(qualstring[i])-offset)<<endl;
-	toReturn.push_back(int(qualstring[i])-offset);
+static inline string revcompl(const string seq){
+    string toReturn="";
+    int seqL=seq.length();
+    int i=0;
+    while(i<seqL){
+	toReturn+=revComp(seq[seqL-i-1]);
 	i++;
     }
     return toReturn;
 }
 
-//! Function to convert log scores to quality string
-/*!
-  \param qualstring : string containing the quality scores
-  \return Vector of ints containing the log scores
-*/
+void initMerge(){
+
+    for(int i=0;i<64;i++){
+        if(i == 0)
+            likeMatch[i]    = -3.0; // this is vrong, hope it's never accessed
+        else
+            likeMatch[i]    = log1p( -pow(10.0,i/-10.0) )/log(10);
+        
+        likeMismatch[i]     = i/-10.0;  
+
+	probForQual[i] = max(double(1.0)-pow(double(10.0),double(i)/double(-10.0)),
+			     max_prob_N);
+
+#ifdef DEBUG2
+        cout<<"qual = "<<i<<endl;
+        cout<<likeMatch[i]<<endl;
+        cout<<likeMismatch[i]<<endl;
+#endif
+
+    }
+
+
+}
+
 static inline string convert_logprob_quality(vector<int> logScores){
     string toReturn="";
-    unsigned int i=0;
-    while(i<logScores.size()){	
-	toReturn+=char(max(33,min(126,logScores[i]+offset)));
-	i++;
+    for(unsigned int i=0;i<logScores.size();i++){
+	toReturn+=char(max(qualOffset,min(126,logScores[i]+qualOffset)));
     }
     return toReturn;
 }
 
-//! Function to convert log scores to probablilities for identity calculation
-/*!
-  \param qualstring : string containing the quality scores
-  \return Vector of ints containing the log scores
-*/
-static inline vector<double>  convert_logprob_prob(vector<int> logScores){
-    vector<double> toReturn;
-    unsigned int i=0;
-    while(i<logScores.size()){
-	//cout<<max(double(1.0)-pow(double(10.0),logScores[i]/double(-10.0)),max_prob_N)<<endl;
-	toReturn.push_back(max(double(1.0)-pow(double(10.0),logScores[i]/double(-10.0)),max_prob_N));
-	    //char(max(33,min(126,logScores[i]+offset)));
-	i++;
-    }
-    return toReturn;
 
-}
+// static inline vector<double>  convert_logprob_prob(vector<int> logScores){
+//     vector<double> toReturn;
+//     for(unsigned int i=0;i<logScores.size();i++){
+// 	toReturn.push_back( max(double(1.0)-pow(double(10.0),logScores[i]/double(-10.0)),
+// 				max_prob_N) );
+//     }
+//     return toReturn;
+// }
 
 static inline double randomGen(){
     static bool initialized = false;
@@ -126,22 +124,6 @@ static inline double randomGen(){
     }else{
 	return  (double(rand())/double(RAND_MAX));       
     }
-}
-
-//! Function to retrieve the reverse complement
-/*!
-  \param qualstring : string containing the quality scores
-  \return Vector of ints containing the log scores
-*/
-static inline string revcompl(const string seq){
-    string toReturn="";
-    int seqL=seq.length();
-    int i=0;
-    while(i<seqL){
-	toReturn+=revComp(seq[seqL-i-1]);
-	i++;
-    }
-    return toReturn;
 }
 
 static inline baseQual cons_base_prob(baseQual  base1,baseQual base2){
@@ -159,6 +141,10 @@ static inline baseQual cons_base_prob(baseQual  base1,baseQual base2){
     double lprob1 = log10(base1.prob);
     double lprob2 = log10(base2.prob);
     double aprob2 = log10(1.0-base2.prob)-log10(3.0);
+
+#ifdef CONSBASEPROB
+    cerr<<base1.base<<"\t"<<base1.prob<<"\t"<<base2.base<<"\t"<<base2.prob<<"\t"<<endl;
+#endif
 
     double total_prob = 0.0;
     for(int i=0;i<4;i++){
@@ -208,521 +194,6 @@ static inline baseQual cons_base_prob(baseQual  base1,baseQual base2){
 }
 
 
-// specialized for qualities for second sequence
-static double quality_ident(
-        string::const_iterator seqA, size_t lenA, vector<double>::const_iterator qualA,
-        string::const_iterator seqB, size_t lenB, vector<double>::const_iterator qualB)
-{
-    double ident = 0.0;
-    
-    //switch seq1 seq2 around?
-    bool flip = lenB < lenA ;
-    string::const_iterator& seq1 = flip?seqB:seqA ;
-    string::const_iterator& seq2 = flip?seqA:seqB ;
-    int len1 = flip?lenB:lenA;
-    vector<double>::const_iterator& qual1 = flip?qualB:qualA ;
-    vector<double>::const_iterator& qual2 = flip?qualA:qualB ;
-
-    for( int pos=0; pos != len1 ; ++pos ) {
-        if( seq1[pos] != seq2[pos] )
-            ident += min(qual1[pos],qual2[pos]);
-    }
-
-    return len1 ? 1 - ident/len1 : 0;
-}
-
-// specialized for no qualities for second sequence
-static double quality_ident(
-        string::const_iterator seq1, size_t len1, vector<double>::const_iterator qual1,
-        string::const_iterator seq2, size_t len2, size_t maxcomp)
-{
-    double ident = 0.0;
-    maxcomp = min(maxcomp, len1 ) ;
-    
-    if( len2 >= maxcomp ) {
-        for( size_t pos=0; pos != maxcomp; ++pos ) {
-            if( (seq1[pos] != seq2[pos]) && (seq2[pos] != 'I'))
-                ident += qual1[pos];
-        }
-    }else{
-	cerr<<"MergeTrimReads:Quality_ident: Call with invalid arguments"<<endl;
-	exit(1);	
-    }
-
-    return maxcomp ? 1 - ident/maxcomp : 0;
-}
-
-static seqQual check_merge(const seqQual& read1, 
-			   const seqQual& read2){
-    seqQual toReturn;
-        
-    unsigned int lread1 = read1.sequence.length();
-    unsigned int lread2 = read2.sequence.length();
-
-    if(lread1 != read1.probabilities.size() ||
-       lread1 != read1.logProbs.size() ){
-	cerr<<"MergeTrimReads: check_merge read1 cannot have variables of different lengths"<<endl;
-	exit(1);	
-    }
-
-    if(lread2 != read2.probabilities.size() ||
-       lread2 != read2.logProbs.size() ){
-	cerr<<"MergeTrimReads: check_merge read2 cannot have variables of different lengths"<<endl;
-	exit(1);	
-    }
-       
-
-    if( (lread1 > 0) && (lread2 > 0) ){
-	double oident = quality_ident(read2.sequence.begin(),read2.sequence.length(),read2.probabilities.begin()
-                                     ,read1.sequence.begin(),read1.sequence.length(),read1.probabilities.begin());
-	if(oident > cutoff_merge_trim){
-	    toReturn.sequence=read1.sequence;
-	    toReturn.logProbs=vector<int>(read1.logProbs);	    
-
-	    unsigned int  pos=lread1;
-	    while(pos<lread2){
-		toReturn.sequence        +=   read2.sequence[pos];
-		toReturn.logProbs.push_back(  read2.logProbs[pos]);
-		pos++;
-	    }
-	    pos=0;
-
-	    while(pos<lread2){
-		if( (toReturn.sequence[pos] == 'I') || 
-		    ((toReturn.sequence[pos] == 'N') && (read2.sequence[pos] != 'N') && (read2.sequence[pos] != 'I'))
-		    ){
-		    toReturn.sequence[pos]      = read2.sequence[pos];
-		    toReturn.logProbs[pos]      = read2.logProbs[pos];
-		}else{
-		    if( (pos < lread1) && (read1.sequence[pos] != 'N') && (read2.sequence[pos] != 'N') && (read1.sequence[pos] != 'I') && (read2.sequence[pos] != 'I')){
-			baseQual b1;
-			baseQual b2;
-			b1.base = read1.sequence[pos];
-			b1.prob = read1.probabilities[pos];
-			b1.qual = -1;
-
-			b2.base = read2.sequence[pos];
-			b2.prob = read2.probabilities[pos];
-			b2.qual = -1;
-			baseQual b = cons_base_prob(b1,b2);
-			toReturn.sequence[pos] = b.base;
-			toReturn.logProbs[pos] = b.qual;
-		    }
-		}
-		pos++;
-	    }
-
-	}
-    }
-
-
-    toReturn.quality=convert_logprob_quality(toReturn.logProbs);
-    return toReturn;
-}
-
-
-
-merged process_PE(string read1,string qual1,string read2,string qual2){
-    merged toReturn;
-    int lread1 = read1.length();
-    int lread2 = read2.length();
-
-    if( (read1.length() != qual1.length()) ||
-	(read2.length() != qual2.length()) ){
-	cerr<<"The reads and qualities must have equal lengths"<<endl;
-	exit(1);
-    }
-	
-    //check key, if key sequence specified
-    //and matches remove key from both ends
-    if( handle_key && read1.length() > 0){
-
-	if (
-	    ((read1.substr(0,len_key1) == keys0) && (read2.substr(0,len_key2) == keys1)) || //perfect match
-	    (options_allowMissing && (edits(read1.substr(0,len_key1),keys0) == 1) && (read2.substr(0,len_key2) == keys1)) || //1mm in first key
-	    (options_allowMissing && (read1.substr(0,len_key1) == keys0) && (edits(read2.substr(0,len_key2),keys1) == 1))
-	    ){ //1mm in second key
-	    read1 = read1.substr(len_key1,lread1-len_key1);
-	    qual1 = qual1.substr(len_key1,lread1-len_key1);
-	    read2 = read2.substr(len_key2,lread2-len_key2);
-	    qual2 = qual2.substr(len_key2,lread2-len_key2);
-	}else{
-	    if(options_allowMissing && 
-	       ( (len_key1>0?(read1.substr(0,len_key1-1) == keys0.substr(1,len_key1-1)):true) && (read2.substr(0,len_key2) == keys1)) ){
-		read1 = read1.substr(len_key1-1,lread1-(len_key1-1));
-		qual1 = qual1.substr(len_key1-1,lread1-(len_key1-1));
-		read2 = read2.substr(len_key2,lread2-len_key2);
-		qual2 = qual2.substr(len_key2,lread2-len_key2);
-	    }else{
-		if(options_allowMissing && 
-		   (read1.substr(0,len_key1) == keys0) && (len_key2>0?(read2.substr(0,len_key2-1) == keys1.substr(1,len_key2-1)):true)){
-		    read1 = read1.substr(len_key1,lread1-len_key1);
-		    qual1 = qual1.substr(len_key1,lread1-len_key1);
-		    read2 = read2.substr(len_key2-1,lread2-(len_key2-1));
-		    qual2 = qual2.substr(len_key2-1,lread2-(len_key2-1));		    
-		}else{
-		    toReturn.code    ='K';
-		    toReturn.sequence="";
-		    toReturn.quality ="";		    
-		    return toReturn;
-		}
-
-	    }
-	}
-    }
-
-    vector<int>    lqual1 = convert_quality_logprob(qual1);
-    vector<double> pqual1 = convert_logprob_prob(lqual1);
-
-    //check adapter chimeras
-    if( adapter_chimeras.size() > 0){
-	unsigned int indexChimera=0;
-	while(indexChimera<adapter_chimeras.size()){
-
-	    if( quality_ident(read1.begin(),read1.length(),pqual1.begin()
-                             ,adapter_chimeras[indexChimera].begin(),adapter_chimeras[indexChimera].length()
-                             ,maxadapter_comp) > cutoff_merge_trim){
-		read1 = "";
-		read2 = "";
-		break;
-	    }else{
-		if (quality_ident(read1.begin(),read1.length(),pqual1.begin()
-                                 ,adapter_chimeras[indexChimera].begin()+1,adapter_chimeras[indexChimera].length()-1
-                                 ,maxadapter_comp) > cutoff_merge_trim){ // consider losing first base
-		    read1 = "";
-		    read2 = "";
-		    break;
-		}
-	    }
-	    indexChimera++;
-	}
-	if(read1 == "" || read2 == "" ){
-	    toReturn.code    ='D';
-	    toReturn.sequence="";
-	    toReturn.quality ="";		    
-	    return toReturn;
-	}
-    }
-
-    if( (read1.length() != qual1.length()) ||
-	(read2.length() != qual2.length()) ){
-	cerr<<"Internal error: the reads and qualities must have equal lengths"<<endl;
-	exit(1);
-    }
-
-
-    lread1 = read1.length();
-    lread2 = read2.length();
-    // convert quality strings to probabiliities
-    vector<int>    lqual2 = convert_quality_logprob(qual2);
-    vector<double> pqual2 = convert_logprob_prob(lqual2);
-
-    
-    string         rread2 = revcompl(read2);
-    vector<double> rqual2 (pqual2);
-    reverse(rqual2.begin(),rqual2.end());
-
-    vector<int> rlqual2 (lqual2);
-    reverse(rlqual2.begin(),rlqual2.end());
-    int mlength = min(lread1,lread2);
-    int clength = max(lread1,lread2);
-
-    bool have_merged = false;
-    seqQual r1;
-    seqQual r2;
-    seqQual resultCM;
-    int idxmax;
-
-    int start=mlength;
-    while(start>=0){
-
-	double cval1 = quality_ident(read1.begin()+start, lread1-start, pqual1.begin()+start,
-				     options_adapter_F.begin(), options_adapter_F.length(), maxadapter_comp);
-	double cval2 = quality_ident(read2.begin()+start, lread2-start, pqual2.begin()+start,
-				     options_adapter_S.begin(), options_adapter_S.length(), maxadapter_comp);
-	r1.sequence        = read1.substr(0,start);
-	r1.probabilities   = vector<double> (pqual1.begin(),pqual1.begin()+start);
-	r1.logProbs        = vector<int>    (lqual1.begin(),lqual1.begin()+start);
-	idxmax=max(0,lread2-start);
-	r2.sequence        = rread2.substr(idxmax,lread2-idxmax);
-	r2.probabilities   = vector<double> (rqual2.begin()+idxmax,rqual2.end());
-	r2.logProbs        = vector<int>    (rlqual2.begin()+idxmax,rlqual2.end());
-
-
-	resultCM=check_merge(r1,r2);
-	
-	if( (resultCM.sequence != "") && (max(cval1,cval2) > cutoff_merge_trim)){
-	    have_merged = true; //utterly useless 
-	    toReturn.code    = ' ';
-	    toReturn.sequence=resultCM.sequence;
-	    toReturn.quality =resultCM.quality;
-
-	    return toReturn;
-	}
-	start--;
-    }
-
-
-    if(!have_merged){
-	int start=mlength+1;
-	while(start<(clength+1)){ // sequence left for asymmetric read length
-	    double cval1;
-	    double cval2;
-	    string s1touse="";
-	    string s2touse="";
-
-	    if( lread1>start ){
-		s1touse=read1.substr(start,lread1-start);
-		cval1 = quality_ident(read1.begin()+start, lread1-start, pqual1.begin()+start,
-				      options_adapter_F.begin(), options_adapter_F.length(), maxadapter_comp);
-	    }else
-		cval1=0.0;
-
-	    if( lread2>start ){
-		s2touse=read2.substr(start,lread2-start);
-		cval2 = quality_ident(read2.begin()+start, lread2-start, pqual2.begin()+start,
-				      options_adapter_S.begin(), options_adapter_S.length(), maxadapter_comp);
-	    }else
-		cval2=0.0;
-
-	    
-	    seqQual help;
-	    help.sequence="";
-	    int ipos=0;
-	    while(ipos<max(0,start-lread2)){
-		help.sequence     +="I";
-		help.probabilities.push_back(0.0);
-		help.logProbs     .push_back(0  );
-		ipos++;
-	    }
-	    r1.sequence        = read1.substr(0,start);
-	    r1.probabilities   = vector<double> (pqual1.begin(),pqual1.begin()+min(start,int(pqual1.size())));
-	    r1.logProbs        = vector<int>    (lqual1.begin(),lqual1.begin()+min(start,int(lqual1.size())));
-
-	    idxmax=max(0,lread2-start);
-	    help.sequence    +=rread2.substr(idxmax,lread2-idxmax);
-	    help.probabilities.insert(help.probabilities.end(),rqual2.begin()+idxmax,rqual2.end());
-	    help.logProbs     .insert(help.logProbs.end()     ,rlqual2.begin()+idxmax,rlqual2.end());
-	  
-
-	    resultCM=check_merge(r1,help);
-
-	    if( resultCM.sequence != "" && 
-		( (max(cval1,cval2)>cutoff_merge_trim) || 
-		  ( (s1touse          == s2touse) &&  
-		    (s1touse.length() == 0) ) )){
-		    have_merged = true; 
-		    if( resultCM.sequence.length() < min_length){
-			toReturn.code     ='D';
-			toReturn.sequence ="";
-			toReturn.quality  ="";			
-		    }else{
-			toReturn.code     =' ';
-			toReturn.sequence = resultCM.sequence;
-			toReturn.quality  = resultCM.quality ;						
-		    }
-		    return toReturn;
-	    }
-	    start++;
-	}
-    }
-
-
-    //insert might be longer than read length. try to merge sequences with overlap
-    if(!have_merged && options_mergeoverlap){
-	double max_value1 =-1.0;
-	int max_pos1   =-1;
-	size_t start=0;
-	while(start<(lread1-min_overlap_seqs)){
-	
-	    if (lread1-start <= lread2){
-		double cval = quality_ident(read1.begin()+start, lread1-start, pqual1.begin()+start,
-					    rread2.begin(), rread2.length(), rqual2.begin());
-		if( cval > cutoff_merge_seqs_early){
-		    max_value1=cval;
-		    max_pos1  =start;
-		    break;
-		}else{
-		    if( (max_value1 == double(-1.0)) || (cval > max_value1)){
-			max_value1=cval;
-			max_pos1=start;
-		    }
-		}
-	    }
-	    start++;
-	}
-
-
-	if (max_value1 > cutoff_merge_seqs){
-	    string        new_lseq  = string(read1.substr(0,max_pos1)+rread2);
-	    vector<int>   new_lqual = vector<int> (lqual1.begin(),lqual1.begin()+max_pos1);
-	    new_lqual.insert(new_lqual.end(),rlqual2.begin(),rlqual2.end());
-	    baseQual b1;
-	    baseQual b2;
-
-	    int pos=max_pos1;
-	    while(pos<mlength){
-		b1.base=new_lseq [pos];
-		b1.prob=rqual2[pos-max_pos1];
-		b1.qual=-1;
-		b2.base=read1[pos];
-		b2.prob=pqual1[pos];
-		b2.qual=-1;
-		baseQual RT = cons_base_prob(b1,b2);
-		new_lseq[pos]=RT.base;
-		new_lqual[pos]=RT.qual;
-		pos++;
-	    }
-	    
-	    toReturn.code    =' ';
-	    toReturn.sequence=new_lseq;	   
-	    toReturn.quality =convert_logprob_quality(new_lqual);	
-	    return toReturn;
-	}
-    } //end if(!have_merged && options_mergeoverlap){
-
-
-    toReturn.code    =' ';
-    toReturn.sequence="";	   
-    toReturn.quality ="";	
-    return toReturn;
-}
-
-
-
-
-
-merged process_SR(string read1,string qual1){
-    merged toReturn;
-    vector<double> emptyQual2;
-
-    size_t lread1 = read1.length();
-    if( (read1.length() != qual1.length()) ){
-	cerr<<"MergeTrimReads: The reads and qualities must have equal lengths"<<endl;
-	exit(1);
-    }
-
-    if( handle_key ){
-	if ((read1.substr(0,len_key1) == keys0)  || //perfect match
-	     (options_allowMissing && (edits(read1.substr(0,len_key1),keys0) == 1))  //1mm in first key	     
-	    ){ //1mm in second key
-	    read1 = read1.substr(len_key1,lread1-len_key1);
-	    qual1 = qual1.substr(len_key1,lread1-len_key1);
-	}else{
-	    if(options_allowMissing && 
-	       (read1.substr(0,len_key1-1) == keys0.substr(1,len_key1-1))  ){
-		read1 = read1.substr(len_key1-1,lread1-(len_key1-1));
-		qual1 = qual1.substr(len_key1-1,lread1-(len_key1-1));
-	    }else{
-		toReturn.code    ='K';
-		toReturn.sequence="";
-		toReturn.quality ="";		    
-		return toReturn;	       
-	    }
-	}
-    }
-
-    if( (read1.length() != qual1.length()) ){
-	cerr<<"MergeTrimReads : The reads and qualities must have equal lengths"<<endl;
-	exit(1);
-    }
-
-    lread1 = read1.length();
-    // convert quality strings to probabiliities
-    vector<int>    lqual1 = convert_quality_logprob(qual1);
-    vector<double> pqual1 = convert_logprob_prob(lqual1);
-    
-    //check adapter chimeras
-    if( adapter_chimeras.size() > 0){
-	vector<int>    lqual1 = convert_quality_logprob(qual1);
-	vector<double> pqual1 = convert_logprob_prob(lqual1);
-
-
-	unsigned int indexChimera=0;
-	while(indexChimera<adapter_chimeras.size()){
-	   
-	    if( quality_ident(read1.begin(),read1.length(),pqual1.begin(),
-                              adapter_chimeras[indexChimera].begin(), adapter_chimeras[indexChimera].length(),
-                              maxadapter_comp) > cutoff_merge_trim){
-		read1 = "";
-		break;
-	    }else{
-		if (quality_ident(read1.begin(),read1.length(),pqual1.begin(),
-                                  adapter_chimeras[indexChimera].begin()+1, adapter_chimeras[indexChimera].length()-1, 
-                                  maxadapter_comp-1) > cutoff_merge_trim){ // consider losing first base
-		    read1 = "";
-		    break;
-		}
-	    }
-	    indexChimera++;
-	}
-	if( read1 == ""  ){
-	    toReturn.code    ='D';
-	    toReturn.sequence="";
-	    toReturn.quality ="";		    
-	    return toReturn;
-	}
-    }
-
-    int adapter_pos = -2;
-    double max_value =-1;
-    int max_pos   =-1;
-    size_t start=0;
-    while(start<(lread1)){
-	double cval = quality_ident(read1.begin()+start, lread1-start, pqual1.begin()+start,
-				    options_adapter_F.begin(), options_adapter_F.length(), maxadapter_comp);
-
-	if( cval > cutoff_merge_seqs_early){
-	    max_value=cval;
-	    max_pos  =start;
-	    break;
-	}else{
-	    if(((cval > cutoff_merge_trim) && (cval > max_value) && (lread1-start > min_length)) || 
-	       ((lread1-start <= min_length) && (max_value == -1))
-	       ){
-		max_value =cval;
-		max_pos   =start;
-	    }
-	}	
-	start++;
-    }
-
-    if( (max_value > cutoff_merge_trim) && 
-	((lread1-max_pos) >= options_trimCutoff) ){
-	adapter_pos = max_pos;
-    
-        read1 = read1.substr(0,adapter_pos);
-	if( read1.length() < min_length){
-	    toReturn.code    ='D';
-	    toReturn.sequence="";	   
-	    toReturn.quality ="";
-	    return toReturn;	
-	}else{
-	    qual1 = qual1.substr(0,adapter_pos);
-	    toReturn.code    =' ';
-	    toReturn.sequence=read1;	   
-	    toReturn.quality =qual1;	
-	    return toReturn;
-	}
-    }
-
-    toReturn.code    =' ';
-    toReturn.sequence="";	   
-    toReturn.quality ="";
-    return toReturn;
-}
-
-
-
-
-
-void set_options(int trimcutoff,bool allowMissing,bool mergeoverlap){
-    options_trimCutoff = trimcutoff;
-    options_allowMissing = allowMissing;
-    options_mergeoverlap = mergeoverlap;
-}
-
-
 void set_adapter_sequences(const string& forward, const string& reverse, const string& chimera, int max_comp){
     options_adapter_F.assign( forward.length(), 0 );
     options_adapter_S.assign( reverse.length(), 0 );
@@ -746,7 +217,9 @@ void set_adapter_sequences(const string& forward, const string& reverse, const s
     vector<string>::iterator it;
     it=adapter_chimeras.begin() ; 
     while(it < adapter_chimeras.end()  ){
+
 	it->erase( remove( it->begin(), it->end(), ' ' ), it->end() ); //remove white spaces
+
 	if( ( it->length() > 0) && (it->length()  <= maxadapter_comp)){
 	    while ( it->length() <= maxadapter_comp ){
 		*it += "I";
@@ -774,7 +247,19 @@ void set_adapter_sequences(const string& forward, const string& reverse, const s
 }
    
 
-
+static string returnFirstToken(string * toparse,string delim){
+    size_t found;
+    string toreturn;
+    found=toparse->find(delim);
+    if (found!=string::npos){
+	toreturn=toparse->substr(0,found);
+	toparse->erase(0,found+delim.length());
+	return toreturn;
+    }
+    toreturn=(*toparse);
+    toparse->erase(0,toparse->length());    
+    return toreturn;
+}
 
 void set_keys(const string& key1, const string& key2){
 
@@ -798,10 +283,584 @@ void set_keys(const string& key1, const string& key2){
 	
 }
 
+void set_options(int trimcutoff,bool allowMissing,bool mergeoverlap){
+    options_trimCutoff   = trimcutoff;
+    options_allowMissing = allowMissing;
+    options_mergeoverlap = mergeoverlap;
+}
 
+
+static inline double detectChimera(const string      & read,
+			   const vector<int> & qual,
+			   const string      & chimeraString,
+			   unsigned int offsetChimera){
+
+    double likelihoodMatch=0.0;
+    unsigned maxidx=min(read.length(),chimeraString.length()-offsetChimera);
+
+    for(unsigned i=0;i<maxidx;i++){
+	if(          read[i]              == chimeraString[i+offsetChimera] || 
+	   chimeraString[i+offsetChimera] == 'I' ){
+	    likelihoodMatch  +=    likeMatch[ qual[i] ];
+	}else{
+	    likelihoodMatch  += likeMismatch[ qual[i] ];
+	}
+    }
+    
+    return likelihoodMatch;
+}
+
+
+
+static inline double measureOverlap(const string      & read1,
+				    const vector<int> & qual1,
+				    const string      & read2,
+				    const vector<int> & qual2,
+				    const unsigned int offsetRead,
+				    double * iterations){
+
+    // unsigned int maxidx=min(read1.size(),
+    // 			    read2.size()-offsetRead);
+    unsigned int maxidx=offsetRead ;
+    double likelihoodMatch=0.0;
+    unsigned int i1;
+    unsigned int i2;
+
+    for(unsigned i=0;i<maxidx;i++){
+	i1 = i;
+	i2 = read2.size()-offsetRead+i;
+
+#ifdef DEBUGOVERLAP
+	cerr<<"overlap "<<offsetRead<<" read1["<<(i)<<"] "<<read1[i1]<<"\tread2["<<i2<< "] "<<read2[i2]<<endl;
+#endif
+	
+	if(read1[i1] == read2[i2] ){
+	    likelihoodMatch  +=    likeMatch[    min(qual1[i1],qual2[i2])  ];
+	}else{
+	    likelihoodMatch  +=    likeMismatch[ max(qual1[i1],qual2[i2])  ];
+	}
+	// iterations++;
+	(*iterations)++;
+
+    }
+
+
+    return likelihoodMatch;
+
+}
+    
+
+static inline double detectAdapter(const string      & read,
+				   const vector<int> & qual,
+				   const string      & adapterString,
+				   unsigned int offsetRead,
+				   double * iterations ){
+
+    double likelihoodMatch=0.0;
+    unsigned maxidx=min ( min(read.length()-offsetRead,
+			      adapterString.length())  , maxadapter_comp  );
+    // cerr<<read<<endl;
+    // cerr<<adapterString<<endl;
+
+    unsigned int i1;
+
+    for(unsigned i=0;i<maxidx;i++){
+	i1 = i+offsetRead;
+#ifdef DEBUGADAPT
+	cerr<<"da "<<read[i1] <<"\t"<<adapterString[i]<<"\t"<<likelihoodMatch<<endl;
+#endif
+	if(         read[i1]  == adapterString[i] || 
+		    adapterString[i1]  == 'I' ){ //match
+	    likelihoodMatch  +=    likeMatch[ qual[i1] ];
+	}else{ //mismatch
+	    likelihoodMatch  += likeMismatch[ qual[i1] ];
+	}
+	(*iterations)++;
+    }
+    
+    return likelihoodMatch;
+}
+
+// static inline double detectAdapterRev(const string      & read,
+// 		     const vector<int> & qual,
+// 		     const string      & adapterString,
+// 		     unsigned int offsetRead){
+
+//     double likelihoodMatch=0.0;
+//     unsigned maxidx=min ( min(read.length()-offsetRead,
+// 			      adapterString.length())  , maxadapter_comp  );
+//     // cerr<<read<<endl;
+//     // cerr<<adapterString<<endl;
+//     unsigned int i2;
+
+//     double iterations=0;
+//     for(unsigned i=0;i<maxidx;i++){
+// 	i2 = read.size()-i-offsetRead-1;
+
+// #ifdef DEBUGADAPT
+// 	cerr<<"dar "<<i2<<"\t"<<read[i2] <<"\t"<<adapterString[i]<<"\t"<<likelihoodMatch<<endl;
+// #endif
+// 	if(         read[i2]  == adapterString[i] || 
+// 		    adapterString[i2]  == 'I' ){ //match
+// 	    likelihoodMatch  +=    likeMatch[ qual[i2] ];
+// 	}else{ //mismatch
+// 	    likelihoodMatch  += likeMismatch[ qual[i2] ];
+// 	}
+// 	iterations++;
+//     }
+    
+//     return likelihoodMatch/iterations;
+// }
+
+static inline int edits(const string & seq1,const string & seq2){
+    int lmin = min(seq1.length(),seq2.length());
+    int lmax = max(seq1.length(),seq2.length());
+    int dist = lmax-lmin;
+
+    for(int pos=0;pos<lmin;pos++){
+	if (seq1[pos] != seq2[pos]) 
+	    dist+=1;	
+    }
+
+    return dist;
+}
+
+merged process_SR(string  read1, 
+		  string  qual1){
+
+    merged toReturn;
+    // int qualOffset=33;
+
+
+    //check for the key (if needed)
+    if( handle_key ){
+	if ((read1.substr(0,len_key1) == keys0)  || //perfect match
+	    (options_allowMissing && (edits(read1.substr(0,len_key1),keys0) == 1))  //1mm in first key	     
+	    ){ //1mm in second key
+	    read1 = read1.substr(len_key1,read1.size()-len_key1);
+	    qual1 = qual1.substr(len_key1,read1.size()-len_key1);
+	}else{
+	    if(options_allowMissing && 
+	       (read1.substr(0,len_key1-1) == keys0.substr(1,len_key1-1))  ){
+		read1 = read1.substr(len_key1-1,read1.size()-(len_key1-1));
+		qual1 = qual1.substr(len_key1-1,read1.size()-(len_key1-1));
+	    }else{
+		toReturn.code    ='K';
+		toReturn.sequence="";
+		toReturn.quality ="";		    
+		return toReturn;	       
+	    }
+	}
+    }
+    //end check for the key (if needed)
+
+
+    if( (read1.length() != qual1.length()) ){
+	cerr<<"MergeTrimReads: The reads and qualities must have equal lengths"<<endl;
+	exit(1);
+    }
+
+    vector<int> qualv1;
+    for(unsigned int i=0;i<qual1.length();i++){
+	qualv1.push_back( max( (int(char( qual1[i] ))-qualOffset),2) );
+    }
+    
+
+    //start detecting chimera //
+    double lowChimeraLike=-DBL_MAX;
+    //finding best match
+    for(unsigned int indexChimera=0;indexChimera<adapter_chimeras.size();indexChimera++){
+	lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 0 ) ); 
+	lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 1 ) ); //try an off by 1 match
+	// cout<<"res "<<adapter_chimeras[indexChimera]<<"\t"<<detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera],1 )<<endl;
+    }
+
+    if(lowChimeraLike > likelihoodChimera){
+	toReturn.code    ='D';
+	toReturn.sequence="";
+	toReturn.quality ="";		    
+	return toReturn;
+    }
+    // end detecting chimera //
+
+
+
+    //start detecting adapter //
+    double       lowAdapterLike   =-DBL_MAX;
+    unsigned int indexAdapterBest = read1.size();
+
+    for(unsigned int indexAdapter=0;
+	indexAdapter<(read1.length()-options_trimCutoff);
+	indexAdapter++){
+	double iterations=0;
+	double tm=detectAdapter( read1 , qualv1 , options_adapter_F,indexAdapter,&iterations );
+	tm=tm/iterations;
+	if( lowAdapterLike   <  tm){
+	    lowAdapterLike   =  tm;
+	    indexAdapterBest =  indexAdapter;
+	}
+#ifdef DEBUGSR
+	 cerr<<indexAdapter<<"\t"<<tm<<endl;
+#endif
+    }
+#ifdef DEBUGSR
+     cerr<<lowAdapterLike<<"\t"<<indexAdapterBest<<endl;
+#endif
+     // cerr<<lowAdapterLike<<endl;
+
+    if (lowAdapterLike > likelihoodAdapterSR  ) {
+       
+	
+        read1 = read1.substr(0,indexAdapterBest);
+        qual1 = qual1.substr(0,indexAdapterBest);
+
+
+
+	if( read1.length() < min_length){
+	    toReturn.code    ='D';
+	    toReturn.sequence="";	   
+	    toReturn.quality ="";
+	    return toReturn;	
+	}else{
+	    toReturn.code    =' ';
+	    toReturn.sequence=read1;	   
+	    toReturn.quality =qual1;	
+	    return toReturn;
+	}
+
+
+	// cerr<<read1<<"\t"<<indexAdapterBest<<endl;
+	// cerr<<lowAdapterLike<<endl;
+    }
+
+
+    //exit(1);
+    //cerr<<
+    //end detecting adapter //
+
+    toReturn.code    =' ';
+    toReturn.sequence="";	   
+    toReturn.quality ="";
+    return toReturn;
+  
+}
+
+merged process_PE( string  read1,  string  qual1,
+		   string  read2,  string  qual2){
+    merged toReturn;
+
+    if( handle_key && read1.length() > 0){
+
+	if (((read1.substr(0,len_key1) == keys0) && (read2.substr(0,len_key2) == keys1)) || //perfect match
+	    (options_allowMissing && (edits(read1.substr(0,len_key1),keys0) == 1) && (read2.substr(0,len_key2) == keys1)) || //1mm in first key
+	    (options_allowMissing && (read1.substr(0,len_key1) == keys0) && (edits(read2.substr(0,len_key2),keys1) == 1))
+	    ){ //1mm in second key
+	    read1 = read1.substr(len_key1,read1.size()-len_key1);
+	    qual1 = qual1.substr(len_key1,read1.size()-len_key1);
+	    read2 = read2.substr(len_key2,read2.size()-len_key2);
+	    qual2 = qual2.substr(len_key2,read2.size()-len_key2);
+	}else{
+	    if(options_allowMissing && 
+	       ( (len_key1>0?(read1.substr(0,len_key1-1) == keys0.substr(1,len_key1-1)):true) && (read2.substr(0,len_key2) == keys1)) ){
+		read1 = read1.substr(len_key1-1,read1.size()-(len_key1-1));
+		qual1 = qual1.substr(len_key1-1,read1.size()-(len_key1-1));
+		read2 = read2.substr(len_key2,read2.size()-len_key2);
+		qual2 = qual2.substr(len_key2,read2.size()-len_key2);
+	    }else{
+		if(options_allowMissing && 
+		   (read1.substr(0,len_key1) == keys0) && (len_key2>0?(read2.substr(0,len_key2-1) == keys1.substr(1,len_key2-1)):true)){
+		    read1 = read1.substr(len_key1,read1.size()-len_key1);
+		    qual1 = qual1.substr(len_key1,read1.size()-len_key1);
+		    read2 = read2.substr(len_key2-1,read2.size()-(len_key2-1));
+		    qual2 = qual2.substr(len_key2-1,read2.size()-(len_key2-1));		    
+		}else{
+		    toReturn.code    ='K';
+		    toReturn.sequence="";
+		    toReturn.quality ="";		    
+		    return toReturn;
+		}
+
+	    }
+	}
+    }
+
+    if( (read1.size() != qual1.size()) ||
+	(read2.size() != qual2.size()) ){
+	cerr<<"MergeTrimReads: The reads and qualities must have equal lengths"<<endl;
+	exit(1);
+    }
+
+    vector<int> qualv1;
+    for(unsigned int i=0;i<qual1.length();i++){
+	qualv1.push_back( max( (int(char( qual1[i] ))-qualOffset),2) );
+    }
+
+    vector<int> qualv2;
+    for(unsigned int i=0;i<qual2.length();i++){
+	qualv2.push_back( max( (int(char( qual2[i] ))-qualOffset),2) );
+    }
+    
+
+    //start detecting chimera //
+    double lowChimeraLike=-DBL_MAX;
+    //finding best match
+    for(unsigned int indexChimera=0;indexChimera<adapter_chimeras.size();indexChimera++){
+	lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 0 ) ); 
+	lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 1 ) ); //try an off by 1 match
+	// cout<<"res "<<adapter_chimeras[indexChimera]<<"\t"<<detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera],1 )<<endl;
+    }
+
+    if(lowChimeraLike > likelihoodChimera){
+	toReturn.code    ='D';
+	toReturn.sequence="";
+	toReturn.quality ="";		    
+	return toReturn;
+    }
+    // end detecting chimera //
+
+
+
+    //computing rev compl for read 2
+    string  read2_rev=  revcompl(read2);
+    string  qual2_rev=           qual2;
+
+    reverse(qual2_rev.begin(), 
+	    qual2_rev.end());
+    
+    vector<int> qualv2_rev (qualv2);
+
+    reverse(qualv2_rev.begin(), 
+	    qualv2_rev.end());
+
+    double logLikeTotalOverlap=-DBL_MAX;
+    double logLikeTotalOverlapIdx=0;
+
+
+    double logLikePartialOverlap=-DBL_MAX;
+    double logLikePartialOverlapIdx=0;
+
+
+
+
+
+
+
+    //start  detecting partial overlap//
+
+    double       lowAdapterLike   =-DBL_MAX;
+    unsigned int indexAdapterBest = read1.size();
+    unsigned int minLengthForPair=min(read1.length(),read2.length());
+
+
+#ifdef DEBUGPR
+
+    cerr<<"fst: "<<read1<<endl<<"raw: "<<read2<<endl<<"rev: "<<read2_rev<<endl<<endl;
+#endif
+
+
+
+    for(unsigned int indexAdapter=0;
+	indexAdapter<(minLengthForPair-options_trimCutoff);
+	indexAdapter++){
+	double iterations=0;
+
+	double logLike1=detectAdapter(    read1 ,     qualv1     , options_adapter_F,indexAdapter,&iterations );
+#ifdef DEBUGPR
+	cerr<<"-----"<<endl;
+#endif
+	double logLike2=detectAdapter(    read2 ,     qualv2     , options_adapter_S,indexAdapter,&iterations );
+	double logLike3=0.0;
+	//	if(indexAdapter!=0){
+	//if(0){
+#ifdef DEBUGPR
+	cerr<<"-----"<<endl;
+#endif
+
+	if(indexAdapter>=1)//measuring 0 bases causes nan
+	    logLike3=measureOverlap(   read1 ,     qualv1     , read2_rev , qualv2_rev, indexAdapter,&iterations );
+
+	double totalL=(logLike1+logLike2+logLike3)/iterations;
+
+	if(logLikeTotalOverlap < totalL){
+	    logLikeTotalOverlap    = totalL;
+	    logLikeTotalOverlapIdx =  indexAdapter;
+	}
+
+#ifdef DEBUGPR
+	//cerr<<read1<<endl<<read2<<endl<<read2_rev<<endl<<logLike1<<"\t"<<logLike2<<"\t"<<logLike3<<"\t"<<endl;
+	cerr<<indexAdapter<<"\t"<<logLike1<<"\t"<<logLike2<<"\t"<<logLike3<<"\t"<<endl<<endl<<endl;
+#endif
+
+	
+    }
+    //end detecting partial overlap//
+
+    
+
+
+
+    if(options_mergeoverlap){
+	for(unsigned int indexAdapter=min_overlap_seqs;
+	    indexAdapter<(minLengthForPair+1);
+	    indexAdapter++){
+
+	    //if(indexAdapter!=0)
+	    double iterations=0;
+
+	    double logLike = measureOverlap(   read2_rev ,  qualv2_rev,  read1 ,     qualv1     , indexAdapter ,&iterations );
+	    logLike=logLike/iterations;
+
+#ifdef DEBUGPR
+	    cerr<<"mergeo "<<indexAdapter<<"\t"<<iterations<<endl;
+#endif
+
+	    if(logLikePartialOverlap < (logLike)){
+		logLikePartialOverlap    = (logLike);
+		logLikePartialOverlapIdx =  indexAdapter;	    
+	    }
+
+	}
+    }
+    
+    
+    
+#ifdef DEBUGPR   
+    cerr<<"mergeo "<<logLikePartialOverlap<<"\t"<<logLikePartialOverlapIdx<<"\t"<<logLikeTotalOverlap<<"\t"<<logLikeTotalOverlapIdx<<endl;
+#endif
+    
+
+
+
+    
+    if(max(logLikePartialOverlap,logLikeTotalOverlap) > likelihoodAdapterPR){
+	//computing new sequence
+	string newSeq;
+	vector<int> newQual;
+
+#ifdef DEBUGTOTALOV
+	cerr<< logLikePartialOverlap << "\t"<<logLikeTotalOverlap <<endl;
+#endif
+
+	if(logLikePartialOverlap < logLikeTotalOverlap){ //total overlap
+	    //TODO: case where read 1/2 is shorter
+#ifdef DEBUGTOTALOV
+	    cerr<<"total overlap "<<logLikeTotalOverlapIdx<<endl;
+#endif
+
+	    newSeq  = string(read1.substr(0, logLikeTotalOverlapIdx ) );
+
+#ifdef DEBUGTOTALOV
+	    cerr<<"newSeq "<<newSeq<<endl;
+#endif
+
+
+	    vector<int>   newQual = vector<int> (qualv1.begin(),qualv1.begin()+ logLikeTotalOverlapIdx );
+
+#ifdef DEBUGTOTALOV
+	    cerr<<"newQual "<<newQual.size()<<endl;
+#endif
+
+	    baseQual b1;
+	    baseQual b2;
+	    
+	    for(int pos=0;pos<logLikeTotalOverlapIdx;pos++){
+		int posr1=pos;
+		int posr2=read1.size()-logLikeTotalOverlapIdx+pos;
+
+#ifdef DEBUGTOTALOV
+	    cerr<<"pos "<<pos<<" posr1 "<<posr1<<" posr2 "<<posr2<<endl;
+	    cerr<<"r1 "<<read1[posr1]<<endl;
+	    cerr<<"r2 "<<read2_rev[posr2]<<endl;
+
+#endif
+
+		b1.base =  read1[posr1];
+		b1.prob = probForQual[ qualv1[posr1] ];
+		b1.qual = -1;
+
+		b2.base =  read2_rev[posr2];
+		b2.prob = probForQual[ qualv2_rev[posr2] ]; 
+		b2.qual = -1;
+
+		baseQual RT  = cons_base_prob(b1,b2);
+		newSeq[pos]  = RT.base; //since newseq starts with read1
+		newQual[pos] = RT.qual;
+	    }
+#ifdef DEBUGTOTALOV
+	    cerr<<"newSeq "<<newSeq<<endl;
+#endif
+	    
+	    toReturn.code    =' ';
+	    toReturn.sequence=newSeq;	   
+	    toReturn.quality =convert_logprob_quality(newQual);	
+	    return toReturn;
+
+	}else{//partial overlap
+
+	    //logLikeTotalOverlapIdx
+	    newSeq  = string(read1.substr(0, read1.size()-logLikePartialOverlapIdx )+read2_rev); //new seq is part of read 1 and all of read 2
+	    vector<int>   newQual = vector<int> (qualv1.begin(),qualv1.begin()+qualv1.size() - logLikePartialOverlapIdx );
+	    newQual.insert(newQual.end(),qualv2_rev.begin(),qualv2_rev.end());
+
+	    baseQual b1;
+	    baseQual b2;
+
+#ifdef DEBUGPARTIALOV	    
+	    cerr<<"PARTIAL RAW  "<<logLikePartialOverlapIdx<<endl<<read1<<endl<<qual1<<endl<<read2_rev<<endl<<qual2_rev<<endl<<newSeq<<"\t"<<endl;
+#endif
+	    //TODO: case where read 1/2 is shorter
+
+	    //calling consensus on the overlapping chunk
+	    for(int pos=0;pos<logLikePartialOverlapIdx;pos++){
+		int posr1=read1.size()-logLikePartialOverlapIdx+pos;
+		int posr2=pos;
+
+#ifdef DEBUGPARTIALOV
+		cerr<<"pos "<<pos<<" read1["<<posr1<<"] = "<<read1[posr1]<<" ("<<qualv1[posr1]<<") read2_rev["<<posr2<<"] = "<<read2_rev[posr2]<<" ("<<qualv2_rev[posr2]<<")"<<endl;
+#endif
+		b1.base =  read1[posr1];
+		b1.prob = probForQual[ qualv1[posr1] ];
+		b1.qual = -1;
+
+		b2.base =  read2_rev[posr2];
+		b2.prob = probForQual[ qualv2_rev[posr2] ]; 
+		b2.qual = -1;
+
+		baseQual RT    = cons_base_prob(b1,b2);
+		newSeq[posr1]  = RT.base; //since newseq starts with read1
+		newQual[posr1] = RT.qual;
+
+#ifdef DEBUGPARTIALOV
+		cerr<<newSeq[posr1]<<"\t"<<newQual[posr1]<<endl;
+#endif
+	    }
+	    
+#ifdef DEBUGPARTIALOV	    
+	    cerr<<"PARTIAL TREAT  "<<newSeq<<endl<<vectorToString(newQual)<<endl<<convert_logprob_quality(newQual)<<endl;
+#endif
+
+
+	    toReturn.code    =' ';
+	    toReturn.sequence=newSeq;	   
+	    toReturn.quality =convert_logprob_quality(newQual);	
+	    return toReturn;
+	}
+
+    }else{
+
+	toReturn.code    =' ';
+	toReturn.sequence="";	   
+	toReturn.quality ="";
+	return toReturn;    
+    }
+}
 
 
 // int main(){
+
+    
+//     return 0;
+// }
 //     if(0){
 // 	cout<<edits("ACGTACGT","ACGTCCGT")<<endl;
 // 	string qualString=string("!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJK");
@@ -909,9 +968,9 @@ void set_keys(const string& key1, const string& key2){
 //     string q2="564;>@9>>?:;>A<<@E=;EAD9E@D;CF>ACC@:@A@=E?@EBAC?B??:F<=8?@?@B=9>@BC@CA<<8<@@8A8>;49;:>8@<?9:6973865/";
 
 
-//     res =process_PE(r1,q1,r2,q2);
-//     //cout<<res.code<<endl;
-//     cout<<res.sequence<<"\t"<<res.quality<<endl;
+     //res =process_PE(r1,q1,r2,q2);
+    //cout<<res.code<<endl;
+    //cout<<res.sequence<<"\t"<<res.quality<<endl;
 
 //     // string r1="AAGTAGAAAGGAGGAAAAACTGAAGAGATTACTTACAAATAACTTTGATCTCTAGATCGGAAGAGCACACGTCTGAACTCCAGTCACACTAAGTA";
 //     // string q1="8=\?\?=?=A@\?\?=AACA:BF?EBECAEB@E@B>CAAAAC?C@DA:D?A@A?H@DDBFD>B<?EC?>>DA\?\??C<AC<A>F<<B@D>D;BAB?>@;>";
