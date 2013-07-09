@@ -2,8 +2,8 @@
 
 
 //#define DEBUGSR
-//#define DEBUGPR
-//#define DEBUGADAPT
+// #define DEBUGPR
+// #define DEBUGADAPT
 //#define DEBUGOVERLAP
 //#define DEBUGTOTALOV
 // #define DEBUGPARTIALOV
@@ -291,20 +291,25 @@ void set_options(int trimcutoff,bool allowMissing,bool mergeoverlap){
 
 
 static inline double detectChimera(const string      & read,
-			   const vector<int> & qual,
-			   const string      & chimeraString,
-			   unsigned int offsetChimera){
+				   const vector<int> & qual,
+				   const string      & chimeraString,
+				   unsigned int        offsetChimera=0){
 
     double likelihoodMatch=0.0;
     unsigned maxidx=min(read.length(),chimeraString.length()-offsetChimera);
 
+    if(maxidx <= 0)
+	return -DBL_MAX;
+
     for(unsigned i=0;i<maxidx;i++){
-	if(          read[i]              == chimeraString[i+offsetChimera] || 
-	   chimeraString[i+offsetChimera] == 'I' ){
+	// cerr<<"i= "<<i<<endl;
+	if(          read[i]                        == chimeraString[i+offsetChimera] || 
+		     chimeraString[i+offsetChimera] == 'I' ){
 	    likelihoodMatch  +=    likeMatch[ qual[i] ];
 	}else{
 	    likelihoodMatch  += likeMismatch[ qual[i] ];
 	}
+	// cerr<<"i= "<<likelihoodMatch<<endl;
     }
     
     return likelihoodMatch;
@@ -316,34 +321,51 @@ static inline double measureOverlap(const string      & read1,
 				    const vector<int> & qual1,
 				    const string      & read2,
 				    const vector<int> & qual2,
-				    const unsigned int offsetRead,
-				    double * iterations){
-
-    // unsigned int maxidx=min(read1.size(),
-    // 			    read2.size()-offsetRead);
-    unsigned int maxidx=offsetRead ;
+				    const int startRead1,				   
+				    const int startRead2,				   
+				    int	maxLength,
+				    double * iterations=0){
+    if(maxLength < 0)
+	return -DBL_MAX;
+    
+    // unsigned int maxidx=endRead ;
     double likelihoodMatch=0.0;
-    unsigned int i1;
-    unsigned int i2;
-
-    for(unsigned i=0;i<maxidx;i++){
-	i1 = i;
-	i2 = read2.size()-offsetRead+i;
+    int i1=startRead1;
+    int i2=startRead2;
 
 #ifdef DEBUGOVERLAP
-	cerr<<"overlap "<<offsetRead<<" read1["<<(i)<<"] "<<read1[i1]<<"\tread2["<<i2<< "] "<<read2[i2]<<endl;
+    //cerr<<"st1:"<<startRead1<<"\t"<<"st2:"<<startRead2<<"\tml:"<<maxLength<<endl;
+    string comparedread1;
+    string comparedread2;
+#endif
+
+    //iterate over r1
+    for(int i=0;i<maxLength;i++){
+
+
+#ifdef DEBUGOVERLAP
+	//cerr<<"overlap "<<" read1["<<(i1)<<"] "<<read1[i1]<<"\tread2["<<i2<< "] "<<read2[i2]<<endl;
+	comparedread1+=read1[i1];
+	comparedread2+=read2[i2];
 #endif
 	
 	if(read1[i1] == read2[i2] ){
 	    likelihoodMatch  +=    likeMatch[    min(qual1[i1],qual2[i2])  ];
 	}else{
-	    likelihoodMatch  +=    likeMismatch[ max(qual1[i1],qual2[i2])  ];
+	    likelihoodMatch  +=    likeMismatch[ min(qual1[i1],qual2[i2])  ];
 	}
 	// iterations++;
 	(*iterations)++;
-
+	// i++;
+	i1++;
+	i2++;
     }
 
+#ifdef DEBUGOVERLAP
+    cerr<<"comparedread1 "<<comparedread1<<endl;
+    cerr<<"comparedread2 "<<comparedread2<<endl;
+    cerr<<"result        "<<likelihoodMatch<<endl;
+#endif
 
     return likelihoodMatch;
 
@@ -353,8 +375,8 @@ static inline double measureOverlap(const string      & read1,
 static inline double detectAdapter(const string      & read,
 				   const vector<int> & qual,
 				   const string      & adapterString,
-				   unsigned int offsetRead,
-				   double * iterations ){
+				   unsigned int offsetRead=0,
+				   double * iterations =0 ){
 
     double likelihoodMatch=0.0;
     unsigned maxidx=min ( min(read.length()-offsetRead,
@@ -364,10 +386,16 @@ static inline double detectAdapter(const string      & read,
 
     unsigned int i1;
 
+#ifdef DEBUGADAPT
+    string comparedread;
+#endif
+
     for(unsigned i=0;i<maxidx;i++){
 	i1 = i+offsetRead;
+
 #ifdef DEBUGADAPT
-	cerr<<"da "<<read[i1] <<"\t"<<adapterString[i]<<"\t"<<likelihoodMatch<<endl;
+	//cerr<<"da "<<read[i1] <<"\t"<<adapterString[i]<<"\t"<<likelihoodMatch<<endl;
+	comparedread+=read[i1];
 #endif
 	if(         read[i1]  == adapterString[i] || 
 		    adapterString[i1]  == 'I' ){ //match
@@ -378,6 +406,10 @@ static inline double detectAdapter(const string      & read,
 	(*iterations)++;
     }
     
+#ifdef DEBUGADAPT
+	cerr<<"detectAdapter "<< comparedread <<"\n              "<<adapterString<<"\t"<<likelihoodMatch<<endl;
+#endif
+
     return likelihoodMatch;
 }
 
@@ -547,6 +579,8 @@ merged process_SR(string  read1,
 
 merged process_PE( string  read1,  string  qual1,
 		   string  read2,  string  qual2){
+
+
     merged toReturn;
 
     if( handle_key && read1.length() > 0){
@@ -605,10 +639,14 @@ merged process_PE( string  read1,  string  qual1,
     double lowChimeraLike=-DBL_MAX;
     //finding best match
     for(unsigned int indexChimera=0;indexChimera<adapter_chimeras.size();indexChimera++){
+	//cerr<<"indexChimera1 "<<lowChimeraLike<<endl;
 	lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 0 ) ); 
 	lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 1 ) ); //try an off by 1 match
+	//cerr<<"indexChimera2 "<<lowChimeraLike<<endl;
 	// cout<<"res "<<adapter_chimeras[indexChimera]<<"\t"<<detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera],1 )<<endl;
     }
+
+    //cerr<<"TEST "<<lowChimeraLike<<"\t"<<likelihoodChimera<<endl;
 
     if(lowChimeraLike > likelihoodChimera){
 	toReturn.code    ='D';
@@ -617,7 +655,6 @@ merged process_PE( string  read1,  string  qual1,
 	return toReturn;
     }
     // end detecting chimera //
-
 
 
     //computing rev compl for read 2
@@ -632,12 +669,12 @@ merged process_PE( string  read1,  string  qual1,
     reverse(qualv2_rev.begin(), 
 	    qualv2_rev.end());
 
-    double logLikeTotalOverlap=-DBL_MAX;
-    double logLikeTotalOverlapIdx=0;
+    double logLikeTotalOverlap    = -DBL_MAX;
+    double logLikeTotalOverlapIdx = 0;
 
 
-    double logLikePartialOverlap=-DBL_MAX;
-    double logLikePartialOverlapIdx=0;
+    // double logLikePartialOverlap  =-DBL_MAX;
+    // double logLikePartialOverlapIdx=0;
 
 
 
@@ -647,37 +684,91 @@ merged process_PE( string  read1,  string  qual1,
 
     //start  detecting partial overlap//
 
-    double       lowAdapterLike   =-DBL_MAX;
-    unsigned int indexAdapterBest = read1.size();
-    unsigned int minLengthForPair=min(read1.length(),read2.length());
+    // double       lowAdapterLike   =-DBL_MAX;
 
 
 #ifdef DEBUGPR
 
     cerr<<"fst: "<<read1<<endl<<"raw: "<<read2<<endl<<"rev: "<<read2_rev<<endl<<endl;
 #endif
+    int size1 = int(read1.size());
+    int size2 = int(read2.size());
+
+    //int minLengthForPair=min(size1,size2);
+    int maxLengthForPair=max(size1,size2);
+
+    int lengthDiffR1_R2 =  (size1-size2);
+    // int lengthDiffR2_R1 =  (size2-size1);
 
 
 
-    for(unsigned int indexAdapter=0;
-	indexAdapter<(minLengthForPair-options_trimCutoff);
+    for(int indexAdapter=0; //let index adapters be the index of the potential P7/P5 adapter
+	indexAdapter<(2*maxLengthForPair-min_overlap_seqs);
 	indexAdapter++){
+
+
+#ifdef DEBUGPR
+	cerr<<"idx: "<<indexAdapter<<endl;
+#endif
+    
+
 	double iterations=0;
 
-	double logLike1=detectAdapter(    read1 ,     qualv1     , options_adapter_F,indexAdapter,&iterations );
-#ifdef DEBUGPR
-	cerr<<"-----"<<endl;
-#endif
-	double logLike2=detectAdapter(    read2 ,     qualv2     , options_adapter_S,indexAdapter,&iterations );
-	double logLike3=0.0;
-	//	if(indexAdapter!=0){
-	//if(0){
-#ifdef DEBUGPR
-	cerr<<"-----"<<endl;
-#endif
+	double logLike1=0.0; //p7 likelihood
+	double logLike2=0.0; //p5 likelihood
+	double logLike3=0.0; //overlap likelihood
 
-	if(indexAdapter>=1)//measuring 0 bases causes nan
-	    logLike3=measureOverlap(   read1 ,     qualv1     , read2_rev , qualv2_rev, indexAdapter,&iterations );
+	if(indexAdapter<size1)
+	    logLike1  =  detectAdapter(    read1 ,     qualv1     , options_adapter_F,indexAdapter,&iterations );
+	if(indexAdapter<size2)
+	    logLike2  =  detectAdapter(    read2 ,     qualv2     , options_adapter_S,indexAdapter,&iterations );
+
+	
+	if(indexAdapter > maxLengthForPair){
+	    if(!options_mergeoverlap) //no point in continuing 
+		break;
+	 
+
+	    //read1      ---------------------------------
+	    //read2                  ---------------------------------
+
+	    int startr1=indexAdapter - maxLengthForPair+max(0,lengthDiffR1_R2);
+	    int startr2=max( (maxLengthForPair-indexAdapter-max(0,lengthDiffR1_R2)),0);
+	    int endr1  =int(read1.size());
+	    int lengthIt =endr1 -startr1;
+
+
+
+	    logLike3      =  measureOverlap(   read1 ,     qualv1     ,  read2_rev , qualv2_rev,  
+					       startr1,					      
+					       startr2,
+					       lengthIt,
+					       &iterations );
+
+	} else{
+
+
+	    //read1                         ---------------------------------
+	    //read2      ---------------------------------
+	    //cerr<<"A " <<lengthDiffR1_R2<<"\t"<<(indexAdapter-maxLengthForPair)<<endl;
+	    int startr1=max(0,indexAdapter- size2);
+	    int startr2=max( (maxLengthForPair-indexAdapter-max(0,lengthDiffR1_R2)),0);
+	    int endr1  =min(int(indexAdapter),int(read1.size()));
+	    int lengthIt =endr1 -startr1;
+	    
+	    //cerr<<"123 "<<startr1<<"\t"<<startr2<<"\t"<<lengthIt<<endl;
+	    logLike3      =  measureOverlap(   read1 ,     qualv1     ,  read2_rev , qualv2_rev,  
+					       startr1,
+					       //is the max length minus the index of the adapter
+					       //plus a potential offset for the case where r2 is shorter
+					       startr2,
+					       //Length of match
+					       //the matching has to stop on r1 either at the size of the read or index of the adapter
+					       //the matching starts at max(0,lengthDiffR1_R2), 
+					       //hence the # of required comparisons is:
+					       lengthIt,
+					       &iterations );
+	}
 
 	double totalL=(logLike1+logLike2+logLike3)/iterations;
 
@@ -685,42 +776,12 @@ merged process_PE( string  read1,  string  qual1,
 	    logLikeTotalOverlap    = totalL;
 	    logLikeTotalOverlapIdx =  indexAdapter;
 	}
-
-#ifdef DEBUGPR
-	//cerr<<read1<<endl<<read2<<endl<<read2_rev<<endl<<logLike1<<"\t"<<logLike2<<"\t"<<logLike3<<"\t"<<endl;
-	cerr<<indexAdapter<<"\t"<<logLike1<<"\t"<<logLike2<<"\t"<<logLike3<<"\t"<<endl<<endl<<endl;
-#endif
-
-	
     }
-    //end detecting partial overlap//
-
-    
 
 
 
-    if(options_mergeoverlap){
-	for(unsigned int indexAdapter=min_overlap_seqs;
-	    indexAdapter<(minLengthForPair+1);
-	    indexAdapter++){
 
-	    //if(indexAdapter!=0)
-	    double iterations=0;
 
-	    double logLike = measureOverlap(   read2_rev ,  qualv2_rev,  read1 ,     qualv1     , indexAdapter ,&iterations );
-	    logLike=logLike/iterations;
-
-#ifdef DEBUGPR
-	    cerr<<"mergeo "<<indexAdapter<<"\t"<<iterations<<endl;
-#endif
-
-	    if(logLikePartialOverlap < (logLike)){
-		logLikePartialOverlap    = (logLike);
-		logLikePartialOverlapIdx =  indexAdapter;	    
-	    }
-
-	}
-    }
     
     
     
@@ -731,128 +792,229 @@ merged process_PE( string  read1,  string  qual1,
 
 
 
-    
-    if(max(logLikePartialOverlap,logLikeTotalOverlap) > likelihoodAdapterPR){
-	//computing new sequence
-	string newSeq;
-	vector<int> newQual;
+    if(logLikeTotalOverlap > likelihoodAdapterPR){
+	cerr<<logLikeTotalOverlapIdx<<endl;
+	int indexAdapter=	logLikeTotalOverlapIdx;
 
-#ifdef DEBUGTOTALOV
-	cerr<< logLikePartialOverlap << "\t"<<logLikeTotalOverlap <<endl;
-#endif
+	int startr1;
+	int startr2;
+	int endr1  ;
+	int lengthIt;
 
-	if(logLikePartialOverlap < logLikeTotalOverlap){ //total overlap
-	    //TODO: case where read 1/2 is shorter
-#ifdef DEBUGTOTALOV
-	    cerr<<"total overlap "<<logLikeTotalOverlapIdx<<endl;
-#endif
+	if(indexAdapter > maxLengthForPair){//partial overlap
 
-	    newSeq  = string(read1.substr(0, logLikeTotalOverlapIdx ) );
-
-#ifdef DEBUGTOTALOV
-	    cerr<<"newSeq "<<newSeq<<endl;
-#endif
-
-
-	    vector<int>   newQual = vector<int> (qualv1.begin(),qualv1.begin()+ logLikeTotalOverlapIdx );
-
-#ifdef DEBUGTOTALOV
-	    cerr<<"newQual "<<newQual.size()<<endl;
-#endif
-
-	    baseQual b1;
-	    baseQual b2;
+	     startr1=indexAdapter - maxLengthForPair+max(0,lengthDiffR1_R2);
+	     startr2=max( (maxLengthForPair-indexAdapter-max(0,lengthDiffR1_R2)),0);
+	     endr1  =int(read1.size());
+	     lengthIt =endr1 -startr1;
+	     
+	}else{
 	    
-	    for(int pos=0;pos<logLikeTotalOverlapIdx;pos++){
-		int posr1=pos;
-		int posr2=read1.size()-logLikeTotalOverlapIdx+pos;
-
-#ifdef DEBUGTOTALOV
-	    cerr<<"pos "<<pos<<" posr1 "<<posr1<<" posr2 "<<posr2<<endl;
-	    cerr<<"r1 "<<read1[posr1]<<endl;
-	    cerr<<"r2 "<<read2_rev[posr2]<<endl;
-
-#endif
-
-		b1.base =  read1[posr1];
-		b1.prob = probForQual[ qualv1[posr1] ];
-		b1.qual = -1;
-
-		b2.base =  read2_rev[posr2];
-		b2.prob = probForQual[ qualv2_rev[posr2] ]; 
-		b2.qual = -1;
-
-		baseQual RT  = cons_base_prob(b1,b2);
-		newSeq[pos]  = RT.base; //since newseq starts with read1
-		newQual[pos] = RT.qual;
-	    }
-#ifdef DEBUGTOTALOV
-	    cerr<<"newSeq "<<newSeq<<endl;
-#endif
+	    startr1=max(0,indexAdapter- size2);
+	    startr2=max( (maxLengthForPair-indexAdapter-max(0,lengthDiffR1_R2)),0);
+	    endr1  =min(int(indexAdapter),int(read1.size()));
+	    lengthIt =endr1 -startr1;
 	    
-	    toReturn.code    =' ';
-	    toReturn.sequence=newSeq;	   
-	    toReturn.quality =convert_logprob_quality(newQual);	
-	    return toReturn;
-
-	}else{//partial overlap
-
-	    //logLikeTotalOverlapIdx
-	    newSeq  = string(read1.substr(0, read1.size()-logLikePartialOverlapIdx )+read2_rev); //new seq is part of read 1 and all of read 2
-	    vector<int>   newQual = vector<int> (qualv1.begin(),qualv1.begin()+qualv1.size() - logLikePartialOverlapIdx );
-	    newQual.insert(newQual.end(),qualv2_rev.begin(),qualv2_rev.end());
-
-	    baseQual b1;
-	    baseQual b2;
-
-#ifdef DEBUGPARTIALOV	    
-	    cerr<<"PARTIAL RAW  "<<logLikePartialOverlapIdx<<endl<<read1<<endl<<qual1<<endl<<read2_rev<<endl<<qual2_rev<<endl<<newSeq<<"\t"<<endl;
-#endif
-	    //TODO: case where read 1/2 is shorter
-
-	    //calling consensus on the overlapping chunk
-	    for(int pos=0;pos<logLikePartialOverlapIdx;pos++){
-		int posr1=read1.size()-logLikePartialOverlapIdx+pos;
-		int posr2=pos;
-
-#ifdef DEBUGPARTIALOV
-		cerr<<"pos "<<pos<<" read1["<<posr1<<"] = "<<read1[posr1]<<" ("<<qualv1[posr1]<<") read2_rev["<<posr2<<"] = "<<read2_rev[posr2]<<" ("<<qualv2_rev[posr2]<<")"<<endl;
-#endif
-		b1.base =  read1[posr1];
-		b1.prob = probForQual[ qualv1[posr1] ];
-		b1.qual = -1;
-
-		b2.base =  read2_rev[posr2];
-		b2.prob = probForQual[ qualv2_rev[posr2] ]; 
-		b2.qual = -1;
-
-		baseQual RT    = cons_base_prob(b1,b2);
-		newSeq[posr1]  = RT.base; //since newseq starts with read1
-		newQual[posr1] = RT.qual;
-
-#ifdef DEBUGPARTIALOV
-		cerr<<newSeq[posr1]<<"\t"<<newQual[posr1]<<endl;
-#endif
-	    }
+	}
 	    
-#ifdef DEBUGPARTIALOV	    
-	    cerr<<"PARTIAL TREAT  "<<newSeq<<endl<<vectorToString(newQual)<<endl<<convert_logprob_quality(newQual)<<endl;
-#endif
+	//logLikeTotalOverlapIdx
+	string newSeq         (indexAdapter,'N');
+	vector<int>   newQual (indexAdapter, 0 );
+	
 
-
-	    toReturn.code    =' ';
-	    toReturn.sequence=newSeq;	   
-	    toReturn.quality =convert_logprob_quality(newQual);	
-	    return toReturn;
+	//vector<int> (qualv1.begin(),qualv1.begin()+qualv1.size() - logLikePartialOverlapIdx );
+	//string(read1.substr(0, read1.size()-logLikePartialOverlapIdx )+read2_rev); //new seq is part of read 1 and all of read 2
+	//newQual.insert(newQual.end(),qualv2_rev.begin(),qualv2_rev.end());
+	
+	//coyping before the overlap
+	int pos=0;
+	for(pos=0;pos<startr1;pos++){
+	    newSeq[pos]     =  read1[pos];
+	    newQual[pos]  = qualv1[pos];	    
 	}
 
-    }else{
 
+	int posr1=startr1;
+	int posr2=startr2;
+
+	baseQual b1;
+	baseQual b2;
+	for(int idx=0;idx<lengthIt;idx++){
+
+	    b1.base =  read1[posr1];
+	    b1.prob = probForQual[ qualv1[posr1] ];
+	    b1.qual = -1;
+
+	    b2.base =  read2_rev[posr2];
+	    b2.prob = probForQual[ qualv2_rev[posr2] ]; 
+	    b2.qual = -1;
+
+	    baseQual RT    = cons_base_prob(b1,b2);
+	    newSeq[pos]    = RT.base; //since newseq starts with read1
+	    newQual[pos++] = RT.qual;
+
+	    posr1++;
+	    posr2++;		
+	}
+
+
+	//coyping after the overlap
+	for(int pos2=posr2;pos2<size2;pos2++){		
+	    newSeq[pos]     =  read1[pos2];
+	    newQual[pos++]  = qualv1[pos2];
+	}
+
+
+	// cerr<<indexAdapter<<"\t"<<"#"<<newSeq<<"#"<<endl;
+	// exit(1);
+
+	toReturn.code    =' ';
+	toReturn.sequence=newSeq;	   
+	toReturn.quality =convert_logprob_quality(newQual);	
+
+	// cerr<<indexAdapter<<"\t"<<"#\n"<<newSeq<<"\n"<<toReturn.quality<<endl;
+	// exit(1);
+
+	return toReturn;
+
+	
+    }else{
+	//exit(1);   
 	toReturn.code    =' ';
 	toReturn.sequence="";	   
 	toReturn.quality ="";
 	return toReturn;    
     }
+    
+
+
+
+
+
+
+
+
+//     if(max(logLikePartialOverlap,logLikeTotalOverlap) > likelihoodAdapterPR){
+// 	//computing new sequence
+// 	string newSeq;
+// 	vector<int> newQual;
+
+// #ifdef DEBUGTOTALOV
+// 	cerr<< logLikePartialOverlap << "\t"<<logLikeTotalOverlap <<endl;
+// #endif
+
+// 	if(logLikePartialOverlap < logLikeTotalOverlap){ //total overlap
+// 	    //TODO: case where read 1/2 is shorter
+// #ifdef DEBUGTOTALOV
+// 	    cerr<<"total overlap "<<logLikeTotalOverlapIdx<<endl;
+// #endif
+
+// 	    newSeq  = string(read1.substr(0, logLikeTotalOverlapIdx ) );
+
+// #ifdef DEBUGTOTALOV
+// 	    cerr<<"newSeq "<<newSeq<<endl;
+// #endif
+
+
+// 	    vector<int>   newQual = vector<int> (qualv1.begin(),qualv1.begin()+ logLikeTotalOverlapIdx );
+
+// #ifdef DEBUGTOTALOV
+// 	    cerr<<"newQual "<<newQual.size()<<endl;
+// #endif
+
+// 	    baseQual b1;
+// 	    baseQual b2;
+	    
+// 	    for(int pos=0;pos<logLikeTotalOverlapIdx;pos++){
+// 		int posr1=pos;
+// 		int posr2=read1.size()-logLikeTotalOverlapIdx+pos;
+
+// #ifdef DEBUGTOTALOV
+// 	    cerr<<"pos "<<pos<<" posr1 "<<posr1<<" posr2 "<<posr2<<endl;
+// 	    cerr<<"r1 "<<read1[posr1]<<endl;
+// 	    cerr<<"r2 "<<read2_rev[posr2]<<endl;
+
+// #endif
+
+// 		b1.base =  read1[posr1];
+// 		b1.prob = probForQual[ qualv1[posr1] ];
+// 		b1.qual = -1;
+
+// 		b2.base =  read2_rev[posr2];
+// 		b2.prob = probForQual[ qualv2_rev[posr2] ]; 
+// 		b2.qual = -1;
+
+// 		baseQual RT  = cons_base_prob(b1,b2);
+// 		newSeq[pos]  = RT.base; //since newseq starts with read1
+// 		newQual[pos] = RT.qual;
+// 	    }
+// #ifdef DEBUGTOTALOV
+// 	    cerr<<"newSeq "<<newSeq<<endl;
+// #endif
+	    
+// 	    toReturn.code    =' ';
+// 	    toReturn.sequence=newSeq;	   
+// 	    toReturn.quality =convert_logprob_quality(newQual);	
+// 	    return toReturn;
+
+// 	}else{//partial overlap
+
+// 	    //logLikeTotalOverlapIdx
+// 	    newSeq  = string(read1.substr(0, read1.size()-logLikePartialOverlapIdx )+read2_rev); //new seq is part of read 1 and all of read 2
+// 	    vector<int>   newQual = vector<int> (qualv1.begin(),qualv1.begin()+qualv1.size() - logLikePartialOverlapIdx );
+// 	    newQual.insert(newQual.end(),qualv2_rev.begin(),qualv2_rev.end());
+
+// 	    baseQual b1;
+// 	    baseQual b2;
+
+// #ifdef DEBUGPARTIALOV	    
+// 	    cerr<<"PARTIAL RAW  "<<logLikePartialOverlapIdx<<endl<<read1<<endl<<qual1<<endl<<read2_rev<<endl<<qual2_rev<<endl<<newSeq<<"\t"<<endl;
+// #endif
+// 	    //TODO: case where read 1/2 is shorter
+
+// 	    //calling consensus on the overlapping chunk
+// 	    for(int pos=0;pos<logLikePartialOverlapIdx;pos++){
+// 		int posr1=read1.size()-logLikePartialOverlapIdx+pos;
+// 		int posr2=pos;
+
+// #ifdef DEBUGPARTIALOV
+// 		cerr<<"pos "<<pos<<" read1["<<posr1<<"] = "<<read1[posr1]<<" ("<<qualv1[posr1]<<") read2_rev["<<posr2<<"] = "<<read2_rev[posr2]<<" ("<<qualv2_rev[posr2]<<")"<<endl;
+// #endif
+// 		b1.base =  read1[posr1];
+// 		b1.prob = probForQual[ qualv1[posr1] ];
+// 		b1.qual = -1;
+
+// 		b2.base =  read2_rev[posr2];
+// 		b2.prob = probForQual[ qualv2_rev[posr2] ]; 
+// 		b2.qual = -1;
+
+// 		baseQual RT    = cons_base_prob(b1,b2);
+// 		newSeq[posr1]  = RT.base; //since newseq starts with read1
+// 		newQual[posr1] = RT.qual;
+
+// #ifdef DEBUGPARTIALOV
+// 		cerr<<newSeq[posr1]<<"\t"<<newQual[posr1]<<endl;
+// #endif
+// 	    }
+	    
+// #ifdef DEBUGPARTIALOV	    
+// 	    cerr<<"PARTIAL TREAT  "<<newSeq<<endl<<vectorToString(newQual)<<endl<<convert_logprob_quality(newQual)<<endl;
+// #endif
+
+
+// 	    toReturn.code    =' ';
+// 	    toReturn.sequence=newSeq;	   
+// 	    toReturn.quality =convert_logprob_quality(newQual);	
+// 	    return toReturn;
+// 	}
+
+//     }else{
+
+// 	toReturn.code    =' ';
+// 	toReturn.sequence="";	   
+// 	toReturn.quality ="";
+// 	return toReturn;    
+//     }
 }
 
 
