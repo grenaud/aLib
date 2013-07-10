@@ -1,11 +1,12 @@
 #include "MergeTrimReads.h"
 
 
-//#define DEBUGSR
+// #define DEBUG2
+// //#define DEBUGSR
 // #define DEBUGPR
-// #define DEBUGADAPT
-//#define DEBUGOVERLAP
-//#define DEBUGTOTALOV
+// // #define DEBUGADAPT
+// #define DEBUGOVERLAP
+// //#define DEBUGTOTALOV
 // #define DEBUGPARTIALOV
 // #define CONSBASEPROB
 
@@ -37,7 +38,8 @@ double likeMatch[64];
 double likeMismatch[64];
 
 double probForQual[64];
-
+double likeRandomMatch;    // 1/4
+double likeRandomMisMatch; // 3/4
 
 static inline char revComp(char c){
     if(c ==    'A')
@@ -72,12 +74,31 @@ static inline string revcompl(const string seq){
 
 void initMerge(){
 
-    for(int i=0;i<64;i++){
-        if(i == 0)
-            likeMatch[i]    = -3.0; // this is vrong, hope it's never accessed
-        else
-            likeMatch[i]    = log1p( -pow(10.0,i/-10.0) )/log(10);
-        
+    
+    likeRandomMatch       = log1p( -1.0/4.0 )/log(10);
+    likeRandomMisMatch    = log1p( -3.0/4.0 )/log(10);
+    
+    //probability scores for qscores less than 2 make no sense
+    //since random DNA has by default a probability of error of 0.75
+    //anyway, we set the min for qual scores at 2
+    for(int i=0;i<2;i++){
+
+	
+	likeMatch[i]        = log1p( -pow(10.0,2.0/-10.0) )/log(10);
+	    
+        likeMismatch[i]     = 2.0/-10.0;  
+
+	probForQual[i]      = max(double(1.0)-pow(double(10.0),double(2.0)/double(-10.0)),
+				  max_prob_N);
+
+    }
+
+    for(int i=2;i<64;i++){
+        // if(i == 0)
+        //     likeMatch[i]    = -3.0; // this is vrong, hope it's never accessed
+        // else
+	likeMatch[i]        = log1p( -pow(10.0,i/-10.0) )/log(10);
+	    
         likeMismatch[i]     = i/-10.0;  
 
 	probForQual[i] = max(double(1.0)-pow(double(10.0),double(i)/double(-10.0)),
@@ -324,7 +345,8 @@ static inline double measureOverlap(const string      & read1,
 				    const int startRead1,				   
 				    const int startRead2,				   
 				    int	maxLength,
-				    double * iterations=0){
+				    double * iterations=0,
+				    int  *  matches=0){
     if(maxLength < 0)
 	return -DBL_MAX;
     
@@ -349,7 +371,8 @@ static inline double measureOverlap(const string      & read1,
 	comparedread2+=read2[i2];
 #endif
 	
-	if(read1[i1] == read2[i2] ){
+	if(read1[i1] == read2[i2] ){	    
+	    (*matches)++;
 	    likelihoodMatch  +=    likeMatch[    min(qual1[i1],qual2[i2])  ];
 	}else{
 	    likelihoodMatch  +=    likeMismatch[ min(qual1[i1],qual2[i2])  ];
@@ -376,7 +399,8 @@ static inline double detectAdapter(const string      & read,
 				   const vector<int> & qual,
 				   const string      & adapterString,
 				   unsigned int offsetRead=0,
-				   double * iterations =0 ){
+				   double * iterations =0 ,
+				   int  *  matches=0){
 
     double likelihoodMatch=0.0;
     unsigned maxidx=min ( min(read.length()-offsetRead,
@@ -399,6 +423,7 @@ static inline double detectAdapter(const string      & read,
 #endif
 	if(         read[i1]  == adapterString[i] || 
 		    adapterString[i1]  == 'I' ){ //match
+	    (*matches)++;
 	    likelihoodMatch  +=    likeMatch[ qual[i1] ];
 	}else{ //mismatch
 	    likelihoodMatch  += likeMismatch[ qual[i1] ];
@@ -671,7 +696,13 @@ merged process_PE( string  read1,  string  qual1,
 
     double logLikeTotalOverlap    = -DBL_MAX;
     double logLikeTotalOverlapIdx = 0;
+    int    logLikeTotalOverlapMatches=0;
 
+
+    //second best hit
+    double sndlogLikeTotalOverlap    = -DBL_MAX;
+    double sndlogLikeTotalOverlapIdx = 0;
+    int    sndlogLikeTotalOverlapMatches=0;
 
     // double logLikePartialOverlap  =-DBL_MAX;
     // double logLikePartialOverlapIdx=0;
@@ -713,15 +744,16 @@ merged process_PE( string  read1,  string  qual1,
     
 
 	double iterations=0;
+	int    matches   =0;
 
 	double logLike1=0.0; //p7 likelihood
 	double logLike2=0.0; //p5 likelihood
 	double logLike3=0.0; //overlap likelihood
 
 	if(indexAdapter<size1)
-	    logLike1  =  detectAdapter(    read1 ,     qualv1     , options_adapter_F,indexAdapter,&iterations );
+	    logLike1  =  detectAdapter(    read1 ,     qualv1     , options_adapter_F,indexAdapter,&iterations, &matches);
 	if(indexAdapter<size2)
-	    logLike2  =  detectAdapter(    read2 ,     qualv2     , options_adapter_S,indexAdapter,&iterations );
+	    logLike2  =  detectAdapter(    read2 ,     qualv2     , options_adapter_S,indexAdapter,&iterations, &matches );
 
 	
 	if(indexAdapter > maxLengthForPair){
@@ -743,7 +775,8 @@ merged process_PE( string  read1,  string  qual1,
 					       startr1,					      
 					       startr2,
 					       lengthIt,
-					       &iterations );
+					       &iterations,
+					       &matches);
 
 	} else{
 
@@ -767,14 +800,49 @@ merged process_PE( string  read1,  string  qual1,
 					       //the matching starts at max(0,lengthDiffR1_R2), 
 					       //hence the # of required comparisons is:
 					       lengthIt,
-					       &iterations );
+					       &iterations,
+					       &matches );
+
+	    //if( indexAdapter <= (min_overlap_seqs+1))
+	    //matches = min_overlap_seqs;//here, very small overlaps can have an arbitrary amount of matches
 	}
 
-	double totalL=(logLike1+logLike2+logLike3)/iterations;
 
+	// double totalL=(logLike1+logLike2+logLike3)/iterations;
+	//cout<<likeRandomMatch<<"\t"<<likeRandomMisMatch<<endl;
+	double likelihoodRandom  = (   (iterations)*likeRandomMisMatch );
+
+	double likelihoodMerge   = (logLike1+logLike2+logLike3);
+	double totalL=
+	    -2.0*( likelihoodRandom )
+	    + 
+	    2.0*(likelihoodMerge);
+	
+	//observing a high likelihood for short matches is easy, however, observing it over 
+	//longer matches is more unlikely. Hence, we need to scale for the matches
+	
+	//http://en.wikipedia.org/wiki/Likelihood-ratio_test
+	//null model  : this is noise
+	//alternative : we observe overlap/primers
+
+#ifdef DEBUGPR
+	cerr<<"idx: "<<indexAdapter<<"\t"<<totalL<<"\t"<<( likelihoodRandom )<<"\t"<<( likelihoodMerge )<<"\t"<<iterations<<"\t"<<matches<<endl;
+#endif
+	
 	if(logLikeTotalOverlap < totalL){
-	    logLikeTotalOverlap    = totalL;
-	    logLikeTotalOverlapIdx =  indexAdapter;
+	    sndlogLikeTotalOverlap        = logLikeTotalOverlap;
+	    sndlogLikeTotalOverlapIdx     = logLikeTotalOverlapIdx;
+	    sndlogLikeTotalOverlapMatches = logLikeTotalOverlapMatches;
+
+	    logLikeTotalOverlap        = totalL;
+	    logLikeTotalOverlapIdx     = indexAdapter;
+	    logLikeTotalOverlapMatches = matches;
+	}else{ 
+	    if(sndlogLikeTotalOverlap < totalL){ //not more likely than first but more likely than second
+		sndlogLikeTotalOverlap        = totalL;
+		sndlogLikeTotalOverlapIdx     = indexAdapter;
+		sndlogLikeTotalOverlapMatches = matches;
+	    }
 	}
     }
 
@@ -786,14 +854,28 @@ merged process_PE( string  read1,  string  qual1,
     
     
 #ifdef DEBUGPR   
-    cerr<<"mergeo "<<logLikePartialOverlap<<"\t"<<logLikePartialOverlapIdx<<"\t"<<logLikeTotalOverlap<<"\t"<<logLikeTotalOverlapIdx<<endl;
+    cerr<<"mergeo "<<"\t"<<logLikeTotalOverlap<<"\t"<<logLikeTotalOverlapIdx<<"\t"<<logLikeTotalOverlapMatches<<endl;
 #endif
     
+    cout<<logLikeTotalOverlap<<endl;
+    //exit(1);
+    //cout<<pow(10.0,logLikeTotalOverlap)<<endl;
 
+    
 
+    if( logLikeTotalOverlap         > likelihoodAdapterPR     && //sufficient likelihood
+        logLikeTotalOverlapMatches >= min_overlap_seqs  ){       //sufficient # of mismatches for partial overlap (artifically to min_overlap_seqs for complete overlap)
 
-    if(logLikeTotalOverlap > likelihoodAdapterPR){
-	cerr<<logLikeTotalOverlapIdx<<endl;
+	// cout<<-10.0*log10(logLikeTotalOverlap/sndlogLikeTotalOverlap)<<endl;
+	// if( (logLikeTotalOverlap/sndlogLikeTotalOverlap)> 0.8){
+	//     cout<<read1<<endl;
+	//     cout<<read2<<endl;
+	//     cout<<read2_rev<<endl;
+	//     cout<<logLikeTotalOverlapIdx<<endl;
+	//     cout<<sndlogLikeTotalOverlapIdx<<endl;
+
+	//     exit(1);
+	// }
 	int indexAdapter=	logLikeTotalOverlapIdx;
 
 	int startr1;
@@ -860,8 +942,8 @@ merged process_PE( string  read1,  string  qual1,
 
 	//coyping after the overlap
 	for(int pos2=posr2;pos2<size2;pos2++){		
-	    newSeq[pos]     =  read1[pos2];
-	    newQual[pos++]  = qualv1[pos2];
+	    newSeq[pos]     =  read2_rev[pos2];
+	    newQual[pos++]  = qualv2_rev[pos2];
 	}
 
 

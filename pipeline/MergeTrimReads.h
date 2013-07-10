@@ -17,7 +17,9 @@ using namespace std;
 
 static const double likelihoodChimera   = -15.0;
 static const double likelihoodAdapterSR = -0.4;
-static const double likelihoodAdapterPR = -1.0;
+/* static const double likelihoodAdapterPR = -1.0; */
+static const double likelihoodAdapterPR = 0;
+
 static const double max_prob_N = 0.25;
 
 static const size_t min_length = 5;
