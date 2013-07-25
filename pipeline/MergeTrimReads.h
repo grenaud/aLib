@@ -15,11 +15,10 @@
 using namespace std;
 
 
-static const double likelihoodChimera   = -15.0;
-static const double likelihoodAdapterSR = -0.4;
+static double likelihoodChimera   = -15.0;
+static double likelihoodAdapterSR = -0.4;
 /* static const double likelihoodAdapterPR = -1.0; */
-static const double likelihoodAdapterPR = 0;
-
+static double likelihoodAdapterPR = -120.0;
 static const double max_prob_N = 0.25;
 
 static const size_t min_length = 5;
@@ -92,6 +91,10 @@ typedef struct {
 
 /* static inline int edits(const string & seq1,const string & seq2); */
 /* static string returnFirstToken(string * toparse,string delim); */
+
+void    setLikelihoodScores(double likelihoodChimera_,
+			    double likelihoodAdapterSR_,
+			    double likelihoodAdapterPR_);
 
 void set_options(int trimcutoff=1,bool allowMissing=false,bool mergeoverlap=false);
 void set_adapter_sequences(const string& forward="", const string& reverse="", const string& chimera="",int max_comp=30);
