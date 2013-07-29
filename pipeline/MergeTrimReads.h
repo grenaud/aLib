@@ -14,15 +14,16 @@
 
 using namespace std;
 
+extern  double maxLikelihoodRatio  ;
 
-static double likelihoodChimera   = -15.0;
-static double likelihoodAdapterSR = -0.4;
+extern  double likelihoodChimera  ;
+extern double likelihoodAdapterSR ;
 /* static const double likelihoodAdapterPR = -1.0; */
-static double likelihoodAdapterPR = -120.0;
-static const double max_prob_N = 0.25;
+extern double likelihoodAdapterPR ;
 
-static const size_t min_length = 5;
-static const int    qualOffset = 33;
+
+extern const size_t min_length ;
+extern const int    qualOffset ;
 
 /* static const double max_prob_N = 0.25; */
 
@@ -42,27 +43,30 @@ extern int len_key1;
 extern int len_key2;
 extern size_t options_trimCutoff;
 extern bool options_mergeoverlap;
+extern double max_prob_N ;
+/* extern size_t min_length ; */
 
 //Chimera options and adapter
-static const char* const chimInit[]= {
-    "ACACTCTTTCCCTACACGTCTGAACTCCAG",
-    "ACACTCTTTCCCACACGTCTGAACTCCAGT",
-    "ACACTCTTTCCCTACACACGTCTGAACTCC",
-    "CTCTTTCCCTACACGTCTGAACTCCAGTCA",
-    "GAAGAGCACACGTCTGAACTCCAGTCACII",
-    "GAGCACACGTCTGAACTCCAGTCACIIIII",
-    "GATCGGAAGAGCACACGTCTGAACTCCAGT",
-    "AGATCGGAAGAGCACACGTCTGAACTCCAG",
-    "AGAGCACACGTCTGAACTCCAGTCACIIII",
-    "ACACGTCTGAACTCCAGTCACIIIIIIIAT",
-    "GTGCACACGTCTGAACTCCAGTCACIIIII",
-    "AGCACACGTCTGAACTCCAGTCACIIIIII",
-    "CGTATGCCGTCTTCTGCTTGAAAAAAAAAA"};
+extern  const char* const chimInit[];/* = { */
+    /* "ACACTCTTTCCCTACACGTCTGAACTCCAG", */
+    /* "ACACTCTTTCCCACACGTCTGAACTCCAGT", */
+    /* "ACACTCTTTCCCTACACACGTCTGAACTCC", */
+    /* "CTCTTTCCCTACACGTCTGAACTCCAGTCA", */
+    /* "GAAGAGCACACGTCTGAACTCCAGTCACII", */
+    /* "GAGCACACGTCTGAACTCCAGTCACIIIII", */
+    /* "GATCGGAAGAGCACACGTCTGAACTCCAGT", */
+    /* "AGATCGGAAGAGCACACGTCTGAACTCCAG", */
+    /* "AGAGCACACGTCTGAACTCCAGTCACIIII", */
+    /* "ACACGTCTGAACTCCAGTCACIIIIIIIAT", */
+    /* "GTGCACACGTCTGAACTCCAGTCACIIIII", */
+    /* "AGCACACGTCTGAACTCCAGTCACIIIIII", */
+    /* "CGTATGCCGTCTTCTGCTTGAAAAAAAAAA"}; */
      
-static vector<string> adapter_chimeras (chimInit,chimInit+13);
-static string options_adapter_F="AGATCGGAAGAGCACACGTCTGAACTCCAGTCACIIIIIIIATCTCGTATGCCGTCTTCTGCTTG";
-static string options_adapter_S="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATTT";
-static string returnFirstToken(string * toparse,string delim);
+extern vector<string> adapter_chimeras ;
+extern string options_adapter_F;
+extern string options_adapter_S;
+
+string returnFirstToken(string * toparse,string delim);
 
 /* typedef struct { */
 /*     char   base; */
