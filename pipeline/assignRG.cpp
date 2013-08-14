@@ -15,6 +15,7 @@
 #include "RGAssign.h"
 #include "PutProgramInHeader.h"
 
+#include "JSON.h"
 
 #include "utils.h"
 
@@ -46,364 +47,14 @@ PrefixTree<string> * trieKnownString;
 static string dashes = "--------------------------------";
 
 
-//replace this with reading config.xml
-static const string  p7_block300[] = {"TCGCAGG",
-				      "CTCTGCA",
-				      "CCTAGGT",
-				      "GGATCAA",
-				      "GCAAGAT",
-				      "ATGGAGA",
-				      "CTCGATG",
-				      "GCTCGAA",
-				      "ACCAACT",
-				      "CCGGTAC",
-				      "AACTCCG",
-				      "TTGAAGT",
-				      "ACTATCA",
-				      "TTGGATC",
-				      "CGACCTG",
-				      "TAATGCG",
-				      "AGGTACC",
-				      "TGCGTCC",
-				      "GAATCTC",
-				      "CATGCTC",
-				      "ACGCAAC",
-				      "GCATTGG",
-				      "GATCTCG",
-				      "CAATATG",
-				      "TGACGTC",
-				      "GATGCCA",
-				      "CAATTAC",
-				      "AGATAGG",
-				      "CCGATTG",
-				      "ATGCCGC",
-				      "CAGTACT",
-				      "AATAGTA",
-				      "CATCCGG",
-				      "TCATGGT",
-				      "AGAACCG",
-				      "TGGAATA",
-				      "CAGGAGG",
-				      "AATACCT",
-				      "CGAATGC",
-				      "TTCGCAA",
-				      "AATTCAA",
-				      "CGCGCAG",
-				      "AAGGTCT",
-				      "ACTGGAC",
-				      "AGCAGGT",
-				      "GTACCGG",
-				      "GGTCAAG",
-				      "AATGATG",
-				      "AGTCAGA",
-				      "AACTAGA",
-				      "CTATGGC",
-				      "CGACGGT",
-				      "AACCAAG",
-				      "CGGCGTA",
-				      "GCAGTCC",
-				      "CTCGCGC",
-				      "CTGCGAC",
-				      "ACGTATG",
-				      "ATACTGA",
-				      "TACTTAG",
-				      "AAGCTAA",
-				      "GACGGCG",
-				      "AGAAGAC",
-				      "GTCCGGC",
-				      "TCAGCTT",
-				      "AGAGCGC",
-				      "GCCTACG",
-				      "TAATCAT",
-				      "AACCTGC",
-				      "GACGATT",
-				      "TAGGCCG",
-				      "GGCATAG",
-				      "TTCAACC",
-				      "TTAACTC",
-				      "TAGTCTA",
-				      "TGCATGA",
-				      "AATAAGC",
-				      "AGCCTTG",
-				      "CCAACCT",
-				      "GCAGAAG",
-				      "AGAATTA",
-				      "CAGCATC",
-				      "TTCTAGG",
-				      "CCTCTAG",
-				      "CCGGATA",
-				      "GCCGCCT",
-				      "AACGACC",
-				      "CCAGCGG",
-				      "TAGTTCC",
-				      "TGGCAAT",
-				      "CGTATAT",
-				      "GCTAATC",
-				      "GACTTCT",
-				      "GTACTAT",
-				      "CGAGATC",
-				      "CGCAGCC"};
-
-static const string  p7_block1[] = { "ACAGTG",
-				     "GATCAG",
-				     "ATCACG",
-				     "CGATGT",
-				     "CTTGTA",
-				     "GGCTAC",
-				     "TGACCA",
-				     "AAAGCA",
-				     "AAATGC",
-				     "AAGCGA",
-				     "AAGGAC",
-				     "AATAGG",
-				     "ACCCAG",
-				     "ACTCTC",
-				     "AGAAGA",
-				     "AGCATC",
-				     "AGGCCG",
-				     "ATACGG",
-				     "ATCCTA",
-				     "ATCTAT",
-				     "ATGAGC",
-				     "CATTTT",
-				     "CCGCAA",
-				     "CTCAGA",
-				     "GAATAA",
-				     "GCCGCG",
-				     "GCTCCA",
-				     "GGCACA",
-				     "GGCCTG",
-				     "TCGGCA",
-				     "TCTACC",
-				     "TGCCAT",
-				     "TGCTGG",
-				     "AGGTTT",
-				     "AGTCAA",
-				     "AGTTCC",
-				     "ATGTCA",
-				     "CCGTCC",
-				     "GTAGAG",
-				     "GTGAAA",
-				     "GTGGCC",
-				     "GTTTCG",
-				     "CGTACG",
-				     "GAGTGG",
-				     "GGTAGC",
-				     "ACTTGA",
-				     "CAGATC",
-				     "GCCAAT",
-				     "TAGCTT",
-				     "TTAGGC",
-				     "AACCGCC",
-				     "AACGAAC",
-				     "AACGCCT",
-				     "AACGGTA",
-				     "AACTAGT",
-				     "AACTGAG",
-				     "AAGAATT",
-				     "AAGATAG",
-				     "AAGCTCT",
-				     "AAGTCTG",
-				     "AATAACC",
-				     "AATCCGT",
-				     "ACCGATT",
-				     "ACCGTAG",
-				     "ACCTCAT",
-				     "ACCTTGC",
-				     "ACGACCT",
-				     "ACGATTC",
-				     "ACGCGGC",
-				     "ACGGAGG",
-				     "ACGTAAC",
-				     "ACTACTG",
-				     "ACTCGTT",
-				     "ACTGCGC",
-				     "AGACCTC",
-				     "AGACTAG",
-				     "AGAGACC",
-				     "AGAGCGT",
-				     "AGATATG",
-				     "AGATTCT",
-				     "AGCAAGC",
-				     "AGCAGTT",
-				     "AGCGCTG",
-				     "AGTATAC",
-				     "ATAAGTC",
-				     "ATAATGG",
-				     "ATACTCC",
-				     "ATAGAAG",
-				     "ATCTCCG",
-				     "ATGCAGT",                                           
-				     "ATGGTAT",
-				     "ATTATCT",
-				     "ATTCGAC",
-				     "ATTGCTA",
-				     "CAACCGG",
-				     "CAACTAA",
-				     "AATCTTC",
-				     "ACCAACG",
-				     "AGATGGC",
-				     "CCAGGTT",
-				     "CCGTTAG",
-				     "CGCCTCT",
-				     "CTTGCGG",
-				     "GGCGGAG",
-				     "TGGACGT",
-				     "AACCATG",
-				     "CAGGAAG",
-				     "CATACCT",
-				     "CCAATCC",
-				     "CCGGCGT",
-				     "CGCATAG",
-				     "CGTAATC",
-				     "CGTTGGT",
-				     "CTATACG",
-				     "GACCTAC",
-				     "GATATTG",
-				     "AAGACGC",
-				     "GCAGTAT",
-				     "GGTCCGC",
-				     "GTCGACT",                                           
-				     "GTTAGAT",
-				     "TAACTCG",
-				     "TGCTTCC",
-				     "TGGCGCT",
-				     "AATGGCG",
-				     "ACCAGAC",
-				     "ACGCCAG",
-				     "ACTAAGT",
-				     "AGAACCG",
-				     "ATCGTTC",
-				     "CAACGTC"};
-
-static const string  p5_block1[] = {"TCGCAGG",
-				    "CTCTGCA",
-				    "CCTAGGT",
-				    "GGATCAA",
-				    "GCAAGAT",
-				    "ATGGAGA",
-				    "CTCGATG",
-				    "GCTCGAA",
-				    "ACCAACT",
-				    "CCGGTAC",
-				    "AACTCCG",
-				    "TTGAAGT",
-				    "ACTATCA",
-				    "TTGGATC",
-				    "CGACCTG",
-				    "TAATGCG",
-				    "AGGTACC",
-				    "TGCGTCC",
-				    "GAATCTC",
-				    "CATGCTC",
-				    "ACGCAAC",
-				    "GCATTGG",
-				    "GATCTCG",
-				    "CAATATG",
-				    "TGACGTC",
-				    "GATGCCA",
-				    "CAATTAC",
-				    "AGATAGG",
-				    "CCGATTG",
-				    "ATGCCGC",
-				    "CAGTACT",
-				    "AATAGTA",
-				    "CATCCGG",
-				    "TCATGGT",
-				    "AGAACCG",
-				    "TGGAATA",
-				    "CAGGAGG",
-				    "AATACCT",
-				    "CGAATGC",
-				    "TTCGCAA",
-				    "AATTCAA",
-				    "CGCGCAG",
-				    "AAGGTCT",
-				    "ACTGGAC",
-				    "AGCAGGT",
-				    "GTACCGG",
-				    "GGTCAAG",
-				    "AATGATG",
-				    "AGTCAGA",
-				    "AACTAGA",
-				    "CTATGGC",
-				    "CGACGGT",
-				    "AACCAAG",
-				    "CGGCGTA",
-				    "GCAGTCC",
-				    "CTCGCGC",
-				    "CTGCGAC",
-				    "ACGTATG",
-				    "ATACTGA",
-				    "TACTTAG",
-				    "AAGCTAA",
-				    "GACGGCG",
-				    "AGAAGAC",
-				    "GTCCGGC",
-				    "TCAGCTT",
-				    "AGAGCGC",
-				    "GCCTACG",
-				    "TAATCAT",
-				    "AACCTGC",
-				    "GACGATT",
-				    "TAGGCCG",
-				    "GGCATAG",
-				    "TTCAACC",
-				    "TTAACTC",
-				    "TAGTCTA",
-				    "TGCATGA",
-				    "AATAAGC",
-				    "AGCCTTG",
-				    "CCAACCT",
-				    "GCAGAAG",
-				    "AGAATTA",
-				    "CAGCATC",
-				    "TTCTAGG",
-				    "CCTCTAG",
-				    "CCGGATA",
-				    "GCCGCCT",
-				    "AACGACC",
-				    "CCAGCGG",
-				    "TAGTTCC",
-				    "TGGCAAT",
-				    "CGTATAT",
-				    "GCTAATC",
-				    "GACTTCT",
-				    "GTACTAT",
-				    "CGAGATC",
-				    "CGCAGCC"};
-
-static const string  truseq[] = {"ATCACG", //1
-				 "CGATGT", //2
-				 "TTAGGC", //3
-				 "TGACCA", //4
-				 "ACAGTG", //5 
-				 "GCCAAT", //6
-				 "CAGATC", //7
-				 "ACTTGA", //8
-				 "GATCAG", //9
-				 "TAGCTT", //10
-				 "GGCTAC", //11
-				 "CTTGTA", //12
-				 "AGTCAA", //13
-				 "AGTTCC", //14
-				 "ATGTCA", //15
-				 "CCGTCC", //16
-				 "NNNNNN", //no 17 
-				 "GTCCGC", //18
-				 "GTGAAA", //19
-				 "GTGGCC", //20
-				 "GTTTCG", //21
-				 "CGTACG", //22
-				 "GAGTGG", //23
-				 "NNNNNN", //no 24 
-				 "ACTGAT", //25
-				 "ATTCCT", //26
-				 "NNNNNN"  //no 27
-};
 
 // XXX really, a global?!
 map<string,tallyForRG> namesMap; //a map name of RG to count of how many observed
+
+string getCWD(){
+   char temp[1000];
+   return ( getcwd(temp, 1000) ? string( temp ) : string("") );
+}
 
 struct compareNameRG {
     bool operator() (pair<string,int> i,pair<string,int> j) {
@@ -536,42 +187,106 @@ inline bool containsNoNs(const string & sN){
     return (sN.find("N") == string::npos);
 }
 
-void initializeKnownIndices(PrefixTree<string> * trieKnownString){
+void initializeKnownIndices(PrefixTree<string> * trieKnownString,string configFile){
     //p7 300
-    int sizeArray;
-    sizeArray=sizeof(p7_block300)/sizeof(p7_block300[0]);
-    for(int i=0;i<sizeArray;i++){
-    	if(containsNoNs(p7_block300[i])){
-    	    trieKnownString->insertIntoTree( p7_block300[i].c_str() , "p7#"+stringify(i+301));
-    	    trieKnownString->insertIntoTree( reverseComplement(p7_block300[i]).c_str() , "p7REVC#"+stringify(i+301));
-    	}
-    }
-    //p7
-    sizeArray=sizeof(p7_block1)/sizeof(p7_block1[0]);
-    for(int i=0;i<sizeArray;i++){
-	if(containsNoNs(p7_block1[i])){
-	    trieKnownString->insertIntoTree( p7_block1[i].c_str() , "p7#"+stringify(i+1));
-	    trieKnownString->insertIntoTree( reverseComplement(p7_block1[i]).c_str() , "p7REVC#"+stringify(i+1));
+    string line;
+    ifstream myFile;
+    string content="";
+    myFile.open(configFile.c_str(), ios::in);
+
+    if (myFile.is_open()){
+	while ( getline (myFile,line)){
+	    content+=line;
 	}
+	myFile.close();
+    }else{
+	cerr << "Unable to open config file "<<configFile<<endl;
+	exit(1);
     }
 
-    //p5
-    sizeArray=sizeof(p5_block1)/sizeof(p5_block1[0]);
-    for(int i=0;i<sizeArray;i++){
-	if(containsNoNs(p5_block1[i])){
-	    trieKnownString->insertIntoTree( p5_block1[i].c_str() , "p5#"+stringify(i+1));
-	    trieKnownString->insertIntoTree( reverseComplement(p5_block1[i]).c_str() , "p5REVC#"+stringify(i+1));
-	}
+
+    JSONValue *value = JSON::Parse(content.c_str());
+    if (value == NULL){
+	cerr<<"Failed to parse JSON file"<<endl;
+	exit(1);
     }
 
-    //truseq
-    sizeArray=sizeof(truseq)/sizeof(truseq[0]);
-    for(int i=0;i<sizeArray;i++){
-	if(containsNoNs(truseq[i])){
-	    trieKnownString->insertIntoTree( truseq[i].c_str() , "ts#"+stringify(i+1));
-	    trieKnownString->insertIntoTree( reverseComplement(truseq[i]).c_str() , "tsREVC#"+stringify(i+1));
-	}
+    JSONObject root;
+    root = value->AsObject();
+    if(root.find(L"indices") == root.end()){
+	cerr<<"Failed to parse JSON file, needs a indices field"<<endl;
+	exit(1);
     }
+    
+
+    JSONValue *jsonIndices    = root.at(L"indices");
+    JSONObject jsonIndicesObj = jsonIndices->AsObject();
+
+
+    //p7 indices
+    if(jsonIndicesObj.find(L"p7indices") == jsonIndicesObj.end()){
+	cerr<<"Failed to parse JSON file, needs a p7indices field"<<endl;
+	exit(1);
+    }
+        
+    JSONValue *jsonIndicesp7    = jsonIndicesObj.at(L"p7indices");
+    JSONObject jsonIndicesp7Obj = jsonIndicesp7->AsObject();
+    JSONArray arrayp7 = jsonIndicesp7Obj[L"p7index"]->AsArray();
+    for (unsigned int i = 0; i < arrayp7.size(); i++){
+	JSONObject temp=	arrayp7[i]->AsObject();
+	
+	if(temp.find(L"seq") == temp.end()){
+	    cerr<<"Failed to parse JSON file, needs a seq in the p7indices field"<<endl;
+	    exit(1);
+	}
+	if(temp.find(L"id") == temp.end()){
+	    cerr<<"Failed to parse JSON file, needs a id in the p7indices field"<<endl;
+	    exit(1);
+	}
+
+
+	string tempSeq (temp[L"seq"]->AsString().begin(),
+			temp[L"seq"]->AsString().end());
+	string tempID  (temp[L"id"]->AsString().begin(),
+			temp[L"id"]->AsString().end());
+	trieKnownString->insertIntoTree( tempSeq.c_str() , "p7#"    +tempID);
+	trieKnownString->insertIntoTree( tempSeq.c_str() , "p7REVC#"+tempID);
+    }
+
+
+    //p5 indices
+    if(jsonIndicesObj.find(L"p5indices") == jsonIndicesObj.end()){
+	cerr<<"Failed to parse JSON file, needs a p5indices field"<<endl;
+	exit(1);
+    }
+        
+    JSONValue *jsonIndicesp5    = jsonIndicesObj.at(L"p5indices");
+    JSONObject jsonIndicesp5Obj = jsonIndicesp5->AsObject();
+    JSONArray arrayp5 = jsonIndicesp5Obj[L"p5index"]->AsArray();
+    for (unsigned int i = 0; i < arrayp5.size(); i++){
+	JSONObject temp=	arrayp5[i]->AsObject();
+	
+	if(temp.find(L"seq") == temp.end()){
+	    cerr<<"Failed to parse JSON file, needs a seq in the p5indices field"<<endl;
+	    exit(1);
+	}
+	if(temp.find(L"id") == temp.end()){
+	    cerr<<"Failed to parse JSON file, needs a id in the p5indices field"<<endl;
+	    exit(1);
+	}
+
+
+	string tempSeq (temp[L"seq"]->AsString().begin(),
+			temp[L"seq"]->AsString().end());
+	string tempID  (temp[L"id"]->AsString().begin(),
+			temp[L"id"]->AsString().end());
+
+	trieKnownString->insertIntoTree( tempSeq.c_str() , "p5#"    +tempID);
+	trieKnownString->insertIntoTree( tempSeq.c_str() , "p5REVC#"+tempID);
+    }
+
+
+
 
     //Other sequences after the primming site
     string IS4="AGATCTC";
@@ -894,7 +609,7 @@ int main (int argc, char *argv[]) {
 
     if(printError){
 	trieKnownString = new PrefixTree<string>();
-	initializeKnownIndices(trieKnownString);
+	initializeKnownIndices(trieKnownString,getCWD()+"/../webForm/config.json");
 	// //debug
 	// vector<string> * temp3=new vector<string>();
 	// vector<string> * temp4=new vector<string>();

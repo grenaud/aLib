@@ -1,4 +1,5 @@
 all: 
+	make -C SimpleJSON
 	make -C libgab
 	make -C pipeline
 	make -C bam2fastq
@@ -14,6 +15,8 @@ all:
 
 
 clean:
+	make -C SimpleJSON clean
+	make -C libgab clean
 	make -C pipeline clean
 	make -C bam2fastq clean
 	make -C BCL2BAM clean

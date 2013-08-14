@@ -11,3 +11,6 @@
 [submodule "bamtools"]
 	path = bamtools
 	url = https://github.com/pezmaster31/bamtools.git
+[submodule "SimpleJSON"]
+	path = SimpleJSON
+	url = https://github.com/MJPA/SimpleJSON.git
