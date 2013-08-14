@@ -1,4 +1,5 @@
 all: 
+	make -C libgab
 	make -C pipeline
 	make -C bam2fastq
 	make -C BCL2BAM
