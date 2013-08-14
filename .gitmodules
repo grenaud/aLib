@@ -8,3 +8,6 @@
 [submodule "network-aware-bwa"]
 	path = network-aware-bwa
 	url = git@github.com:udo-stenzel/network-aware-bwa.git
+[submodule "bamtools"]
+	path = bamtools
+	url = https://github.com/pezmaster31/bamtools.git
