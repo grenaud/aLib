@@ -1,19 +1,24 @@
 include ../makefile.defs
 
 
-CXXFLAGS  = -lm -O3 -Wall -I${LIBGAB} -I${LIBGAB}VCFparser/ -I${LIBGAB}VCFparser/gzstream/ -I${BAMTOOLS}/include/ -c
+CXXFLAGS  = -lm -O3 -Wall -I${LIBGAB} -I${LIBGAB}VCFparser/ -I${LIBGAB}/gzstream/ -I${BAMTOOLS}/include/ -c
 LDFLAGS  = ${BAMTOOLS}/lib/libbamtools.a -lz
 
 
-all: fastq2bam 
+all: fastq2bam  fastSingle2bam
 
 fastq2bam.o:	fastq2bam.cpp
 	${CXX} ${CXXFLAGS} fastq2bam.cpp
 
+fastq2bam:	fastq2bam.o ${LIBGAB}/utils.o ${LIBGAB}/PutProgramInHeader.o ${LIBGAB}/gzstream/gzstream.o ${LIBGAB}/FastQObj.o  ${LIBGAB}/FastQParser.o
+	${CXX} -o $@ $^ $(LDFLAGS)
 
-fastq2bam:	fastq2bam.o ${LIBGAB}utils.o ${LIBGAB}PutProgramInHeader.o ${LIBGAB}/VCFparser/gzstream/gzstream.o ${LIBGAB}VCFparser/FastQObj.o  ${LIBGAB}VCFparser/FastQParser.o
+fastSingle2bam.o:	fastSingle2bam.cpp
+	${CXX} ${CXXFLAGS} fastSingle2bam.cpp
+
+fastSingle2bam:	fastSingle2bam.o ${LIBGAB}/utils.o ${LIBGAB}/PutProgramInHeader.o ${LIBGAB}/gzstream/gzstream.o ${LIBGAB}/FastQObj.o  ${LIBGAB}/FastQParser.o
 	${CXX} -o $@ $^ $(LDFLAGS)
 
 clean :
-	rm -f fastq2bam.o fastq2bam
+	rm -f *.o fastq2bam fastSingle2bam 
 

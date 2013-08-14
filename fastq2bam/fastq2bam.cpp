@@ -30,12 +30,13 @@ int main (int argc, char *argv[]) {
     string index1    ="";
     string index2    ="";
     string readgroup ="";
+    bool isFasta=false;
 
     if( (argc== 1) ||
         (argc== 2 && string(argv[1]) == "-h") ||
         (argc== 2 && string(argv[1]) == "-help") ||
         (argc== 2 && string(argv[1]) == "--help") ){
-        cout<<"This program converts fastq files into unaligned bam\nUsage: "<<string(argv[0])<<" [options] [fastq in r1] [fastq in r2]"<<endl;
+        cout<<"This program converts fasta/q files into unaligned bam\nUsage: "<<string(argv[0])<<" [options] [fastq in r1] [fastq in r2]"<<endl;
         cout<<"Options:"<<endl;
         cout<<"\tMandatory:"<<endl;
         cout<<"\t\t-o [output bam]"<<endl;
@@ -43,6 +44,7 @@ int main (int argc, char *argv[]) {
         cout<<"\t\t-i1 [index1]"<<endl;
         cout<<"\t\t-i2 [index2]"<<endl;
         cout<<"\t\t-r  [read group]"<<endl;
+        cout<<"\t\t-a  If input is fasta"<<endl;
 
         return 1;
     }
@@ -70,6 +72,11 @@ int main (int argc, char *argv[]) {
 	if(strcmp(argv[i],"-r") == 0  ){
             readgroup=string(argv[i+1]);
             i++;
+            continue;
+        }
+
+	if(strcmp(argv[i],"-a") == 0  ){
+	    isFasta=true;
             continue;
         }
 
@@ -112,8 +119,8 @@ int main (int argc, char *argv[]) {
         return 1;
     }
     
-    FastQParser fqp1 (fastqin1);
-    FastQParser fqp2 (fastqin2);
+    FastQParser fqp1 (fastqin1,isFasta);
+    FastQParser fqp2 (fastqin2,isFasta);
     unsigned int totalSeqs=0;
     while(fqp1.hasData()){
 	if(!fqp2.hasData()){
@@ -160,11 +167,17 @@ int main (int argc, char *argv[]) {
 	toWrite2.MapQuality=0;
 		  
 	toWrite1.QueryBases =  *(fo1->getSeq());
-	toWrite1.Qualities  =  *(fo1->getQual());
-		  
 	toWrite2.QueryBases =  *(fo2->getSeq());
-	toWrite2.Qualities  =  *(fo2->getQual());
+
 	
+	if(isFasta){
+	    toWrite1.Qualities  =  string(toWrite1.QueryBases.length(),'!');
+	    toWrite2.Qualities  =  string(toWrite2.QueryBases.length(),'!');
+	}else{
+	    toWrite1.Qualities  =  *(fo1->getQual());
+	    toWrite2.Qualities  =  *(fo2->getQual());
+	}
+
 	//add tags for indices and fake qualities for the indices
 	if(!index1.empty()){
 	    if(!toWrite1.AddTag("XI", "Z",index1) )                      {cerr<<"Internal error, cannot add tag"<<endl; return 1; }

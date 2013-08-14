@@ -11,4 +11,17 @@ all:
 	cd biohazard ; [ -d ~/.cabal ] || cabal update ; cabal configure ; cabal build
 	make -C network-aware-bwa all
 
+
+clean:
+	make -C pipeline clean
+	make -C bam2fastq clean
+	make -C BCL2BAM clean
+	make -C estimateControlReadsBCL clean
+	make -C extractControlReadsBam clean
+	make -C fastq2bam clean
+	make -C plotQualScores clean
+	make -C qualScoreC++ clean
+	make -C tileCount clean
+
+
 .PHONY: all

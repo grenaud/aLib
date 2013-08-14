@@ -7,19 +7,18 @@ if( ! file_exists(getcwd()."/config.xml")  ){
     exit(1);
  }
 
-$xmlconf = simplexml_load_file( getcwd()."/config.xml" );
-
-#$illuminareaddir."/".$runid."/RunInfo.xml") ){ 
+//$xmlconf = simplexml_load_file( getcwd()."/config.xml" );
+$jsonconf = json_decode(file_get_contents( getcwd()."/config.json" ),true);
 
 //CONFIG DATA
-$illuminareaddir  = $xmlconf->illuminareaddir;
-$illuminawritedir = $xmlconf->illuminawritedir;
-//$illuminajson     = $xmlconf->illuminajson;
+$illuminareaddir  = $jsonconf["illuminareaddir"];
+$illuminawritedir = $jsonconf["illuminawritedir"];
+
 $sequencers=array();
-foreach($xmlconf->sequencers->sequencer as $seqelem){
+foreach($jsonconf["sequencers"]["sequencer"] as $seqelem){
     $sequencers[ (string)$seqelem["id"] ]= (string)$seqelem["type"];
 }
-$runstodisplay= $xmlconf->runstodisplay;
+$runstodisplay= $jsonconf["runstodisplay"];
 
 $admin=0;
 if (!isset($_GET["admin"]) || empty($_GET["admin"])) { 
@@ -35,21 +34,6 @@ if (!isset($_GET["showall"]) || empty($_GET["showall"])) {
     $showall=1;
 }
 
-
-/* echo $admin; */
-/* exit(1); */
-//global vars
-//$analysisrequests = array();
-
-
-// $illuminareaddir="/mnt/solexa/";
-// $illuminawritedir="/mnt/ngs_data/";
-// $illuminajson="/mnt/solexa/tmp/";
-// $analysisrequests=array();
-
-// $sequencers=array("M00518"     =>   "miseq",
-// 		  "SN7001204"  =>   "hiseq");
-// $runstodisplay=30;
 
 
 

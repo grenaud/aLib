@@ -103,29 +103,51 @@ def chomp(s):
 
 #BEGIN READ CONFIG FILE
 pathToConfig=sys.argv[0];
-pathToConfig=os.path.dirname(os.path.abspath(pathToConfig))+"/config.xml";
+pathToConfig=os.path.dirname(os.path.abspath(pathToConfig))+"/config.json";
 #alibdir=os.path.dirname(os.path.abspath( sys.argv[0]+"/../"))
 
 #print pathToConfig;
 #print alibdir;
+
+
+
 try:
-  tree =ET.parse(pathToConfig);
+  fileHandleConf = open ( pathToConfig );
 except IOError:
-  print "Cannot open XML config file "+pathToConfig;
+  print "Cannot open configuration json file "+pathToConfig
   sys.exit(1);
 
-XMLconfig        = tree.getroot()
+jsonstringConf="";
+while 1:
+  line = fileHandleConf.readline();
+  if(not(line)):
+    break
+  line = chomp(line);
+  jsonstringConf+=line;
+fileHandleConf.close();
+
+jsondataConf=json.loads(jsonstringConf);
+
+#try:
+#  tree =ET.parse(pathToConfig);
+#except IOError:
+#  print "Cannot open JSON config file "+pathToConfig;
+#  sys.exit(1);
 
 
-illuminawritedir = XMLconfig.find("illuminawritedir").text;
-illuminareaddir  = XMLconfig.find("illuminareaddir").text;
-tempdir          = XMLconfig.find("tempdirectory").text;
-alibdir          = XMLconfig.find("alibdir").text;
 
-FREEIBIS         = XMLconfig.find("freeibispath").text;
-BWAGENOMES       = XMLconfig.find("genomedirectory").text;
+#XMLconfig        = tree.getroot()
 
-FastQCreport     = XMLconfig.find("fastqcdir").text+"/"+FastQCreport;
+
+illuminawritedir = jsondataConf["illuminawritedir"];
+illuminareaddir  = jsondataConf["illuminareaddir"];
+tempdir          = jsondataConf["tempdirectory"];
+alibdir          = jsondataConf["alibdir"];
+
+FREEIBIS         = jsondataConf["freeibispath"];
+BWAGENOMES       = jsondataConf["genomedirectory"];
+
+FastQCreport     = jsondataConf["fastqcdir"]+"/"+FastQCreport;
 
 
 def checkPrograms():
@@ -414,9 +436,22 @@ for lanetopredict in lanesToUse:
   makefilePath=options.outdir+"/lane"+str(lanetopredict)+"/Makefile";
   makeWrite[int(lanetopredict)] = open (makefilePath , 'w' ) ;
 #BEGIN Writing indices
+  #testing = json.loads(jsondata["indicesseq"]);
+  #print testing;
+
   fileWithIndices=options.outdir+"/lane"+str(lanetopredict)+"/indices.txt";
   indicesWrite = open (fileWithIndices , 'w' ) ;
-  indicesWrite.write( jsondata["indicesseq"] ); 
+
+  for jsonrow in jsondata["indicesseq"]:
+    indicesWrite.write( jsonrow["name"] +"\t"); 
+    indicesWrite.write( jsonrow["p7"] );
+    if("p5" in jsonrow):
+      indicesWrite.write( "\t"+jsonrow["p5"] );
+    indicesWrite.write( "\n" );
+
+
+
+    #indicesWrite.write( jsondata["indicesseq"] ); 
   indicesWrite.close();
 
   listOfFilesWithIndices[int(lanetopredict)] =  fileWithIndices;
@@ -532,7 +567,7 @@ if(jsondata["freeibis"]):
 
     
     makeWrite[int(lanetopredict)].write(" --start="+start+" --end="+end+"  -l '"+(",".join(lanesToUseTrain))+"'    -t '"+(",".join(tilesToUse))+"' --recalibration --plotqual --lock ");
-    makeWrite[int(lanetopredict)].write(" --reference="+XMLconfig.find("phixref").text+" ");
+    makeWrite[int(lanetopredict)].write(" --reference="+jsondataConf["phixref"]+" ");
     makeWrite[int(lanetopredict)].write("\n\n");
 
     #ERROR PROFILE
@@ -675,7 +710,7 @@ for baseCaller in BasecallersUsed:
 
 
     conversion_str +=  " -i "+listOfFilesWithIndices[lanetopredict]+ " ";
-    conversion_str +=  " --mm "+str(jsondata["mmrgassign"])+ " ";
+    #conversion_str +=  " --mm "+str(jsondata["mmrgassign"])+ " ";
 
     conversion_str += " --error "+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_unassigned.txt";
     listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_unassigned.txt");
@@ -728,6 +763,16 @@ for baseCaller in BasecallersUsed:
       listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam");
       listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam");
 
+
+      makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx:\t"+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam\n");
+      
+
+      conversion_str = "mv "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".temp.bam\n\tsam sort -m 16G -o "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".temp.bam -i "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam.bai -x "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx -c "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".covstat "+str(tempdir)+" > "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam\n\trm -f "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".temp.bam";
+
+
+      makeWrite[int(lanetopredict)].write("\t"+conversion_str+"\n\n");
+
+
       makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam:\t"+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished\n");
       bwaparameter="";
       if(str(jsondata["parambwa"]) == "default"):
@@ -746,9 +791,9 @@ for baseCaller in BasecallersUsed:
                                                                 bwaparameter,
                                                                 outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam");
       
-      conversion_str +=  ("\n\n"+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx: "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam"+"\n\tsam flagstatx "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam  > "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx\n");
+      #conversion_str +=  ("\n\n"+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx: "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam"+"\n\tsam flagstatx "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam  > "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx\n");
 
-      listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx");
+      #listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx");
 
 
       makeWrite[int(lanetopredict)].write("\t"+conversion_str+"\n\n");
@@ -864,7 +909,7 @@ for baseCaller in BasecallersUsed:
       makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.type.pdf:\t"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.dat\n");
       listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.type.pdf");
 
-      cmdBWACTRLCR = ERRORPERCYCLER+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.dat "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.type.pdf";
+      cmdBWACTRLCR = ERRORPERCYCLER+" "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.dat "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.pdf "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_control.error.type.pdf";
       makeWrite[int(lanetopredict)].write("\t"+cmdBWACTRLCR+"\n");
 
 #QC SCORES, OBS VS PREDICTED

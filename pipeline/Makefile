@@ -3,8 +3,9 @@
 
 include ../makefile.defs
 
+
 CXXFLAGS+= -O3 -Wall -I${BAMTOOLS}/include/ -I${LIBGAB}
-LDLIBS+= ${BAMTOOLS}/lib/libbamtools.a ${LIBGAB}utils.o -lm -lz
+LDLIBS+= ${BAMTOOLS}/lib/libbamtools.a ${LIBGAB}/utils.o -lm -lz
 
 
 all:    mergeTrimReadsBAM assignRG filterReads errorRatePerCycle generate_report 
@@ -21,7 +22,7 @@ mergeTrimReadsBAM: mergeTrimReadsBAM.o  MergeTrimReads.o ${LIBGAB}/PutProgramInH
 filterReads: filterReads.o FilterBAMal.o ${LIBGAB}/PutProgramInHeader.o 
 	${CXX} $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
-errorRatePerCycle: errorRatePerCycle.o   ${LIBGAB}ReconsReferenceBAM.o
+errorRatePerCycle: errorRatePerCycle.o   ${LIBGAB}/ReconsReferenceBAM.o
 	${CXX} -o $@ $^ $(LDLIBS)
 
 

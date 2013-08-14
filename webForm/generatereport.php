@@ -2,8 +2,8 @@
 ini_set('display_errors', 'On');
 error_reporting(E_ALL);
 
-if( ! file_exists(getcwd()."/config.xml")  ){
-    echo "Configuration file not found ".getcwd()."/config.xml";
+if( ! file_exists(getcwd()."/config.json")  ){
+    echo "Configuration file not found ".getcwd()."/config.json";
     exit(1);
 }
 
@@ -76,23 +76,26 @@ function convertToPng($imagePath,$basedirScript,$percent){
     }
 }
 
-$xmlconf = simplexml_load_file( getcwd()."/config.xml" );
+//$xmlconf = simplexml_load_file( getcwd()."/config.xml" );
+$jsonconf = json_decode(file_get_contents( getcwd()."/config.json" ),true);
 
 
 //CONFIG DATA
-$illuminareaddir  = $xmlconf->illuminareaddir;
-$illuminawritedir = $xmlconf->illuminawritedir;
-//$illuminajson     = $xmlconf->illuminajson;
+$illuminareaddir  = $jsonconf["illuminareaddir"];
+$illuminawritedir = $jsonconf["illuminawritedir"];
+//$illuminajson     = $jsonconf->illuminajson;
 $sequencers=array();
-foreach($xmlconf->sequencers->sequencer as $seqelem){
+foreach($jsonconf["sequencers"]["sequencer"] as $seqelem){
     $sequencers[ (string)$seqelem["id"] ]= (string)$seqelem["type"];
 }
-$runstodisplay= $xmlconf->runstodisplay;
+$runstodisplay= $jsonconf["runstodisplay"];
 
 
 
 $runid=array_keys($_POST);
 $runid=$runid[0];
+
+$percentScale = 60;
 
 $basedirScript=dirname(__FILE__)."/images/"; 
 
@@ -150,20 +153,20 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	//print $illuminawritedir."/".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/";
 	
 	echo "<H3>PhiX error on a per lane basis</H3><BR>";
-	dealWithImage($illuminawritedir."/".$runid."/Report/images/error_lanes.png",$basedirScript,30);
+	dealWithImage($illuminawritedir."/".$runid."/Report/images/error_lanes.png",$basedirScript,$percentScale);
     }
 
     for($lane=1;$lane<=8;$lane++){//
 	if( file_exists($illuminawritedir."/".$runid."/Report/images/focus_lane".$lane.".png")){
 	    echo "<H3>Focus for lane = ".$lane."</H3><BR>";
-	    dealWithImage($illuminawritedir."/".$runid."/Report/images/focus_lane".$lane.".png",$basedirScript,30);
+	    dealWithImage($illuminawritedir."/".$runid."/Report/images/focus_lane".$lane.".png",$basedirScript,$percentScale);
 	}
     }
 
     for($lane=1;$lane<=8;$lane++){//
 	if( file_exists($illuminawritedir."/".$runid."/Report/images/focus_lane".$lane.".png")){
 	    echo "<H3>Intensity for lane = ".$lane."</H3><BR>";
-	    dealWithImage($illuminawritedir."/".$runid."/Report/images/intensity_lane".$lane.".png",$basedirScript,30);
+	    dealWithImage($illuminawritedir."/".$runid."/Report/images/intensity_lane".$lane.".png",$basedirScript,$percentScale);
 	}
     }
 
@@ -175,7 +178,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		//print $illuminawritedir."/".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/";
 
 		echo "<H3>Duplication levels for ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";
-		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/duplication_levels.png",$basedirScript,30);
+		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/duplication_levels.png",$basedirScript,$percentScale);
 	    }
 	}
     }
@@ -186,7 +189,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		//print $illuminawritedir."/".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/";
 
 		echo "<H3>Kmer profile for ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";
-		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/kmer_profiles.png",$basedirScript,30);
+		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/kmer_profiles.png",$basedirScript,$percentScale);
 	    }
 	}
     }
@@ -197,7 +200,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		//print $illuminawritedir."/".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/";
 
 		echo "<H3>Per base GC content for ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";
-		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/per_base_gc_content.png",$basedirScript,30);
+		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/per_base_gc_content.png",$basedirScript,$percentScale);
 	    }
 	}
     }
@@ -208,7 +211,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		//print $illuminawritedir."/".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/";
 
 		echo "<H3>Per base n content for ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";
-		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/per_base_n_content.png",$basedirScript,30);
+		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/per_base_n_content.png",$basedirScript,$percentScale);
 	    }
 	}
     }
@@ -219,7 +222,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		//print $illuminawritedir."/".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/";
 
 		echo "<H3>Per base quality for ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";
-		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/per_base_quality.png",$basedirScript,30);
+		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/per_base_quality.png",$basedirScript,$percentScale);
 	    }
 	}
     }
@@ -230,7 +233,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		//print $illuminawritedir."/".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/";
 
 		echo "<H3>Per base sequence content for ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";
-		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/per_base_sequence_content.png",$basedirScript,30);
+		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/per_base_sequence_content.png",$basedirScript,$percentScale);
 	    }
 	}
     }
@@ -241,7 +244,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		//print $illuminawritedir."/".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/";
 
 		echo "<H3>Per sequence GC content for ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";
-		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/per_sequence_gc_content.png",$basedirScript,30);
+		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/per_sequence_gc_content.png",$basedirScript,$percentScale);
 	    }
 	}
     }
@@ -252,7 +255,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		//print $illuminawritedir."/".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/";
 
 		echo "<H3>Per sequence quality for ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";
-		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/per_sequence_quality.png",$basedirScript,30);
+		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/per_sequence_quality.png",$basedirScript,$percentScale);
 	    }
 	}
     }
@@ -263,7 +266,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		//print $illuminawritedir."/".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/";
 
 		echo "<H3>Sequence length distribution for ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";
-		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/sequence_length_distribution.png",$basedirScript,30);
+		dealWithImage($illuminawritedir."".$runid."/".$basecaller."/FastQC/s_".$lane."_sequence_fastqc/Images/sequence_length_distribution.png",$basedirScript,$percentScale);
 	    }
 	}
     }
@@ -314,7 +317,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		if( file_exists($targetfile)){
 		    echo "<H3>QC scores for ".$basecaller." basecalls, lane = ".$lane." base = ".$base."</H3><BR>";
 
-		    convertToPng($targetfile,$basedirScript,30);
+		    convertToPng($targetfile,$basedirScript,$percentScale);
 		}
 	    }
 	}
@@ -327,7 +330,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	    $targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/qscores/s_".$lane."_control.bam.baseobspred.pdf";
 	    if( file_exists($targetfile)){
 		echo "<H3>RG quality score correlation ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";		
-		convertToPng($targetfile,$basedirScript,30);
+		convertToPng($targetfile,$basedirScript,$percentScale);
 	    }	
 	}
     }
@@ -339,7 +342,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	    $targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/qscores/s_".$lane."_control.bam.baseobspred.dens.pdf";
 	    if( file_exists($targetfile)){
 		echo "<H3>RG quality score correlation ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";		
-		convertToPng($targetfile,$basedirScript,30);
+		convertToPng($targetfile,$basedirScript,$percentScale);
 	    }	
 	}
     }
@@ -347,11 +350,17 @@ if( file_exists($illuminawritedir."/".$runid ) ){
     for($lane=1;$lane<=8;$lane++){//
 	foreach(array("Bustard","Ibis") as $basecaller){
 
-	    $targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/qscores/s_".$lane."_control.error.type.pdf";
+	    $targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/qscores/s_".$lane."_control.type.pdf";
 	    if( file_exists($targetfile)){
 		echo "<H3>Error rate post-mapping on the PhiX ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";		
-		convertToPng($targetfile,$basedirScript,30);
-	    }	
+		convertToPng($targetfile,$basedirScript,$percentScale);
+	    }
+
+	    $targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/qscores/s_".$lane."_control.error.type.pdf";
+	    if( file_exists($targetfile)){
+		echo "<H3>Error rate post-mapping on the PhiX (per type) ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";		
+		convertToPng($targetfile,$basedirScript,$percentScale);
+	    }
 	}
     }
 
@@ -403,7 +412,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	    $targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/rg/s_".$lane."_rgqual.pdf";
 	    if( file_exists($targetfile)){
 		echo "<H3>RG quality score for ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";		
-		convertToPng($targetfile,$basedirScript,30);
+		convertToPng($targetfile,$basedirScript,$percentScale);
 	    }	
 	}
     }
@@ -417,7 +426,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	    $targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/rg/s_".$lane."_ratio.pdf";
 	    if( file_exists($targetfile)){
 		echo "<H3>RG ratio ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";		
-		convertToPng($targetfile,$basedirScript,30);
+		convertToPng($targetfile,$basedirScript,$percentScale);
 	    }	
 	}
     }
@@ -444,7 +453,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	    $targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/filter/s_".$lane."_likelihood.pdf";
 	    if( file_exists($targetfile)){
 		echo "<H3>Sequence correctness likelihood ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";		
-		convertToPng($targetfile,$basedirScript,30);
+		convertToPng($targetfile,$basedirScript,$percentScale);
 	    }	
 	}
     }

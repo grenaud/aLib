@@ -9,7 +9,7 @@ all: bcl2bam
 bcl2bam.o:	bcl2bam.cpp
 	${CXX} ${CXXFLAGS} bcl2bam.cpp
 
-bcl2bam:	bcl2bam.o ${LIBGAB}utils.o  
+bcl2bam:	bcl2bam.o ${LIBGAB}/utils.o  
 	${CXX} -o $@ $^ $(LDLIBS)
 
 clean :

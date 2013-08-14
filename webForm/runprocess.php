@@ -9,8 +9,8 @@ ini_set('display_errors', 'On');
 error_reporting(E_ALL);
 
 
-if( ! file_exists(getcwd()."/config.xml")  ){
-    echo "Configuration file not found ".getcwd()."/config.xml";
+if( ! file_exists(getcwd()."/config.json")  ){
+    echo "Configuration file not found ".getcwd()."/config.json";
     exit(1);
  }
 
@@ -21,53 +21,32 @@ if( ! file_exists(getcwd()."/json2make.py")  ){
 
 $json2makePath=getcwd()."/json2make.py";
 
-$xmlconf = simplexml_load_file( getcwd()."/config.xml" );
+/* jsonconf = simplexml_load_file( getcwd()."/config.xml" ); */
+$jsonconf = json_decode(file_get_contents( getcwd()."/config.json" ),true);
 
-$emailAddrToSend=$xmlconf->emailAddrToSend;
-$genomedirectory=$xmlconf->genomedirectory;
-$illuminawritedir=$xmlconf->illuminawritedir;
+$emailAddrToSend  = $jsonconf["emailAddrToSend"];
+$genomedirectory  = $jsonconf["genomedirectory"];
+$illuminawritedir = $jsonconf["illuminawritedir"];
 $protocol2chimera = array();
-foreach($xmlconf->chimeras->chimera as $chimlem){
-$protocol2chimera[ (string)$chimlem["protocol"] ] = array((string)$chimlem["name"],
-(string)$chimlem["adapter1"],
-(string)$chimlem["adapter2"],
-(string)$chimlem["chimera"] );
+foreach($jsonconf["chimeras"]["chimera"] as $chimlem){
+    $protocol2chimera[ (string)$chimlem["protocol"] ] = array((string)$chimlem["name"],
+							      (string)$chimlem["adapter1"],
+							      (string)$chimlem["adapter2"],
+							      (string)$chimlem["chimera"] );
 }
-$ctrlindex=$xmlconf->controlindex;
+$ctrlindex=$jsonconf["controlindex"];
 
 //first key is indexing scheme, second is number
 $p7Indices=array();
 $p5Indices=array();
 /* $indexSchemes=array(); */
 
-/* foreach($xmlconf->indices as $indexscheme){ */
-/*     $indexscheme=(string)$indexscheme; */
-/*     $indexSchemes[ $indexscheme ] = 1; */
-/*     $p7Indices[ $indexscheme ]=array(); */
-/*     $p5Indices[ $indexscheme ]=array(); */
-    
-/*     echo $indexscheme; */
-/*     //var_dump($xmlconf->indices); */
-/*     var_dump($xmlconf->indices->$indexscheme); */
-    
-/*     foreach($xmlconf->indices->p7indices->p7index as $p7ind){ */
-/*     	$p7Indices[ $indexscheme ][ (string)$p7ind["id"] ] = (string)$p7ind["seq"]; */
-/*     } */
 
-/*     foreach($xmlconf->in->p5indices->p5index as $p5ind){ */
-/*     	$p5Indices[ $indexscheme ][ (string)$p5ind["id"] ] = (string)$p5ind["seq"]; */
-/*     } */
-
-/* } */
-
-
-//var_dump($xmlconf->p7indices); 
-
-foreach($xmlconf->indices->p7indices->p7index as $p7ind){
+foreach($jsonconf["indices"]["p7indices"]["p7index"] as $p7ind){
     $p7Indices[ (string)$p7ind["id"] ] = (string)$p7ind["seq"];
 }
 
-foreach($xmlconf->indices->p5indices->p5index as $p5ind){
+foreach($jsonconf["indices"]["p5indices"]["p5index"] as $p5ind){
     $p5Indices[ (string)$p5ind["id"] ] = (string)$p5ind["seq"];
 }
 
@@ -75,7 +54,7 @@ foreach($xmlconf->indices->p5indices->p5index as $p5ind){
 
 $sequencers=array();
 
-foreach($xmlconf->sequencers->sequencer as $seqelem){
+foreach($jsonconf["sequencers"]["sequencer"] as $seqelem){
     /* print "#".(string)$seqelem["id"]."#<BR>"; */
     /* print "#".(string)$seqelem["type"]."#<BR>"; */
     $sequencers[ (string)$seqelem["id"] ] = (string)$seqelem["type"];
@@ -243,7 +222,7 @@ function displayStep1($runid) {
     
 
     echo "<label for=\"email\">Your email (put commas if multiple emails)</label>:\n";
-    echo "<input type=\"text\" size=\"12\" maxlength=\"75\" name=\"email\"><br />";
+    echo "<input type=\"text\" size=\"12\" maxlength=\"200\" name=\"email\"><br />";
 
     echo "<BR>Verify number of cycles: (Please note these values are used for the analysis hence, put the values observed not the ones that were planned i.e if a run had 2x76bp+double indices of 7bp but the machine was stopped after the first index, enter 0 for both the second index and read)<BR>\n";
     echo "<label for=\"cyclesread1\">Cycles for read#1</label>:\n";
@@ -365,6 +344,9 @@ function displayStep2() {
 			  "sequencer"    => $seqtype,
 			  "lanes"        => $lanestoanalyze,
 			  );
+
+    $runinformation["email"] = str_replace(' ','',$runinformation["email"]);
+
     /* echo "\nvar"; */
     /* echo var_dump($runinformation); */
     /* echo "\nend var\n"; */
@@ -656,6 +638,15 @@ function displayStep5() {
 
     echo "<input type=\"hidden\" name=\"step\" value=\"6\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
+
+	/* reactivate if  */
+	/* Maximum number of mismatches for lookup among the indices:   */
+	/* 					    <select name="mmrgassign"> */
+	/* 					    <option value="2">2</option> */
+	/* 					    <option value="1">1</option> */
+	/* 					    <option value="0">0</option> */
+	/* 					    </select> */
+	/* 					    <BR> */
 		    
     ?>
 	Put your indices here : (see format below)<br />
@@ -666,13 +657,6 @@ function displayStep5() {
 
 	<textarea rows="20" cols="100" name="indextext" wrap="physical" placeholder="Paste your indices here, if a particular RG has only an index for the first adapter and is mixed with a multiplexed paired-end run, use is4 as the second index"></textarea>
 	<br>
-	Maximum number of mismatches for lookup among the indices:  
-						    <select name="mmrgassign">
-						    <option value="2">2</option>
-						    <option value="1">1</option>
-						    <option value="0">0</option>
-						    </select>
-						    <BR>
 	<input type="submit" name="submitButton" id="nextButton" value="Next &gt;" />
         <br>
 	<input type="reset" value="Clear fields" />
@@ -718,7 +702,7 @@ function displayStep6() {
     ///////////////////////////////////
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
     $indextext      = $_POST["indextext"];
-    $runinformation["mmrgassign"] = (int)$_POST["mmrgassign"];
+    //    $runinformation["mmrgassign"] = (int)$_POST["mmrgassign"];
 
     if($runinformation["cyclesindx2"] != 0 ){
 	$stringToPrint="#Index1\tIndex2\tName\n";
@@ -922,6 +906,7 @@ function displayStep8() {
 
 
 
+
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
     $runinformation["usebwa"]     = isset($_POST["usebwa"]);
     $runinformation["genomebwa"]  = $_POST["genomebwa"];
@@ -933,6 +918,88 @@ function displayStep8() {
     //////////////////////////////////
 
     echo "<h3>Step 8: Summary</h3>";
+    //    echo "".var_dump($runinformation);
+
+    $indicesrawtext=$runinformation["indicesraw"];
+    $indicesseqtext=$runinformation["indicesseq"];
+
+
+
+    //raw
+    $indicesrawjson=array();
+    $firstline=True;
+    foreach(explode("\n",$runinformation["indicesraw"]) as $line){
+
+	/* if($firstline){ */
+	/*     $firstline=False; */
+	/*     continue 1; */
+	/* } */
+
+	$line=trim($line);
+	if(strlen($line) == 0){
+	    continue 1;
+	}
+
+	$temparray = preg_split('/\s+/', $line); //explode("\t",$line);
+
+	if(      count($temparray) == 3){//double
+	    /* $tempstr = "{name: ".$temparray[0]." , "." p7: "  .$temparray[1]." , "." p5: "  .$temparray[2]." } "; */
+	    $tempstr = array("name"  => $temparray[0],
+			     "p7"    => $temparray[1],
+			     "p5"    => $temparray[2]);
+	    array_push($indicesrawjson, $tempstr);
+	    //echo $tempstr;
+	}elseif( count($temparray) == 2){//single
+	    /* $tempstr ="{name: ".$temparray[0]." , "." p7: "  .$temparray[1]." } "; */
+	    $tempstr = array("name"  => $temparray[0],
+			     "p7"    => $temparray[1]);
+	    array_push($indicesrawjson, $tempstr);
+	    //echo $tempstr;
+	}else{
+	    echo "ERROR: wrong number of fields (".count($temparray).") in line \"".$line."\" in raw indices ".$runinformation["indicesraw"];
+	    exit;
+	}
+    }
+    /* $runinformation["indicesraw"] = " [ ".implode(",",$indicesrawjson)." ] "; */
+    $runinformation["indicesraw"] = $indicesrawjson;
+
+    //seq
+    $indicesseqjson=array();
+    $firstline=True;
+    foreach(explode("\n",$runinformation["indicesseq"]) as $line){
+	/* if($firstline){ */
+	/*     $firstline=False; */
+	/*     continue 1; */
+	/* } */
+
+	$line=trim($line);
+	if(strlen($line) == 0){
+	    continue 1;
+	}
+
+	$temparray = preg_split('/\s+/', $line); //explode("\t",$line);
+
+	if(      count($temparray) == 3){//double
+	    //$tempstr = "{name: ".$temparray[0]." , "." p7: "  .$temparray[1]." , "." p5: "  .$temparray[2]." } ";
+	    $tempstr = array("name" => $temparray[2],
+			     "p7"    => $temparray[0],
+			     "p5"    => $temparray[1]);
+	    array_push($indicesseqjson, $tempstr);
+	    //echo $tempstr;
+	}elseif( count($temparray) == 2){//single
+	    //$tempstr ="{name: ".$temparray[0]." , "." p7: "  .$temparray[1]." } ";
+	    $tempstr = array("name" => $temparray[1],
+			     "p7"    => $temparray[0]);
+	    array_push($indicesseqjson, $tempstr);
+	    //echo $tempstr;
+	}else{
+	    echo "ERROR: wrong number of fields (".count($temparray).") in line \"".$line."\" in raw indices ".$runinformation["indicesseq"];
+	    exit;
+	}
+    }
+    $runinformation["indicesseq"] = $indicesseqjson;
+    //echo $runinformation["indicesseq"] ;
+
 
     //echo "Please review the following information prior to pressing submit:<BR>\n";
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
@@ -975,7 +1042,7 @@ function displayStep8() {
     $htmltable.="<TR><TD nowrap>Key read#2     :</TD><TD> ".(strlen($runinformation["key2"])==0?"none":$runinformation["key2"])."</TD></TR>\n";
     $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
     $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
-    $htmltable.="<TR><TD nowrap>Maximum number of mismatches for lookup in RG :</TD><TD> ".($runinformation["mmrgassign"])."</TD></TR>\n";
+    //$htmltable.="<TR><TD nowrap>Maximum number of mismatches for lookup in RG :</TD><TD> ".($runinformation["mmrgassign"])."</TD></TR>\n";
     $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
     $htmltable.="<TR><TD nowrap>Quality filtering:      </TD><TD></TD></TR>\n";
     $htmltable.="<TR><TD nowrap>Flag sequences with high exp. of mismatch  :</TD><TD> ".(($runinformation["filterseqexp"]=="1")?"yes":"no")."</TD></TR>\n";
@@ -1001,8 +1068,8 @@ function displayStep8() {
     // $htmltable.="<TR><TD nowrap>Indices:     </TD><TD></TD></TR>\n";
     $htmltable.="</table>\n";
 
-    $htmltable.="<BR>Indices to use  :<BR><PRE>\n".($runinformation["indicesseq"])."</PRE><BR>\n";
-    $htmltable.="<BR>Indices raw     :<BR><PRE>\n".($runinformation["indicesraw"])."</PRE><BR>\n";
+    $htmltable.="<BR>Indices to use  :<BR><PRE>\n".($indicesrawtext)."</PRE><BR>\n";
+    $htmltable.="<BR>Indices raw     :<BR><PRE>\n".($indicesseqtext)."</PRE><BR>\n";
 
     echo $htmltable;
     //$runinformation["htmltable"] = $htmltable;
@@ -1025,8 +1092,11 @@ function displayStep9() {
     global $illuminawritedir;
     global $emailAddrToSend;
     global $json2makePath;
+
+
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
 
+    /* echo var_dump($runinformation); */
 
     //build directory 
     $runid=$runinformation["runid"];
@@ -1067,9 +1137,13 @@ function displayStep9() {
 
     $targetfile=$illuminawritedir."/".$runid."/build/".$runid."_".implode(",",$runinformation["lanes"]).".json";
     echo "printing to ".$targetfile."<BR>\n";
-    //echo "printing to ".json_encode($runinformation)."\n";
+    
+    //encode as json text fields
+
     $stringtoprint=json_encode($runinformation);
     
+    
+
     $fh = fopen($targetfile, 'w') or die("can't open $targetfile");
     fwrite($fh, $stringtoprint);
     fclose($fh);

@@ -9,7 +9,7 @@ all: plotQualScores
 plotQualScores.o:	plotQualScores.cpp
 	${CXX} ${CXXFLAGS} plotQualScores.cpp
 
-plotQualScores:	plotQualScores.o ${LIBGAB}utils.o  
+plotQualScores:	plotQualScores.o ${LIBGAB}/utils.o  
 	${CXX} -o $@ $^ $(LDLIBS)
 
 clean:

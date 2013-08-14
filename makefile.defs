@@ -1,3 +1,3 @@
 CXX      = g++
-BAMTOOLS= /mnt/solexa/bin/bamtools-2.2.2/
-LIBGAB   = /home/gabriel_renaud/lib/
+BAMTOOLS = $(realpath ../bamtools/)
+LIBGAB   = $(realpath ../libgab/)

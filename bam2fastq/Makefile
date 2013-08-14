@@ -1,5 +1,11 @@
 include ../makefile.defs
 
+#CXX      = g++
+#BAMTOOLS = $(realpath ./bamtools/)
+#LIBGAB   = $(realpath ./libgab/)
+
+
+
 CXX      = g++   
 LIBGAB   = /home/gabriel_renaud/lib/
 LDLIBS+= ${BAMTOOLS}/lib/libbamtools.a ${LIBGAB}utils.o -lm -lz

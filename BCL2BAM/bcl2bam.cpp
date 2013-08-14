@@ -117,6 +117,7 @@ int main (int argc, char *argv[]) {
 
     string indexToExtract="";
     vector<int> tilesToUse;
+    bool force=false;
 
     string usage=string(""+string(argv[0])+" options  "+
 			"\nThis program reads a BCL directory and produces a BAM file\n"+
@@ -190,6 +191,13 @@ int main (int argc, char *argv[]) {
 	if( (strcmp(argv[i],"-e") == 0) || (strcmp(argv[i],"--exp") == 0)  ){
 	    nameOfExperiment=string(argv[i+1]);
 	    i++;
+            continue;
+        }
+
+	//to force is zwingen in german, hidden option to transform the error of number 
+	//of cycles into a warning, USE AT YOUR OWN RISK
+	if( strcmp(argv[i],"-z") == 0  ){
+	    force=true;
             continue;
         }
 
@@ -330,8 +338,14 @@ int main (int argc, char *argv[]) {
     }
     cerr<<"Found "<<numberOfCycles<<" cycles"<<endl;
     if(numberOfCycles != (forwardCycles +  reverseCycles + index1Cycles + index2Cycles)){
+	
 	cerr<<"The total number of cycles specified "<<(forwardCycles +  reverseCycles + index1Cycles + index2Cycles)<<" does not correspond to the total number of cycles detected "<<numberOfCycles<<endl;
-        return 1;    
+	if(!force){
+	    return 1;    
+	}else{
+	    numberOfCycles = (forwardCycles +  reverseCycles + index1Cycles + index2Cycles);
+	    cerr<<"Using hidden -z, setting the number of cycles to "<<numberOfCycles<<endl;
+	}
     }
 
 
