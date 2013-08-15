@@ -68,7 +68,7 @@ int set_extra_flag( BamAlignment &al, int32_t f )
                 if(al.AddTag(MERGEDBAMFLAG,"i",v|f)) return 1;
                 break ;
             default:
-                cerr << "Oh no " << MERGEDBAMFLAG << " has type " << tp << endl;
+                cerr << "ERROR: " << MERGEDBAMFLAG << " has type " << tp << endl;
         }
     }
     cerr << "Unable to add tag " << MERGEDBAMFLAG << endl;
@@ -130,13 +130,7 @@ int main (int argc, char *argv[]) {
 			      "\t\t"+"-c , --FirstReadChimeraFilter" +"\t\t"+"If the forward read looks like this sequence, the cluster is filtered out.\n\t\t\t\t\t\t\tProvide several sequences separated by comma.(def. Multiplex: "+options_adapter_chimera_BAM.substr(0,maxadapterComp_BAM)+")"+"\n"+
 			      "\t\t"+"-k , --key"+"\t\t\t\t"+"Key sequence with which each sequence starts. Comma separate for forward and reverse reads. (default '"+key+"')"+"\n"+
 			      "\t\t"+"-i , --allowMissing"+"\t\t\t"+"Allow one base in one key to be missing or wrong. (default "+boolStringify(allowMissing)+")"+"\n"+
-			      "\t\t"+"-t , --trimCutoff"+"\t\t\t"+"Lowest number of adapter bases to be observed for single Read trimming (default "+stringify(trimCutoff)+")\n"+
-			      "\t\t"+"Likelihood score cutoffs\n"+
-			      "\t\t\t"+"--likelihoodAdapterPR"+"\t\t\t"+"Lowest likelihood score paired-end  (default "+stringify(likelihoodAdapterPR)+")\n"+
-			      "\t\t\t"+"--likelihoodAdapterSR"+"\t\t\t"+"Lowest likelihood score single end  (default "+stringify(likelihoodAdapterSR)+")\n"+
-			      "\t\t\t"+"--likelihoodChimera"+"\t\t\t"+  "Lowest likelihood score for chimera (default "+stringify(likelihoodChimera)+")\n"
-
-			      );
+			      "\t\t"+"-t , --trimCutoff"+"\t\t\t"+"Lowest number of adapter bases to be observed for single Read trimming (default "+stringify(trimCutoff)+")");
 
     if( (argc== 1) ||
     	(argc== 2 && string(argv[1]) == "-h") ||
@@ -231,39 +225,13 @@ int main (int argc, char *argv[]) {
 	    i++;
 	    continue;
 	}
-
-	if(strcmp(argv[i],"--likelihoodAdapterPR") == 0 ){
-	    likelihoodAdapterPR=destringify<double>(argv[i+1]);
-	    i++;
-	    continue;
-	}
-
-	if(strcmp(argv[i],"--likelihoodAdapterSR") == 0 ){
-	    likelihoodAdapterSR=destringify<double>(argv[i+1]);
-	    i++;
-	    continue;
-	}
-
-	if(strcmp(argv[i],"--likelihoodChimera") == 0 ){
-	    likelihoodChimera=destringify<double>(argv[i+1]);
-	    i++;
-	    continue;
-	}
 	
-
-
 	cerr<<"Unknown option "<<argv[i] <<" exiting"<<endl;
 	return 1;	    
     }
 
     bamFile=argv[argc-1];
-
     initMerge();
-
-    setLikelihoodScores(likelihoodChimera,
-			likelihoodAdapterSR,
-			likelihoodAdapterPR);
-
     set_adapter_sequences(adapter_F,
 			  adapter_S,
 			  adapter_chimera,
@@ -339,17 +307,6 @@ int main (int argc, char *argv[]) {
     BamAlignment al2;
     bool al2Null=true;
     
-    //merged result1=process_PE("NCAGATCCCAGGAAAAGGATCTCAACCTGACTCAGATCGGAAGAGCACACGTCTGAACTCCAGTCACCGTAATCATCTCGTATGCCGTCTTCTGCT","!EEHDDFEEHIIGHHHIIGFIGIHHIIGIHIHIIIHGIIIHHIHIIIICIIGIHIHHIHIIHIHHBIIIGGGHIFB;GIIGHFIIGIGIGFED@BA","GAGTCAGGTTGAGATCCTTTTCCTGGGATCTGGGGAAGAGCGTCGTGTAGGGAAAGAGTGTGATCTCGGTGTAGATCTCGGTGGTCGCCGTATCAT","FDFBCDIIFEIGIGHIIIGHHIIIIIIGHIHIIIIGGIGFIIHHIHIFFIDIDFHIFIFIHIFIIIIIIHIHGIDGIHHIIGIH>IIFDDECHG?E");
-    //merged result2=process_PE("NCAGATCCCAGGAAAAGGATCTCAACCTGACTCAGATCGGAAGAGCACACGTCTGAACTCCAGTCACCGTAATCATCTCGTATGCCGTCTTC","!EEHDDFEEHIIGHHHIIGFIGIHHIIGIHIHIIIHGIIIHHIHIIIICIIGIHIHHIHIIHIHHBIIIGGGHIFB;GIIGHFIIGIGIGFE","GAGTCAGGTTGAGATCCTTTTCCTGGGATCTGGGGAAGAGCGTCGTGTAGGGAAAGAGTGTGATCTCGGTGTAGATCTCGGTGGTCGCCGTATCAT","FDFBCDIIFEIGIGHIIIGHHIIIIIIGHIHIIIIGGIGFIIHHIHIFFIDIDFHIFIFIHIFIIIIIIHIHGIDGIHHIIGIH>IIFDDECHG?E");
-     // merged result3=process_PE(
-     // 			       "NCAGATCCCAGGAAAAGGATCTCAACCTGACTCAGATCGGAAGAGCACACGTCTGAACTCCAGTCACCGTAATCATCTCGTATGCCGTCTTCTGCT",
-     // 			       "!EEHDDFEEHIIGHHHIIGFIGIHHIIGIHIHIIIHGIIIHHIHIIIICIIGIHIHHIHIIHIHHBIIIGGGHIFB;GIIGHFIIGIGIGFED@BA",
-     // 			       "GAGTCAGGTTGAGATCCTTTTCCTGGGATCTGGGGAAGAGCGTCGTGTAGGGAAAGAGTGTGATCTCGGTGTAGATCTCGGTGGTCGCCGTA",
-     // 			       "FDFBCDIIFEIGIGHIIIGHHIIIIIIGHIHIIIIGGIGFIIHHIHIFFIDIDFHIFIFIHIFIIIIIIHIHGIDGIHHIIGIH>IIFDDEC");
-
-    //return 1;
-
-
     while ( reader.GetNextAlignment(al) ) {
 
 	
@@ -405,7 +362,7 @@ int main (int argc, char *argv[]) {
 
 		merged result=process_PE(read1,qual1,
 					 read2,qual2);
-		// return 1;
+
 		
 		if(result.code != ' '){ 
 		    string prevZQ1="";

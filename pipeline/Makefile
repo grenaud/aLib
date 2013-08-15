@@ -3,7 +3,7 @@
 
 include ../makefile.defs
 
-CXXFLAGS+= -O3 -Wall -I${BAMTOOLS}/include/ -I${LIBGAB}
+CXXFLAGS+=  -O3 -Wall -I${BAMTOOLS}/include/ -I${LIBGAB}
 LDLIBS+= ${BAMTOOLS}/lib/libbamtools.a ${LIBGAB}utils.o -lm -lz
 
 

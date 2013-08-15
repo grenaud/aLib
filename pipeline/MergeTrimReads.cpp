@@ -10,17 +10,17 @@
 // // #define DEBUGPARTIALOV
 // // #define CONSBASEPROB
 
-// #define DEBUGPR
-// #define DEBUGSCORE
+#define DEBUGPR
+#define DEBUGSCORE
 
 double max_prob_N = 0.25;
-double likelihoodChimera   = -15.0;
+// double likelihoodChimera   = -15.0;
 double maxLikelihoodRatio = 0.95;
 
 // size_t min_length = 5;
-double likelihoodAdapterSR = -0.4;
+// double likelihoodAdapterSR = -0.4;
 /* static const double likelihoodAdapterPR = -1.0; */
-double likelihoodAdapterPR = -120.0;
+// double likelihoodAdapterPR = -120.0;
 // const double max_prob_N = 0.25;
 
 // const size_t min_length = 5;
@@ -110,15 +110,15 @@ static inline string revcompl(const string seq){
     return toReturn;
 }
 
-void    setLikelihoodScores(double likelihoodChimera_,
-			    double likelihoodAdapterSR_,
-			    double likelihoodAdapterPR_){
+// void    setLikelihoodScores(double likelihoodChimera_,
+// 			    double likelihoodAdapterSR_,
+// 			    double likelihoodAdapterPR_){
 
-    likelihoodChimera   = likelihoodChimera_;
-    likelihoodAdapterSR = likelihoodAdapterSR_;
-    likelihoodAdapterPR = likelihoodAdapterPR_;
+//     likelihoodChimera   = likelihoodChimera_;
+//     likelihoodAdapterSR = likelihoodAdapterSR_;
+//     likelihoodAdapterPR = likelihoodAdapterPR_;
     
-}
+// }
 
 void initMerge(){
 
@@ -137,9 +137,9 @@ void initMerge(){
     for(int i=0;i<2;i++){
 
 	
-	likeMatch[i]        = log1p( -pow(10.0,2.0/-10.0) )/log(10);
+	likeMatch[i]        = log1p(    -pow(10.0,2.0/-10.0) )/log(10);
 	    
-        likeMismatch[i]     = 2.0/-10.0;  
+        likeMismatch[i]     = log  (     pow(10.0,2.0/-10.0)/3.0 )/log(10);// 2.0/(-10.0*1.0);  
 
 	probForQual[i]      = max(double(1.0)-pow(double(10.0),double(2.0)/double(-10.0)),
 				  max_prob_N);
@@ -150,9 +150,9 @@ void initMerge(){
         // if(i == 0)
         //     likeMatch[i]    = -3.0; // this is vrong, hope it's never accessed
         // else
-	likeMatch[i]        = log1p( -pow(10.0,i/-10.0) )/log(10);
+	likeMatch[i]        = log1p(    -pow(10.0,i/-10.0) )/log(10);
 	    
-        likeMismatch[i]     = i/-10.0;  
+        likeMismatch[i]     = log  (     pow(10.0,i/-10.0)/3.0  )/log(10); //i/(-10.0*1.0);  
 
 	probForQual[i] = max(double(1.0)-pow(double(10.0),double(i)/double(-10.0)),
 			     max_prob_N);
@@ -370,7 +370,7 @@ static inline double detectChimera(const string      & read,
 				   unsigned int        offsetChimera=0){
 
     double likelihoodMatch=0.0;
-    unsigned maxidx=min(read.length(),chimeraString.length()-offsetChimera);
+    unsigned int maxidx=min(read.length(),chimeraString.length()-offsetChimera);
 
     if(maxidx <= 0)
 	return -DBL_MAX;
@@ -385,6 +385,9 @@ static inline double detectChimera(const string      & read,
 	}
 	// cerr<<"i= "<<likelihoodMatch<<endl;
     }
+    //add likelihood of remaining bases
+    //    cout<<double(read.length() - maxidx )<<endl;
+    likelihoodMatch  += double(read.length() - maxidx ) * likeRandomMatch;
     
     return likelihoodMatch;
 }
@@ -665,20 +668,33 @@ merged process_SR(string  read1,
     
 
     //start detecting chimera //
-    double lowChimeraLike=-DBL_MAX;
+    double logLikelihoodTotal     = double(read1.length())*likeRandomMatch;
+    int logLikelihoodTotalIdx     = -1;
+
+    // double lowChimeraLike=-DBL_MAX;
     //finding best match
     for(unsigned int indexChimera=0;indexChimera<adapter_chimeras.size();indexChimera++){
-	lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 0 ) ); 
-	lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 1 ) ); //try an off by 1 match
+	//lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 0 ) ); 
+	
+	if( detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 0 )  > logLikelihoodTotal ){
+	    toReturn.code    ='D';
+	    toReturn.sequence="";
+	    toReturn.quality ="";		    
+	    return toReturn;
+	}
+
+	//lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 1 ) ); //try an off by 1 match
+
+	if( detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 1 )  > logLikelihoodTotal ){
+	    toReturn.code    ='D';
+	    toReturn.sequence="";
+	    toReturn.quality ="";
+	    return toReturn;
+	}
+
 	// cout<<"res "<<adapter_chimeras[indexChimera]<<"\t"<<detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera],1 )<<endl;
     }
 
-    if(lowChimeraLike > likelihoodChimera){
-	toReturn.code    ='D';
-	toReturn.sequence="";
-	toReturn.quality ="";		    
-	return toReturn;
-    }
     // end detecting chimera //
 
 
@@ -687,8 +703,7 @@ merged process_SR(string  read1,
     // double       lowAdapterLike   =-DBL_MAX;
     // int       indexAdapterBest = read1.size();
     
-    double logLikelihoodTotal     = double(read1.length())*likeRandomMatch ;
-    int logLikelihoodTotalIdx     = -1;
+    // double logLikelihoodTotal     = double(read1.length())*likeRandomMatch ;
     // int logLikelihoodTotalMatches =0;
 
     //second best hit
@@ -822,26 +837,50 @@ merged process_PE( string  read1,  string  qual1,
 	qualv2.push_back( max( (int(char( qual2[i] ))-qualOffset),2) );
     }
     
+    int lengthRead1 = int(read1.size());
+    int lengthRead2 = int(read2.size());
+
+    double logLikeSecondRead      = double(lengthRead2)*likeRandomMatch;
+    double logLikelihoodTotal     = double(lengthRead1)*likeRandomMatch   + logLikeSecondRead;
+
+
+    int logLikelihoodTotalIdx     = -1;
+    int logLikelihoodTotalMatches =0;
 
     //start detecting chimera //
     double lowChimeraLike=-DBL_MAX;
     //finding best match
     for(unsigned int indexChimera=0;indexChimera<adapter_chimeras.size();indexChimera++){
 	//cerr<<"indexChimera1 "<<lowChimeraLike<<endl;
-	lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 0 ) ); 
-	lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 1 ) ); //try an off by 1 match
+	//lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 0 ) ); 
+	//lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 1 ) ); //try an off by 1 match
+	double logLikeChimera = (detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 0 ) + logLikeSecondRead );
+	if( logLikeChimera  > logLikelihoodTotal  ){
+	    //cout<<"logLikelihoodTotal "<<logLikelihoodTotal<<"\t"<<logLikeChimera<<"\t"<<read1<<"\t"<<adapter_chimeras[indexChimera]<<endl;
+	    toReturn.code    ='D';
+	    toReturn.sequence="";
+	    toReturn.quality ="";		    
+	    return toReturn;
+	}
+
+
+
+	logLikeChimera = (detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 1 ) + logLikeSecondRead );
+	if( logLikeChimera > logLikelihoodTotal  ){  //try an off by 1 match
+	    toReturn.code    ='D';
+	    toReturn.sequence="";
+	    toReturn.quality ="";		    
+	    return toReturn;
+	}
+
+
+	
 	//cerr<<"indexChimera2 "<<lowChimeraLike<<endl;
 	// cout<<"res "<<adapter_chimeras[indexChimera]<<"\t"<<detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera],1 )<<endl;
     }
 
     //cerr<<"TEST "<<lowChimeraLike<<"\t"<<likelihoodChimera<<endl;
-
-    if(lowChimeraLike > likelihoodChimera){
-	toReturn.code    ='D';
-	toReturn.sequence="";
-	toReturn.quality ="";		    
-	return toReturn;
-    }
+   
     // end detecting chimera //
 
 
@@ -860,8 +899,6 @@ merged process_PE( string  read1,  string  qual1,
    
 
 
-    int lengthRead1 = int(read1.size());
-    int lengthRead2 = int(read2.size());
 
 
     //For a given putative index, we compute the likelihood of seeing:
@@ -883,10 +920,7 @@ merged process_PE( string  read1,  string  qual1,
     
     // The default case is simply the likelihood of both :
     // 
-    double logLikelihoodTotal     = double(lengthRead1)*likeRandomMatch   + double(lengthRead2)*likeRandomMatch;
-    int logLikelihoodTotalIdx     = -1;
-    int logLikelihoodTotalMatches =0;
-
+  
 
 
     //second best hit
@@ -971,7 +1005,7 @@ merged process_PE( string  read1,  string  qual1,
     
     
 #ifdef DEBUGSCORE
-    cerr<<"mergeo "<<"\t"<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalIdx<<"\t"<<logLikelihoodTotalMatches<<"\trt:"<<(sndlogLikelihoodTotal/logLikelihoodTotal)<<"\t"<<sndlogLikelihoodTotal<<endl;
+    cerr<<"mergeo "<<"\t"<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalIdx<<"\t"<<logLikelihoodTotalMatches<<"\trt:"<<(sndlogLikelihoodTotal/logLikelihoodTotal)<<"\t"<<sndlogLikelihoodTotal<<"\t"<<(logLikelihoodTotal/sndlogLikelihoodTotal)<<endl;
     //cout<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalMatches<<endl;
 #endif
     
