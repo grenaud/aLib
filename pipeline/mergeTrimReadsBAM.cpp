@@ -11,6 +11,7 @@
 #include "MergeTrimReads.h"
 #include "PutProgramInHeader.h"
 
+// #include "JSON.h"
 
 #include "utils.h"
 
@@ -34,6 +35,32 @@ const string MERGEDBAMFLAG = "FF";
 const int32_t TRIMMEDFLAG       = 1;
 const int32_t MERGEDFLAG        = 2;
 const int32_t TRIMMEDMERGEDFLAG = 3;
+
+// void initializeDefaultSequences(string configFile){
+//     string line;
+//     ifstream myFile;
+//     string content="";
+//     myFile.open(configFile.c_str(), ios::in);
+
+//     if (myFile.is_open()){
+// 	while ( getline (myFile,line)){
+// 	    content+=line;
+// 	}
+// 	myFile.close();
+//     }else{
+// 	cerr << "Unable to open config file "<<configFile<<endl;
+// 	exit(1);
+//     }
+
+
+//     JSONValue *value = JSON::Parse(content.c_str());
+//     if (value == NULL){
+// 	cerr<<"Failed to parse JSON file"<<endl;
+// 	exit(1);
+//     }
+
+    
+// }
 
 
 inline string sortUniqueChar(string v){
@@ -234,8 +261,7 @@ int main (int argc, char *argv[]) {
     initMerge();
     set_adapter_sequences(adapter_F,
 			  adapter_S,
-			  adapter_chimera,
-			  maxadapterComp_BAM);
+			  adapter_chimera);
     set_options(trimCutoff,allowMissing,mergeoverlap);
     
     if(key != ""){

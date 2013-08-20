@@ -31,8 +31,7 @@ extern const int    qualOffset ;
 extern size_t maxadapter_comp;
 
 extern size_t min_overlap_seqs;
-/* extern double cutoff_merge_seqs_early; */
-/* extern double cutoff_merge_seqs; */
+
 
 /* //  Key variables /// */
 extern bool handle_key;
@@ -101,7 +100,7 @@ void    setLikelihoodScores(double likelihoodChimera_,
 			    double likelihoodAdapterPR_);
 
 void set_options(int trimcutoff=1,bool allowMissing=false,bool mergeoverlap=false);
-void set_adapter_sequences(const string& forward="", const string& reverse="", const string& chimera="",int max_comp=30);
+void set_adapter_sequences(const string& forward="", const string& reverse="", const string& chimera="");
 void set_keys(const string& key1, const string& key2="");
 void initMerge();
 merged process_PE(string  read1,string  qual1,string read2,string qual2);

@@ -10,11 +10,15 @@
 // // #define DEBUGPARTIALOV
 // // #define CONSBASEPROB
 
-#define DEBUGPR
-#define DEBUGSCORE
+// #define DEBUGPR
+// #define DEBUGSCORE
+
+
+
+
 
 double max_prob_N = 0.25;
-// double likelihoodChimera   = -15.0;
+
 double maxLikelihoodRatio = 0.95;
 
 // size_t min_length = 5;
@@ -29,6 +33,8 @@ double maxLikelihoodRatio = 0.95;
 const size_t min_length =5;
 const int    qualOffset =33;
 
+
+//TODO: the default values should be stored in the config.json file, not here
 const char* const  chimInit[]= {
     "ACACTCTTTCCCTACACGTCTGAACTCCAG",
     "ACACTCTTTCCCACACGTCTGAACTCCAGT",
@@ -52,13 +58,14 @@ vector<string> adapter_chimeras (chimInit,chimInit+13);
 
 
 
-
-// bool   initialized       = false;
-// double cutoff_merge_trim = 0.80;
-size_t maxadapter_comp  = 30;
-size_t min_overlap_seqs = 10;
 // double cutoff_merge_seqs_early = 0.95;
 // double cutoff_merge_seqs = 0.90;
+// bool   initialized       = false;
+// double cutoff_merge_trim = 0.80;
+
+
+size_t maxadapter_comp  = 30; /**< maximum number of bases to be compared in the adapter */
+size_t min_overlap_seqs = 10; /**< maximum number that have to match in the case of partial overlap */
 
 // //  Key variables ///
  bool handle_key           = false;
@@ -79,6 +86,16 @@ double probForQual[64];
 double likeRandomMatch;    // 1/4
 double likeRandomMisMatch; // 3/4
 
+
+
+
+//! Computes reverse complement (char)
+/*!
+  Computes reverse complement of a char and returns it, returns 'N' for 'N'
+  
+  \param c the char to reverse complement
+  \return The reverse complement
+*/
 static inline char revComp(char c){
     if(c ==    'A')
 	return 'T';
@@ -98,6 +115,15 @@ static inline char revComp(char c){
     cerr<<"Wrong base in revComp function = "<<c<<endl;
     exit(1);
 }
+
+
+//! Computes reverse complement (string)
+/*!
+  Computes reverse complement of a string by calling revComp() on each character and returns it
+  
+  \param seq The string to reverse complement
+  \return The reverse complement
+*/
 
 static inline string revcompl(const string seq){
     string toReturn="";
@@ -119,6 +145,26 @@ static inline string revcompl(const string seq){
 //     likelihoodAdapterPR = likelihoodAdapterPR_;
     
 // }
+
+
+//! Initializes likelihood scores
+/*!
+  Since quality scores can only take discrete values, we pre-compute
+  the likelihood of a match for quality scores 0 to 64.
+  For all scores, we can the log_10 of it.
+
+  The likelihood of observing any given base is 1/4
+  
+  We first compute the likelihood scores for quality scores
+  less than 2 (since they should not exist, we approximate them)
+  We then compute the likelihood for the remaing quality scores
+
+  For a given quality score i, we use the following formula
+  	likeMatch(i)        = 1.0-10.0^(i/-10.0)
+	    
+        likeMismatch(i)     =    (10.0^(i/-10.0) )/3.0  
+
+*/
 
 void initMerge(){
 
@@ -146,6 +192,8 @@ void initMerge(){
 
     }
 
+
+    //Computing for quality scores 2 and upwards
     for(int i=2;i<64;i++){
         // if(i == 0)
         //     likeMatch[i]    = -3.0; // this is vrong, hope it's never accessed
@@ -168,6 +216,15 @@ void initMerge(){
 
 }
 
+
+
+//! Computes the ASCII string using the values of the PHRED quality scores
+/*!
+  Computes the ASCII string using the values of the PHRED quality scores supplied as vector of ints
+  
+  \param  logScores vector of ints of log scores
+  \return The string ready to be written as a BAM
+*/
 static inline string convert_logprob_quality(vector<int> logScores){
     string toReturn="";
     for(unsigned int i=0;i<logScores.size();i++){
@@ -177,15 +234,21 @@ static inline string convert_logprob_quality(vector<int> logScores){
 }
 
 
-// static inline vector<double>  convert_logprob_prob(vector<int> logScores){
-//     vector<double> toReturn;
-//     for(unsigned int i=0;i<logScores.size();i++){
-// 	toReturn.push_back( max(double(1.0)-pow(double(10.0),logScores[i]/double(-10.0)),
-// 				max_prob_N) );
-//     }
-//     return toReturn;
-// }
 
+
+
+//! Returns random double
+/*!
+  Initializes the seed if it wasn't initialized and 
+  returns double(rand())/double(RAND_MAX).
+  
+  This is done because when there is a base with two different 
+  potential bases and a tie in quality score, we must take one 
+  at random
+  
+ 
+  \return Random double
+*/
 static inline double randomGen(){
     static bool initialized = false;
 
@@ -200,6 +263,18 @@ static inline double randomGen(){
     }
 }
 
+
+//! Computes the consensus for two individual bases with their quality scores
+/*!
+  
+  Computes a new base and a new quality for two (somewhat)
+  independent observations of a single base
+
+  \param  base1 first base (as baseQual struct)
+  \param  base2 second base (as baseQual struct)
+
+  \return consensus base (as baseQual struct)
+*/
 static inline baseQual cons_base_prob(baseQual  base1,baseQual base2){
     const string dnaAlphabet  = "ACGT";
     
@@ -268,7 +343,19 @@ static inline baseQual cons_base_prob(baseQual  base1,baseQual base2){
 }
 
 
-void set_adapter_sequences(const string& forward, const string& reverse, const string& chimera, int max_comp){
+
+
+//! Sets the adapters sequences
+/*!
+  
+  Used by mergeTrimReadsBAM.cpp to set the adapter
+  and chimeric sequences.
+
+  \param forward Forward adapter
+  \param reverse Reverse adapter
+  \param chimera Potential chimeras (comma separated)
+*/
+void set_adapter_sequences(const string& forward, const string& reverse, const string& chimera){
     options_adapter_F.assign( forward.length(), 0 );
     options_adapter_S.assign( reverse.length(), 0 );
     transform(forward.begin(), forward.end(), options_adapter_F.begin(), ::toupper);
@@ -321,6 +408,17 @@ void set_adapter_sequences(const string& forward, const string& reverse, const s
 }
    
 
+
+//! Tokenize string
+/*!
+  
+  Tokenize string, returns the first token and 
+  deletes it from the main string
+
+  \param toparse main string to tokenize, will be altered by this subroutine
+  \param delim   Field delimited for main string
+  \return First token
+*/
 string returnFirstToken(string * toparse,string delim){
     size_t found;
     string toreturn;
@@ -335,6 +433,17 @@ string returnFirstToken(string * toparse,string delim){
     return toreturn;
 }
 
+
+
+//! Sets the key sequences
+/*!
+  
+  Used by mergeTrimReadsBAM.cpp to set the key sequences
+
+
+  \param key1 Forward key
+  \param key2 Reverse key
+*/
 void set_keys(const string& key1, const string& key2){
 
     keys0=key1;
@@ -357,6 +466,17 @@ void set_keys(const string& key1, const string& key2){
 	
 }
 
+//! Sets options by driver program
+/*!
+  
+  Used by mergeTrimReadsBAM.cpp to set options
+
+
+  \param trimcutoff   After how many bases do we trim a read ?
+  \param allowMissing Whether we allow some missing bases in key
+  \param mergeoverlap Whether we merge partially overlapping reads
+  
+*/
 void set_options(int trimcutoff,bool allowMissing,bool mergeoverlap){
     options_trimCutoff   = trimcutoff;
     options_allowMissing = allowMissing;
@@ -364,6 +484,23 @@ void set_options(int trimcutoff,bool allowMissing,bool mergeoverlap){
 }
 
 
+//! Computes the likelihood of a given match for a read to a chimera
+/*!
+  This subroutine computes the likelihood of the following:
+
+  L(observing first bases matching the chimeric string) 
+  x 
+  L(observing the remainder of the first bases)
+  
+  If this exceeds  L(observing the bases of the reads)
+  we will flag it as a chimeric sequence
+
+  \param read Actual bases of the read in which to detect the chimeric string
+  \param qual Quality scores associated with the read
+  \param chimeraString the actual chimeric string
+  \param offsetChimera Whether we will allow a small offset in the chimeric string (e.g. 1)
+  \return The likelihood of the observation 
+*/
 static inline double detectChimera(const string      & read,
 				   const vector<int> & qual,
 				   const string      & chimeraString,
@@ -396,13 +533,46 @@ static inline double detectChimera(const string      & read,
 
 
 
+//! Computes the likelihood of a observing an overlap between two sequences
+/*!
+
+  This subroutine computes the likelihood of the following:
+
+  L(observing the same bases in "read1" and "read2" for "offsetRead" bases)  
+  = L(base 1 in read 1 matching  base 1 in read 2) * L(base 2 in read 1 matching  base 2 in read 2) * ... 
+
+  the likelihood for two different bases identical bases is:
+  L(first base) * L(second base matches the first) 
+
+  for different bases, the likelihood is:
+  L(first base) * L(second base does not match the first) 
+  
+  The L(first base) is 1/4
+  
+  Assuming we have observed the first base, the likelihood of matching
+  or not can be approximated by using the minimum quality score as the likelihood
+  of mismatch of high quality scores will be low.
+  
+  
+
+  \param read1 Actual bases of the first read 
+  \param qual1 Quality scores associated with the first read
+  \param read2 Actual bases of the second read 
+  \param qual2 Quality scores associated with the second read
+
+  \param maxLengthForPair pre-computed maximum length of read1 and read2
+  \param offsetRead Number of bases to compute
+  \param matches Increase for each match found
+
+  \return The likelihood of observing an overlap between two sequences
+*/
 static inline double measureOverlap(const string      & read1,
 				    const vector<int> & qual1,
 				    const string      & read2,
 				    const vector<int> & qual2,
 				    const int         & maxLengthForPair,
 				    unsigned int      offsetRead=0,				    
-				    double *          iterations =0 ,
+				    //double *          iterations =0 ,
 				    int  *            matches=0){
     
 #ifdef DEBUGOVERLAP
@@ -488,78 +658,35 @@ static inline double measureOverlap(const string      & read1,
 }
 
 
-// static inline double measureOverlap(const string      & read1,
-// 				    const vector<int> & qual1,
-// 				    const string      & read2,
-// 				    const vector<int> & qual2,
-// 				    const int startRead1,				   
-// 				    const int startRead2,				   
-// 				    int	maxLength,
-// 				    double * iterations=0,
-// 				    int  *  matches=0){
-//     if(maxLength < 0)
-// 	return -DBL_MAX;
-    
-//     double likelihoodMatch=0.0;
-
-//     //index for both reads:
-//     int i1=startRead1;
-//     int i2=startRead2;
-
-// #ifdef DEBUGOVERLAP
-//     string comparedread1;
-//     string comparedread2;
-// #endif
-
-//     //iterate over r1
-//     for(int i=0;i<maxLength;i++){
-
-
-// #ifdef DEBUGOVERLAP
-// 	//cerr<<"overlap "<<" read1["<<(i1)<<"] "<<read1[i1]<<"\tread2["<<i2<< "] "<<read2[i2]<<endl;
-// 	comparedread1+=read1[i1];
-// 	comparedread2+=read2[i2];
-// #endif
-
-// 	//first base
-// 	if(read1[i1] == read2[i2] ){	    
-// 	    (*matches)++;
-// 	    likelihoodMatch  +=    likeMatch[    min(qual1[i1],qual2[i2])  ];	    
-// 	}else{
-// 	    likelihoodMatch  +=    likeMismatch[ min(qual1[i1],qual2[i2])  ];	    
-// 	}
-
-// 	//second base
-// 	likelihoodMatch  += likeRandomMatch; 
-
-
-// 	(*iterations)++;
-
-// 	i1++;
-// 	i2++;
-//     }
-
-// #ifdef DEBUGOVERLAP
-//     cerr<<"comparedread1 "<<comparedread1<<endl;
-//     cerr<<"comparedread2 "<<comparedread2<<endl;
-//     cerr<<"result        "<<likelihoodMatch<<endl;
-// #endif
-
-//     return likelihoodMatch;
-
-// }
 
 
     
-/*! Computes the likelihood of seeing the adapter in read 
-    at index offsetRead  
-*/  
+
+
+//! Computes the likelihood of a observing the adapter in a read
+/*!
+  This subroutine computes the likelihood of observing the adapter in "read"
+    at index "offsetRead".  
+
+  L(observing last bases matching the adapter) 
+  x 
+  L(observing the bases in the first part of the sequence)
+  
+  If this exceeds  L(observing the bases of the reads)
+
+
+  \param read Actual bases of the read in which to detect the chimeric string
+  \param qual Quality scores associated with the read
+  \param adapterString String of the adapter 
+  \param offsetRead The index at which to start the matching
+  \param matches Variable used as accumulator for the # of matches
+  \return The likelihood of the observation 
+*/
 static inline double detectAdapter(const string      & read,
 				   const vector<int> & qual,
 				   const string      & adapterString,
-				   unsigned int      offsetRead=0,
-				   double *          iterations =0 ,
-				   int  *            matches=0){
+				   unsigned int        offsetRead=0,
+				   int              *  matches=0){
     
     double likelihoodMatch=0.0;
     
@@ -588,7 +715,7 @@ static inline double detectAdapter(const string      & read,
 	}else{ //mismatch
 	    likelihoodMatch  += likeMismatch[ qual[indexRead] ];
 	}
-	(*iterations)++;
+	//(*iterations)++;
 	i++;
 
     }
@@ -613,6 +740,16 @@ static inline double detectAdapter(const string      & read,
 }
 
 
+
+//! Computes the edit distance between 2 sequences
+/*!
+  This subroutine computes the Levenshtein distance
+  between two strings
+
+  \param seq1 First string to evaluate
+  \param seq2 Second string to evaluate
+  \return The # of mismatches
+*/
 static inline int edits(const string & seq1,const string & seq2){
     int lmin = min(seq1.length(),seq2.length());
     int lmax = max(seq1.length(),seq2.length());
@@ -626,14 +763,40 @@ static inline int edits(const string & seq1,const string & seq2){
     return dist;
 }
 
-merged process_SR(string  read1, 
-		  string  qual1){
 
-    merged toReturn;
-    // int qualOffset=33;
+//! Checks if the length of the sequence is the same as the length of the quality string
+/*!
+  Checks if the length of the sequence is the same as the length of the quality string
+  will exit() if this is the case
+  
+  \param seq DNA string to evaluate
+  \param qual Quality score string to check
+*/
+static inline void sanityCheckLength(const string & seq,const string & qual){
+
+    if( (seq.length() != qual.length()) ){
+	cerr<<"MergeTrimReads: The reads and qualities must have equal lengths"<<endl;
+	exit(1);
+    }
+
+}
 
 
-    //check for the key (if needed)
+
+//! Checks if the DNA string starts with the key for single-end
+/*!
+  Checks if a single-end DNA string starts with the key
+  if so, it will trim it
+  otherwise, it will fail it
+  
+  \param read1 DNA string to check for the key
+  \param qual1 quality string of read1
+  \param toReturn merged struct to hold the results
+  \return true if the key was not observed, false otherwise
+*/
+static inline bool checkKeySingleEnd(string & read1,string & qual1,merged & toReturn){
+
+
     if( handle_key ){
 	if ((read1.substr(0,len_key1) == keys0)  || //perfect match
 	    (options_allowMissing && (edits(read1.substr(0,len_key1),keys0) == 1))  //1mm in first key	     
@@ -649,142 +812,33 @@ merged process_SR(string  read1,
 		toReturn.code    ='K';
 		toReturn.sequence="";
 		toReturn.quality ="";		    
-		return toReturn;	       
+		return true;	       
 	    }
 	}
     }
-    //end check for the key (if needed)
 
-
-    if( (read1.length() != qual1.length()) ){
-	cerr<<"MergeTrimReads: The reads and qualities must have equal lengths"<<endl;
-	exit(1);
-    }
-
-    vector<int> qualv1;
-    for(unsigned int i=0;i<qual1.length();i++){
-	qualv1.push_back( max( (int(char( qual1[i] ))-qualOffset),2) );
-    }
-    
-
-    //start detecting chimera //
-    double logLikelihoodTotal     = double(read1.length())*likeRandomMatch;
-    int logLikelihoodTotalIdx     = -1;
-
-    // double lowChimeraLike=-DBL_MAX;
-    //finding best match
-    for(unsigned int indexChimera=0;indexChimera<adapter_chimeras.size();indexChimera++){
-	//lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 0 ) ); 
-	
-	if( detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 0 )  > logLikelihoodTotal ){
-	    toReturn.code    ='D';
-	    toReturn.sequence="";
-	    toReturn.quality ="";		    
-	    return toReturn;
-	}
-
-	//lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 1 ) ); //try an off by 1 match
-
-	if( detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 1 )  > logLikelihoodTotal ){
-	    toReturn.code    ='D';
-	    toReturn.sequence="";
-	    toReturn.quality ="";
-	    return toReturn;
-	}
-
-	// cout<<"res "<<adapter_chimeras[indexChimera]<<"\t"<<detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera],1 )<<endl;
-    }
-
-    // end detecting chimera //
-
-
-
-    //start detecting adapter //
-    // double       lowAdapterLike   =-DBL_MAX;
-    // int       indexAdapterBest = read1.size();
-    
-    // double logLikelihoodTotal     = double(read1.length())*likeRandomMatch ;
-    // int logLikelihoodTotalMatches =0;
-
-    //second best hit
-    double sndlogLikelihoodTotal      = -DBL_MAX;
-    int sndlogLikelihoodTotalIdx      = -1;
-    // int sndlogLikelihoodTotalMatches  =  0;
-
-
-
-    for(unsigned int indexAdapter=0;
-	indexAdapter<(read1.length()-options_trimCutoff);
-	indexAdapter++){
-	double iterations=0;
-	double logLike=detectAdapter( read1 , qualv1 , options_adapter_F,indexAdapter,&iterations );
-
-
-
-	if(logLikelihoodTotal < logLike){
-    	    sndlogLikelihoodTotal        = logLikelihoodTotal;
-    	    sndlogLikelihoodTotalIdx     = logLikelihoodTotalIdx;
-    	    // sndlogLikelihoodTotalMatches = logLikelihoodTotalMatches;
-	    
-    	    logLikelihoodTotal           = logLike;
-    	    logLikelihoodTotalIdx        = indexAdapter;
-    	    //logLikelihoodTotalMatches    = matches;
-
-    	}else{ 
-    	    if(sndlogLikelihoodTotal < logLike){ //not more likely than first but more likely than second
-    		sndlogLikelihoodTotal        = logLike;
-    		sndlogLikelihoodTotalIdx     = indexAdapter;
-		//    		sndlogLikelihoodTotalMatches = matches;
-    	    }
-    	}
-
-#ifdef DEBUGSR
-	 cerr<<indexAdapter<<"\t"<<tm<<endl;
-#endif
-    }
-#ifdef DEBUGSR
-     cerr<<logLikelihoodTotal<<"\t"<<endl;
-#endif
-     // cerr<<lowAdapterLike<<endl;
-
-    // if (lowAdapterLike > likelihoodAdapterSR  ) {
-    if( logLikelihoodTotalIdx != -1    &&                       //the status quo is not the most likely
-	(logLikelihoodTotal/sndlogLikelihoodTotal)      < maxLikelihoodRatio ){
-     
-	
-        read1 = read1.substr(0,logLikelihoodTotalIdx);
-        qual1 = qual1.substr(0,logLikelihoodTotalIdx);
-
-
-
-	if( read1.length() < min_length){
-	    toReturn.code    ='D';
-	    toReturn.sequence="";	   
-	    toReturn.quality ="";
-	    return toReturn;	
-	}else{
-	    toReturn.code    =' ';
-	    toReturn.sequence=read1;	   
-	    toReturn.quality =qual1;	
-	    return toReturn;
-	}
-
-
-    }
-
-
-    toReturn.code    =' ';
-    toReturn.sequence="";	   
-    toReturn.quality ="";
-    return toReturn;
-  
+    return false;
 }
 
-merged process_PE( string  read1,  string  qual1,
-		   string  read2,  string  qual2){
 
 
-    merged toReturn;
+//! Checks if DNA string pairs starts with the key for paired-end
+/*!
+  Checks if the paired-end DNA strings start with their respective keys
+  if so, it will trim them
+  otherwise, it will fail them
+  
+  \param read1 DNA string of first mate to check for the key
+  \param qual1 quality string of read1
+  \param read2 DNA string of second mate to check for the key
+  \param qual2 quality string of read2
+  \param toReturn merged struct to hold the results
+  \return true if the key was not observed, false otherwise
+*/
+static inline bool checkKeyPairedEnd(string & read1,string & qual1,
+				     string & read2,string & qual2,
+				     merged & toReturn){
+
 
     if( handle_key && read1.length() > 0){
 
@@ -814,134 +868,189 @@ merged process_PE( string  read1,  string  qual1,
 		    toReturn.code    ='K';
 		    toReturn.sequence="";
 		    toReturn.quality ="";		    
-		    return toReturn;
+		    return true;
 		}
 
 	    }
 	}
     }
 
-    if( (read1.size() != qual1.size()) ||
-	(read2.size() != qual2.size()) ){
-	cerr<<"MergeTrimReads: The reads and qualities must have equal lengths"<<endl;
-	exit(1);
-    }
+    return false;
 
-    vector<int> qualv1;
-    for(unsigned int i=0;i<qual1.length();i++){
-	qualv1.push_back( max( (int(char( qual1[i] ))-qualOffset),2) );
-    }
-
-    vector<int> qualv2;
-    for(unsigned int i=0;i<qual2.length();i++){
-	qualv2.push_back( max( (int(char( qual2[i] ))-qualOffset),2) );
-    }
-    
-    int lengthRead1 = int(read1.size());
-    int lengthRead2 = int(read2.size());
-
-    double logLikeSecondRead      = double(lengthRead2)*likeRandomMatch;
-    double logLikelihoodTotal     = double(lengthRead1)*likeRandomMatch   + logLikeSecondRead;
+}
 
 
-    int logLikelihoodTotalIdx     = -1;
-    int logLikelihoodTotalMatches =0;
+//! Checks if the first mate seems to be a chimera
+/*!
+  Calls the detectChimera() to compute the likelihood of all potential chimeric
+  sequences, if it exceeds 
 
-    //start detecting chimera //
-    double lowChimeraLike=-DBL_MAX;
-    //finding best match
+  \param read1 DNA string of first mate to check for the key
+  \param qual1 quality string of read1
+  \param read2 DNA string of second mate to check for the key
+  \param qual2 quality string of read2
+  \param toReturn merged struct to hold the results
+  \return true if the key was not observed, false otherwise
+*/
+static inline bool checkChimera(const string & read1,
+				const vector<int> & qualv1,
+				merged & toReturn, 
+				const double & logLikelihoodTotal){
+
+
     for(unsigned int indexChimera=0;indexChimera<adapter_chimeras.size();indexChimera++){
-	//cerr<<"indexChimera1 "<<lowChimeraLike<<endl;
-	//lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 0 ) ); 
-	//lowChimeraLike = max(lowChimeraLike,detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 1 ) ); //try an off by 1 match
-	double logLikeChimera = (detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 0 ) + logLikeSecondRead );
-	if( logLikeChimera  > logLikelihoodTotal  ){
-	    //cout<<"logLikelihoodTotal "<<logLikelihoodTotal<<"\t"<<logLikeChimera<<"\t"<<read1<<"\t"<<adapter_chimeras[indexChimera]<<endl;
-	    toReturn.code    ='D';
-	    toReturn.sequence="";
-	    toReturn.quality ="";		    
-	    return toReturn;
-	}
-
-
-
-	logLikeChimera = (detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 1 ) + logLikeSecondRead );
-	if( logLikeChimera > logLikelihoodTotal  ){  //try an off by 1 match
-	    toReturn.code    ='D';
-	    toReturn.sequence="";
-	    toReturn.quality ="";		    
-	    return toReturn;
-	}
-
-
 	
-	//cerr<<"indexChimera2 "<<lowChimeraLike<<endl;
-	// cout<<"res "<<adapter_chimeras[indexChimera]<<"\t"<<detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera],1 )<<endl;
+	if( detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 0 )  > logLikelihoodTotal ){
+	    toReturn.code    ='D';
+	    toReturn.sequence="";
+	    toReturn.quality ="";		    
+	    return true;
+	}
+
+
+	if( detectChimera( read1 , qualv1 , adapter_chimeras[indexChimera], 1 )  > logLikelihoodTotal ){
+	    toReturn.code    ='D';
+	    toReturn.sequence="";
+	    toReturn.quality ="";
+	    return true;
+	}
+
     }
 
-    //cerr<<"TEST "<<lowChimeraLike<<"\t"<<likelihoodChimera<<endl;
-   
-    // end detecting chimera //
+    return false;
+}
 
 
-    //computing rev compl for read 2
-    string  read2_rev=  revcompl(read2);
-    string  qual2_rev=           qual2;
-
-    reverse(qual2_rev.begin(), 
-	    qual2_rev.end());
-    
-    vector<int> qualv2_rev (qualv2);
-
-    reverse(qualv2_rev.begin(), 
-	    qualv2_rev.end());
-
-   
-
-
-
-
-    //For a given putative index, we compute the likelihood of seeing:
-    //
-    // 
-    //         L(adapter in read2)+  L(likelihood overlap) + L(adapter in read1)
-    //                                            |--------> (adapter)
-    //read1                         ---------------------------------
-    //read2      ---------------------------------
-    //                     <--------| (adapter 2)
-    // let :
-    // logLike1 = L(adapter in read1)
-    // logLike2 = L(adapter in read2)
-    // logLike3 = L(adapter in overlapping region)
-
-    // logLike1 = L(seeing adapter bases in read1) + L(remaining bases)
-    // logLike2 = L(seeing adapter bases in read2) + L(remaining bases)
-    // logLike3 = L(bases matching read1/read2 overlap) + L(bases read1/read2 overlap) + L(any remaining bases
-    
-    // The default case is simply the likelihood of both :
-    // 
+//! Transforms the quality string into a vector of ints
+/*!
+  Transforms the quality string into a vector of integers
+  where each ints is the numerical value of the quality score (with respect 
+  to the qualOffset) 
   
 
+  \param qual  The string of quality scores (input)
+  \param qualv The vector of quality scores as integers (output)
+*/
+static inline void string2NumericalQualScores(const string & qual,vector<int> & qualv){
 
-    //second best hit
-    double sndlogLikelihoodTotal      = -DBL_MAX;
-    int sndlogLikelihoodTotalIdx      = -1;
-    int sndlogLikelihoodTotalMatches  =  0;
+    for(unsigned int i=0;i<qual.length();i++){
+	qualv.push_back( max( (int(char( qual[i] ))-qualOffset),2) );
+    }
+    
+}
 
-#ifdef DEBUGPR
 
-    cerr<<"fst: "<<read1<<endl<<"raw: "<<read2<<endl<<"rev: "<<read2_rev<<endl<<endl;
-#endif
+//! Computes all likelihoods for single-end reads
+/*!
+  This subroutine computes all possible likelihoods
+  for every possibility of adapters index.
+
+  It calls detectAdapter() for every possible index 
+  of the adapter and retains the most likely one.
   
+  
+  \param read1   The single read
+  \param qualv1  The quality scores for read1
+  \param logLikelihoodTotal        Best likelihood found for all indices
+  \param logLikelihoodTotalIdx     Index of best likelihood found for all indices
+  \param sndlogLikelihoodTotal     Second Best likelihood found for all indices
+  \param sndlogLikelihoodTotalIdx  Index of second best likelihood found for all indices
 
-    
-#ifdef DEBUGSCORE
-    cerr<<"mergeo "<<"\t"<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalIdx<<"\t"<<logLikelihoodTotalMatches<<endl;
-    //cout<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalMatches<<endl;
+*/
+static inline void computeBestLikelihoodSingle(const string      & read1,
+					       const vector<int> & qualv1,
+					       double & logLikelihoodTotal,
+					       int &    logLikelihoodTotalIdx,
+					       double & sndlogLikelihoodTotal,
+					       int &    sndlogLikelihoodTotalIdx){
+    // sndlogLikelihoodTotalMatches = logLikelihoodTotalMatches;
+	    
+
+    for(unsigned int indexAdapter=0;
+	indexAdapter<(read1.length()-options_trimCutoff);
+	indexAdapter++){
+	//double iterations=0;
+	double logLike=detectAdapter( read1 , qualv1 , options_adapter_F,indexAdapter );
+
+
+
+	if(logLikelihoodTotal < logLike){
+	    sndlogLikelihoodTotal        = logLikelihoodTotal;
+	    sndlogLikelihoodTotalIdx     = logLikelihoodTotalIdx;
+	    // sndlogLikelihoodTotalMatches = logLikelihoodTotalMatches;
+	    
+	    logLikelihoodTotal           = logLike;
+	    logLikelihoodTotalIdx        = indexAdapter;
+	    // logLikelihoodTotalMatches    = matches;
+
+	}else{ 
+	    if(sndlogLikelihoodTotal < logLike){ //not more likely than first but more likely than second
+		sndlogLikelihoodTotal        = logLike;
+		sndlogLikelihoodTotalIdx     = indexAdapter;
+		// sndlogLikelihoodTotalMatches = matches;
+	    }
+	}
+
+#ifdef DEBUGSR
+	cerr<<indexAdapter<<"\t"<<tm<<endl;
 #endif
+    }
+}
+
+
+
+
+//! Computes all likelihoods for paired-end reads
+/*!
+  This subroutine computes all possible likelihoods
+  for every possibility of adapters index.
+
+  The overall likelihood is given by the sum of :
+    - detectAdapter() for the first mate
+    - detectAdapter() for the second mate
+    - measureOverlap() for the overlapping portion of read1 and read2_rev
+  
+  \param read1       The first mate
+  \param qualv1      The quality scores for the first mate
+  \param read2       The second mate
+  \param qualv2      The quality scores for the second mate
+  \param read2_rev   The second mate
+  \param qualv2_rev  The quality scores for the second mate
+
+  \paramlengthRead1  Length of first mate
+  \paramlengthRead2  Length of second mate
+  \parammaxLengthForPair Max of both length
+
+  \param logLikelihoodTotal        Best likelihood found for all indices
+  \param logLikelihoodTotalIdx     Index of best likelihood found for all indices
+  \param sndlogLikelihoodTotal     Second Best likelihood found for all indices
+  \param sndlogLikelihoodTotalIdx  Index of second best likelihood found for all indices
+
+*/
+
+static inline void computeBestLikelihoodPairedEnd(const string &      read1,
+						  const vector<int> & qualv1,
+
+						  const string &      read2,
+						  const vector<int> & qualv2,
+
+						  const string &      read2_rev,
+						  const vector<int> & qualv2_rev,
+
+						  const int & lengthRead1,
+						  const int & lengthRead2,
+						  const int & maxLengthForPair,
+
+						  double & logLikelihoodTotal,
+						  int    & logLikelihoodTotalIdx,
+						  int    & logLikelihoodTotalMatches,
+
+						  double & sndlogLikelihoodTotal,
+						  int    & sndlogLikelihoodTotalIdx,
+						  int    & sndlogLikelihoodTotalMatches){
     
 
-    int maxLengthForPair=max(lengthRead1,lengthRead2);
+
     //int lengthDiffR1_R2 =  (lengthRead1-lengthRead2);
 
     for(int indexAdapter=0; //let index adapters be the index of the potential P7/P5 adapter
@@ -949,8 +1058,8 @@ merged process_PE( string  read1,  string  qual1,
 	indexAdapter++){
 	double logLike=0.0;
 
- 	double iterations=0;
- 	int    matches   =0;
+ 	// double iterations=0;
+	int    matches   =0;
 
 	if(indexAdapter > maxLengthForPair) //partial overlap
 	    if(!options_mergeoverlap) //no point in continuing 
@@ -958,22 +1067,23 @@ merged process_PE( string  read1,  string  qual1,
 	    
 	//adapters
  	if(indexAdapter<lengthRead1)
- 	    logLike  +=  detectAdapter(    read1 ,     qualv1     , options_adapter_F,indexAdapter,&iterations, &matches);
+ 	    logLike  +=  detectAdapter(    read1 ,     qualv1     , options_adapter_F,indexAdapter, &matches);
 
  	if(indexAdapter<lengthRead2)
- 	    logLike  +=  detectAdapter(    read2 ,     qualv2     , options_adapter_S,indexAdapter,&iterations, &matches );
+ 	    logLike  +=  detectAdapter(    read2 ,     qualv2     , options_adapter_S,indexAdapter, &matches);
 
 	
 	//overlap
-	logLike  +=	 measureOverlap(   read1 ,
+	logLike  +=	 measureOverlap(   read1      ,
 					   qualv1     ,
-					   read2_rev ,
-					   qualv2_rev,  
+					   read2_rev  ,
+					   qualv2_rev ,  
 					   maxLengthForPair,					      
 					   indexAdapter,
-					   &iterations,
-					   &matches);
-
+					   &matches); 
+	// &iterations,
+	// &matches);
+	
 
 #ifdef DEBUGPR
     	cerr<<"idx: "<<indexAdapter<<"\ttl:"<<logLike<<"\tlr:"<<"\tit:"<<iterations<<"\tma:"<<matches<<endl;
@@ -983,42 +1093,77 @@ merged process_PE( string  read1,  string  qual1,
     	if(logLikelihoodTotal < logLike){
     	    sndlogLikelihoodTotal        = logLikelihoodTotal;
     	    sndlogLikelihoodTotalIdx     = logLikelihoodTotalIdx;
-    	    sndlogLikelihoodTotalMatches = logLikelihoodTotalMatches;
+	    sndlogLikelihoodTotalMatches = logLikelihoodTotalMatches;
 	    
     	    logLikelihoodTotal           = logLike;
     	    logLikelihoodTotalIdx        = indexAdapter;
-    	    logLikelihoodTotalMatches    = matches;
+	    logLikelihoodTotalMatches    = matches;
     	}else{ 
     	    if(sndlogLikelihoodTotal < logLike){ //not more likely than first but more likely than second
     		sndlogLikelihoodTotal        = logLike;
     		sndlogLikelihoodTotalIdx     = indexAdapter;
-    		sndlogLikelihoodTotalMatches = matches;
+		sndlogLikelihoodTotalMatches = matches;
     	    }
     	}
         
 
     }
+    
+}
+
+
+//! Computes the consensus sequence for paired-end reads
+/*!
+
+  After having called computeBestLikelihoodPairedEnd(), the
+  most likely position of the adapter is known. Using this
+  information, this subroutine computes the consensus if reads
+  are to be merged
 
 
 
-    
-    
-    
-#ifdef DEBUGSCORE
-    cerr<<"mergeo "<<"\t"<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalIdx<<"\t"<<logLikelihoodTotalMatches<<"\trt:"<<(sndlogLikelihoodTotal/logLikelihoodTotal)<<"\t"<<sndlogLikelihoodTotal<<"\t"<<(logLikelihoodTotal/sndlogLikelihoodTotal)<<endl;
-    //cout<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalMatches<<endl;
-#endif
-    
+  \param read1       The first mate
+  \param qualv1      The quality scores for the first mate
+  \param read2_rev   The second mate
+  \param qualv2_rev  The quality scores for the second mate
 
-    
+  \param logLikelihoodTotal         Best likelihood found for all indices
+  \param logLikelihoodTotalIdx      Index of best likelihood found for all indices
+  \param logLikelihoodTotalMatches  # of matches for the best likelihood 
 
+  \param sndlogLikelihoodTotal         Second Best likelihood found for all indices
+  \param sndlogLikelihoodTotalIdx      Index of second best likelihood found for all indices
+  \param sndlogLikelihoodTotalMatches  # of matches for the second best likelihood
+
+  \param maxLengthForPair Max of both length
+  \param toReturn merged struct (this will be returned to the main program)
+
+*/
+
+static inline void computeConsensusPairedEnd( const string & read1,
+					      const vector<int> &   qualv1,
+
+					      const string & read2_rev,
+					      const vector<int> & qualv2_rev,
+
+
+					      const double & logLikelihoodTotal,
+					      const int    & logLikelihoodTotalIdx,
+					      const int    & logLikelihoodTotalMatches,
+					      
+					      const double & sndlogLikelihoodTotal,
+					      const int    & sndlogLikelihoodTotalIdx,
+					      const int    & sndlogLikelihoodTotalMatches,
+					      
+					      const int & maxLengthForPair,
+					      merged & toReturn){
 
     baseQual b1;
     baseQual b2;
     //test for merging:
     if( logLikelihoodTotalIdx != -1    &&                       //the status quo is not the most likely
 	(logLikelihoodTotal/sndlogLikelihoodTotal)      < maxLikelihoodRatio &&
-	logLikelihoodTotalMatches >= min_overlap_seqs  ){       //sufficient # of mismatches for partial overlap (artifically to min_overlap_seqs for complete overlap)
+	logLikelihoodTotalMatches >= int(min_overlap_seqs)  ){       //sufficient # of mismatches for partial overlap (artifically to min_overlap_seqs for complete overlap)
 
 
 
@@ -1033,7 +1178,7 @@ merged process_PE( string  read1,  string  qual1,
 
 
 	    if(     i1<int(read1.size()) && 
-		    i2<int(read2.size()) && 
+		    i2<int(read2_rev.size()) && 
 		    i2>=0){
 		
 		b1.base = read1[i1];
@@ -1064,7 +1209,7 @@ merged process_PE( string  read1,  string  qual1,
 		continue;
 	    }
 
-	    if( i2<int(read2.size()) && 
+	    if( i2<int(read2_rev.size()) && 
 		i2>=0 ){
 		
 
@@ -1088,7 +1233,7 @@ merged process_PE( string  read1,  string  qual1,
 	toReturn.quality =convert_logprob_quality(newQual);	
 
 	// cout<<toReturn.sequence<<endl;
-	return toReturn;
+	//return toReturn;
 
 	
     }else{
@@ -1096,9 +1241,326 @@ merged process_PE( string  read1,  string  qual1,
 	toReturn.code    =' ';
 	toReturn.sequence="";	   
 	toReturn.quality ="";
-	return toReturn;    
+	//return toReturn;    
     }
     
+}
+
+
+
+
+//! Processes a single read
+/*!
+
+  This subroutine :
+    - Checks the key (if needed)
+    - Checked for chimera
+    - Computes the likelihood of various 
+      adapter indices
+    - Trims if sufficient evidence is found
+
+    For a given putative index, we compute the likelihood of observing the following:
+    
+    
+                                    L(adapter in read1)
+                                               |--------> (adapter)
+    read1                         ---------------------------------
+    let :
+    logLike1 = L(adapter in read1)
+
+    We compute the following using this :
+    logLike1 = L(seeing adapter bases in read1) + L(remaining bases) (computed using detectAdapter())
+    
+    The total likelihood for that index given by logLike1 
+    
+  \param read1       The single-end read
+  \param qualv1      The quality scores for the read
+
+  \return A merged struct, detailing the result
+
+*/
+merged process_SR(string  read1, 
+		  string  qual1){
+
+    merged toReturn;
+    // int qualOffset=33;
+
+
+    //check for the key (if needed)
+    if(checkKeySingleEnd(read1,qual1,toReturn)){
+	return toReturn;
+    }
+    //end check for the key (if needed)
+
+    sanityCheckLength(read1,qual1);
+
+
+
+
+    vector<int> qualv1;
+    string2NumericalQualScores(qual1,qualv1);
+    
+
+    //start detecting chimera //
+    double logLikelihoodTotal     = double(read1.length())*likeRandomMatch;
+    int logLikelihoodTotalIdx     = -1;
+
+
+    if(checkChimera(read1,
+		    qualv1,
+		    toReturn, 
+		    logLikelihoodTotal)){
+	return toReturn;	
+    }
+
+    // end detecting chimera //
+
+
+
+
+
+
+    //second best hit
+    double sndlogLikelihoodTotal      = -DBL_MAX;
+    int sndlogLikelihoodTotalIdx      = -1;
+
+
+    computeBestLikelihoodSingle(read1,
+				qualv1,
+				logLikelihoodTotal,
+				logLikelihoodTotalIdx,
+				sndlogLikelihoodTotal,
+				sndlogLikelihoodTotalIdx);
+
+#ifdef DEBUGSR
+     cerr<<logLikelihoodTotal<<"\t"<<endl;
+#endif
+
+
+
+     if( logLikelihoodTotalIdx != -1    &&                       //the status quo is not the most likely
+	 (logLikelihoodTotal/sndlogLikelihoodTotal)      < maxLikelihoodRatio ){
+     
+	
+        read1 = read1.substr(0,logLikelihoodTotalIdx);
+        qual1 = qual1.substr(0,logLikelihoodTotalIdx);
+
+
+	if( read1.length() < min_length){
+	    toReturn.code    ='D';
+	    toReturn.sequence="";	   
+	    toReturn.quality ="";
+	    return toReturn;	
+	}else{
+	    toReturn.code    =' ';
+	    toReturn.sequence=read1;	   
+	    toReturn.quality =qual1;	
+	    return toReturn;
+	}
+
+
+    }
+
+
+    toReturn.code    =' ';
+    toReturn.sequence="";	   
+    toReturn.quality ="";
+    return toReturn;
+  
+}
+
+
+//! Processes a paired-end read
+/*!
+
+  This subroutine :
+    - Checks the key (if needed)
+    - Checked for chimera
+    - Computes the likelihood of various 
+      adapter indices for both reads
+    - Merges both reads if there is sufficient 
+      evidence
+
+    For a given putative index, we compute the likelihood of observing the following:
+    
+    
+            L(adapter in read2)+  L(likelihood overlap) + L(adapter in read1)
+                                               |--------> (adapter)
+    read1                         ---------------------------------
+    read2      ---------------------------------
+                        <--------| (adapter 2)
+    let :
+    logLike1 = L(adapter in read1)
+    logLike2 = L(adapter in read2)
+    logLike3 = L(adapter in overlapping region)
+
+    We compute the following using this :
+    logLike1 = L(seeing adapter bases in read1) + L(remaining bases) (detectAdapter())
+    logLike2 = L(seeing adapter bases in read2) + L(remaining bases) (detectAdapter())
+    logLike3 = L(bases matching read1/read2 overlap) + L(bases read1/read2 overlap)  (measureOverlap())
+    
+    The total likelihood for that index is:
+    logLike1 + logLike2 + logLike3
+    
+
+
+    \param read1       The first mate read
+    \param qualv1      The quality scores for the first mate
+
+    \param read2       The second mate read
+    \param qualv2      The quality scores for the second mate
+
+    \return A merged struct, detailing the type of result obtained
+*/
+merged process_PE( string  read1,  string  qual1,
+		   string  read2,  string  qual2){
+
+
+    merged toReturn;
+
+
+
+    sanityCheckLength(read1,qual1);
+    sanityCheckLength(read2,qual2);
+
+    if(checkKeyPairedEnd(read1,qual1,read2,qual2,toReturn)){
+	return toReturn;
+    }
+
+
+    vector<int> qualv1;
+    vector<int> qualv2;
+
+    string2NumericalQualScores(qual1,qualv1);
+    string2NumericalQualScores(qual2,qualv2);
+
+
+
+
+
+
+
+    
+    int lengthRead1 = int(read1.size());
+    int lengthRead2 = int(read2.size());
+
+    double logLikeSecondRead      = double(lengthRead2)*likeRandomMatch;
+    double logLikeFirstRead       = double(lengthRead1)*likeRandomMatch;
+    double logLikelihoodTotal     = logLikeFirstRead + logLikeSecondRead;
+
+
+    int logLikelihoodTotalIdx     = -1;
+    int logLikelihoodTotalMatches =0;
+
+    //start detecting chimera //
+    //    double lowChimeraLike=-DBL_MAX;
+
+
+    if(checkChimera(read1,
+		    qualv1,
+		    toReturn, 
+		    logLikeFirstRead)){ //we just look at the first read hence we need to only use the likelihood of the first read
+	return toReturn;	
+    }
+   
+    // end detecting chimera //
+
+
+
+
+    //computing rev compl for read 2
+    string  read2_rev=  revcompl(read2);
+    string  qual2_rev=           qual2;
+
+    reverse(qual2_rev.begin(), 
+	    qual2_rev.end());
+    
+    vector<int> qualv2_rev (qualv2);
+
+    reverse(qualv2_rev.begin(), 
+	    qualv2_rev.end());
+
+   
+
+
+
+
+  
+
+
+    //second best hit
+    double sndlogLikelihoodTotal      = -DBL_MAX;
+    int sndlogLikelihoodTotalIdx      = -1;
+    int sndlogLikelihoodTotalMatches  =  0;
+
+#ifdef DEBUGPR
+
+    cerr<<"fst: "<<read1<<endl<<"raw: "<<read2<<endl<<"rev: "<<read2_rev<<endl<<endl;
+#endif
+  
+
+    
+#ifdef DEBUGSCORE
+    cerr<<"mergeo "<<"\t"<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalIdx<<"\t"<<logLikelihoodTotalMatches<<endl;
+    //cout<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalMatches<<endl;
+#endif
+    
+
+
+    
+    //COMPUTE 
+    int maxLengthForPair=max(lengthRead1,lengthRead2);
+    
+    computeBestLikelihoodPairedEnd(read1,
+				   qualv1,
+
+				   read2,
+				   qualv2,
+
+				   read2_rev,
+				   qualv2_rev,
+				   
+				   lengthRead1,
+				   lengthRead2,
+				   maxLengthForPair,
+
+				   logLikelihoodTotal,
+				   logLikelihoodTotalIdx,
+				   logLikelihoodTotalMatches,
+				   
+				   sndlogLikelihoodTotal,
+				   sndlogLikelihoodTotalIdx,
+				   sndlogLikelihoodTotalMatches);
+	
+    
+    
+    
+#ifdef DEBUGSCORE
+    cerr<<"mergeo "<<"\t"<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalIdx<<"\t"<<logLikelihoodTotalMatches<<"\trt:"<<(sndlogLikelihoodTotal/logLikelihoodTotal)<<"\t"<<sndlogLikelihoodTotal<<"\t"<<(logLikelihoodTotal/sndlogLikelihoodTotal)<<endl;
+    //cout<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalMatches<<endl;
+#endif
+    
+
+    
+    computeConsensusPairedEnd( read1,
+			       qualv1,
+
+			       read2_rev,
+			       qualv2_rev,
+
+
+			       logLikelihoodTotal,
+			       logLikelihoodTotalIdx,
+			       logLikelihoodTotalMatches,
+					      
+			       sndlogLikelihoodTotal,
+			       sndlogLikelihoodTotalIdx,
+			       sndlogLikelihoodTotalMatches,
+					      
+			       maxLengthForPair,
+			       toReturn);
+    
+    return toReturn;    
 
 
 }
