@@ -10,31 +10,8 @@
 #include "FilterBAMal.h"
 
 
-int minLength=-1;
-int maxLength=-1;
-double likeQual[64];
-double expError[64];
 
-bool frequency;
-bool entropy;
-bool compOrEntCutoff;
-double cutoffLikelihood = 0.5;
-double cutoffAvgExpError = 0.01;
-
-bool resetQC;
-
-Report * repToPrint;
-ofstream * likelihoodOS;
-bool     likelihoodFlag  = false;
-ofstream * entropyOS;
-bool     entropyOSFlag   = false;
-ofstream * frequencyOS;
-bool     frequencyOSFlag   = false;
-bool     verbose=false;
-
-
-
-void initializeLikelihoodScores(){
+void FilterBAMal::initializeLikelihoodScores(){
     for(int i=0;i<64;i++){
 	if(i == 0)
 	    likeQual[i]    = -1.0; // need to fix this to minimize precision loss
@@ -46,39 +23,52 @@ void initializeLikelihoodScores(){
     }
 }
 
-void setVariables(int _minLength,int _maxLength,double _cutoffLikelihood,double _cutoffAvgExpError,bool _frequency,bool _entropy,bool _compOrEntCutoff, 
-		  bool _likelihoodFlag,ofstream * _likelihoodOS,bool _entropyOSFlag,ofstream  * _entropyOS,bool _frequencyOSFlag,ofstream  * _frequencyOS,bool _verbose,bool _resetQC,Report * _repToPrint){
+FilterBAMal::FilterBAMal(int _minLength,int _maxLength,double _cutoffLikelihood,double _cutoffAvgExpError,bool _frequency,bool _entropy,bool _compOrEntCutoff, bool _likelihoodFlag,ofstream * _likelihoodOS,bool _entropyOSFlag,ofstream  * _entropyOS,bool _frequencyOSFlag,ofstream  * _frequencyOS,bool _verbose,bool _resetQC):
+
+    minLength        ( _minLength),
+    maxLength        ( _maxLength),    
+
+    frequency        ( _frequency),
+    entropy          ( _entropy),
+    compOrEntCutoff  ( _compOrEntCutoff),
+    likelihoodFlag   ( _likelihoodFlag),
+    cutoffLikelihood ( _cutoffLikelihood),
+    cutoffAvgExpError( _cutoffAvgExpError),
+
+    likelihoodOS     ( _likelihoodOS),
+
+    entropyOS        ( _entropyOS),
+    entropyOSFlag    ( _entropyOSFlag),
+    frequencyOS      ( _frequencyOS),
+    frequencyOSFlag  ( _frequencyOSFlag),
+    verbose          ( _verbose),
+
+    resetQC          ( _resetQC)
+    //    repToPrint       ( _repToPrint)
+
+{
    
-    
-    minLength        = _minLength;
-    maxLength        = _maxLength;    
+    initializeLikelihoodScores();
 
-    frequency        = _frequency;
-    entropy          = _entropy;
-    compOrEntCutoff  = _compOrEntCutoff;
-    likelihoodFlag   = _likelihoodFlag;
-    cutoffLikelihood = _cutoffLikelihood;
-    cutoffAvgExpError= _cutoffAvgExpError;
-    likelihoodOS     = _likelihoodOS;
+    repToPrint.totalSeq  = 0;
+    repToPrint.qcLength  = 0;
 
-    entropyOS        = _entropyOS;
-    entropyOSFlag    = _entropyOSFlag;
-    frequencyOS      = _frequencyOS;
-    frequencyOSFlag  = _frequencyOSFlag;
-    verbose          = _verbose;
-
-    resetQC          = _resetQC;
-    repToPrint       = _repToPrint;
-
+    repToPrint.qcFailClx = 0;
+    repToPrint.qcFailEnt = 0;
+    repToPrint.qcFailExp = 0;
+    repToPrint.qcBefore  = 0;
 }
 
+FilterBAMal::~FilterBAMal(){
+
+}
 
 /* This subroutine finds the most common nucleotide and checks if
  * the fraction of the count of this nucleotide and the total
  * resolved nucleotide is less than a certain cutoff otherwise it flags the BamAlignment
  * as failed.
  */
-void complexFrequency(BamAlignment * al){
+void FilterBAMal::complexFrequency(BamAlignment * al){
     int countBp [4];
     int total=0;
     int maxBp=-1;
@@ -104,7 +94,7 @@ void complexFrequency(BamAlignment * al){
 
     if(total == 0) {//just Ns
 	al->SetIsFailedQC(true);
-	repToPrint->qcFailClx++;
+	repToPrint.qcFailClx++;
     }else{
 	
 	double finalFreq=(double(maxBp)/double(total));
@@ -114,7 +104,7 @@ void complexFrequency(BamAlignment * al){
 	if(finalFreq  > compOrEntCutoff)
 	    if(frequency){
 		al->SetIsFailedQC(true);
-		repToPrint->qcFailClx++;
+		repToPrint.qcFailClx++;
 	    }
     }
 }
@@ -126,7 +116,7 @@ void complexFrequency(BamAlignment * al){
  *  it flags the BamAlignment if it below a certain cutoff
  * 
  */
-void complexEntropy(BamAlignment * al){
+void FilterBAMal::complexEntropy(BamAlignment * al){
     int countBp [4];
     int total=0;
     char c;
@@ -147,7 +137,7 @@ void complexEntropy(BamAlignment * al){
 
     if(total == 0) {//just Ns
 	al->SetIsFailedQC(true);
-	repToPrint->qcFailEnt++;
+	repToPrint.qcFailEnt++;
     }else{
 	double entropyCalc=0.0;
 	for(int j=0;j<4;j++){
@@ -162,14 +152,14 @@ void complexEntropy(BamAlignment * al){
 	if(entropyCalc < compOrEntCutoff)
 	    if(entropy){
 		al->SetIsFailedQC(true);	
-		repToPrint->qcFailEnt++;
+		repToPrint.qcFailEnt++;
 	    }
     }
 
 }
 
 
-double compLikelihoodSeq(BamAlignment * al){
+double FilterBAMal::compLikelihoodSeq(BamAlignment * al){
     int qualOffset=33;
 
     vector<int> quals1;
@@ -187,7 +177,7 @@ double compLikelihoodSeq(BamAlignment * al){
 }
 
 
-double computeExpectationError(BamAlignment * al){
+double FilterBAMal::computeExpectationError(BamAlignment * al){
     int qualOffset=33;
 
     vector<int> quals1;
@@ -207,16 +197,16 @@ double computeExpectationError(BamAlignment * al){
 }
 
 
-void filterBAMAlign(BamAlignment * al){
+void FilterBAMal::filterBAMAlign(BamAlignment * al){
 
     // if(al->IsMapped()) {
     // 	cerr<<"Read cannot be mapped"<<endl;
     // 	exit(1);
     // }
-    repToPrint->totalSeq++;
+    repToPrint.totalSeq++;
 
     if(al->IsFailedQC()){
-	repToPrint->qcBefore++;
+	repToPrint.qcBefore++;
     }
 
     //reset the flag
@@ -230,14 +220,14 @@ void filterBAMAlign(BamAlignment * al){
 	(int(al->QueryBases.size()) < minLength)
 	){
 	al->SetIsFailedQC(true);
-	repToPrint->qcLength++;
+	repToPrint.qcLength++;
     }
 
     if( (maxLength != -1) &&
 	(int(al->QueryBases.size()) > maxLength)
 	){
 	al->SetIsFailedQC(true);
-	repToPrint->qcLength++;
+	repToPrint.qcLength++;
     }
 
     // int qualOffset=33;
@@ -254,7 +244,7 @@ void filterBAMAlign(BamAlignment * al){
     // 	totalLike += likeQual[ quals1[i] ];
     // }
 
-    double likeSeq=compLikelihoodSeq(al);
+//     double likeSeq=compLikelihoodSeq(al);
 
     
     //cout<<pow(10.0,totalLike)<<endl;
@@ -276,7 +266,7 @@ void filterBAMAlign(BamAlignment * al){
     if( (avgExp) > cutoffAvgExpError ){
 	//cout<<al->Qualities<<endl;
 	al->SetIsFailedQC(true);
-	repToPrint->qcFailExp++;
+	repToPrint.qcFailExp++;
     }else{
 	//cout<<al->Name<<"\t"<<al->Qualities<<endl;
     }
@@ -298,4 +288,16 @@ void filterBAMAlign(BamAlignment * al){
 
 
 
+}
+
+
+string FilterBAMal::printLog(){
+    stringstream st;
+    st <<"Total reads                                               : "<<repToPrint.totalSeq<<endl;
+    st <<"Reads that were previously flagged as QC failed           : "<<repToPrint.qcBefore<<endl;
+    st <<"Reads that are QC failed due to length                    : "<<repToPrint.qcLength<<endl;
+    st <<"Reads that are QC failed due to complexity                : "<<repToPrint.qcFailClx<<endl;
+    st <<"Reads that are QC failed due to entropy                   : "<<repToPrint.qcFailEnt<<endl;
+    st <<"Reads that are QC failed due to expectation of mismatches : "<<repToPrint.qcFailExp<<endl;
+    return st.str();
 }

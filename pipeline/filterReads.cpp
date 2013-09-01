@@ -56,14 +56,8 @@ int main (int argc, char *argv[]) {
 
     //report
     string reportFile="/dev/stderr";
-    Report toprint;
-    toprint.totalSeq  = 0;
-    toprint.qcLength  = 0;
-
-    toprint.qcFailClx = 0;
-    toprint.qcFailEnt = 0;
-    toprint.qcFailExp = 0;
-    toprint.qcBefore  = 0;
+//     Report toprint;
+  
 
     const string usage=string("\t"+string(argv[0])+
 			      " [options] BAMfile"+"\n\n"+
@@ -290,7 +284,7 @@ int main (int argc, char *argv[]) {
     }
        
 
-    initializeLikelihoodScores();
+    //initializeLikelihoodScores();
     string bamfiletopen = string(argv[argc-1]);
 
     BamReader reader;
@@ -299,12 +293,15 @@ int main (int argc, char *argv[]) {
     	cerr << "Could not open input BAM files." << endl;
     	return 1;
     }
+    FilterBAMal fm (minLength,maxLength,cutoffLikelihood,cutoffAvgExpError,frequency,entropy,compOrEntCutoff,
+		   likelihoodFlag,&likelihoodOS, entropyOSFlag, &entropyOS, frequencyOSFlag, &frequencyOS,verbose,resetQC);
 
+  
     if(usePercent){
 	BamAlignment al2;
 	vector<double> likelihoodsFound;
 	while ( reader.GetNextAlignment(al2) ) {
-	    likelihoodsFound.push_back(compLikelihoodSeq(&al2));
+	    likelihoodsFound.push_back(fm.compLikelihoodSeq(&al2));
 	}
 	//	cout<<likelihoodsFound.size()<<endl;
 
@@ -319,9 +316,6 @@ int main (int argc, char *argv[]) {
 
 	//return 1;
     }
-
-    setVariables(minLength,maxLength,cutoffLikelihood,cutoffAvgExpError,frequency,entropy,compOrEntCutoff,
-		 likelihoodFlag,&likelihoodOS, entropyOSFlag, &entropyOS, frequencyOSFlag, &frequencyOS,verbose,resetQC,&toprint);
 
     // cout<<"h"<<endl;
     // cout<<"outfile "<<outfile<<endl;
@@ -368,7 +362,7 @@ int main (int argc, char *argv[]) {
 
     BamAlignment al;
     while ( reader.GetNextAlignment(al) ) {
-	filterBAMAlign(&al);
+	fm.filterBAMAlign(&al);
 	writer.SaveAlignment(al);
     }
 
@@ -384,12 +378,7 @@ int main (int argc, char *argv[]) {
     fileLog.open(reportFile.c_str());
 
     if (fileLog.is_open()){
-	fileLog <<"Total reads                                               : "<<toprint.totalSeq<<endl;
-	fileLog <<"Reads that were previously flagged as QC failed           : "<<toprint.qcBefore<<endl;
-	fileLog <<"Reads that are QC failed due to length                    : "<<toprint.qcLength<<endl;
-	fileLog <<"Reads that are QC failed due to complexity                : "<<toprint.qcFailClx<<endl;
-	fileLog <<"Reads that are QC failed due to entropy                   : "<<toprint.qcFailEnt<<endl;
-	fileLog <<"Reads that are QC failed due to expectation of mismatches : "<<toprint.qcFailExp<<endl;
+	fileLog << fm.printLog() <<endl;
     }else{
 	cerr << "Unable to print to file "<<reportFile<<endl;
     }

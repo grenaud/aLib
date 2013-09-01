@@ -4,57 +4,20 @@
 // #define DEBUG2
 // //#define DEBUGSR
 
-//#define DEBUGADAPT
+// #define DEBUGADAPT
 // #define DEBUGOVERLAP
 // // //#define DEBUGTOTALOV
 // // #define DEBUGPARTIALOV
 // // #define CONSBASEPROB
 
-// #define DEBUGPR
-// #define DEBUGSCORE
+#define DEBUGPR
+#define DEBUGSCORE
 
 
 
 
 
-double max_prob_N = 0.25;
-
-double maxLikelihoodRatio = 0.95;
-
-// size_t min_length = 5;
-// double likelihoodAdapterSR = -0.4;
-/* static const double likelihoodAdapterPR = -1.0; */
-// double likelihoodAdapterPR = -120.0;
-// const double max_prob_N = 0.25;
-
-// const size_t min_length = 5;
-// const int    qualOffset = 33;
-
-const size_t min_length =5;
-const int    qualOffset =33;
-
-
-//TODO: the default values should be stored in the config.json file, not here
-const char* const  chimInit[]= {
-    "ACACTCTTTCCCTACACGTCTGAACTCCAG",
-    "ACACTCTTTCCCACACGTCTGAACTCCAGT",
-    "ACACTCTTTCCCTACACACGTCTGAACTCC",
-    "CTCTTTCCCTACACGTCTGAACTCCAGTCA",
-    "GAAGAGCACACGTCTGAACTCCAGTCACII",
-    "GAGCACACGTCTGAACTCCAGTCACIIIII",
-    "GATCGGAAGAGCACACGTCTGAACTCCAGT",
-    "AGATCGGAAGAGCACACGTCTGAACTCCAG",
-    "AGAGCACACGTCTGAACTCCAGTCACIIII",
-    "ACACGTCTGAACTCCAGTCACIIIIIIIAT",
-    "GTGCACACGTCTGAACTCCAGTCACIIIII",
-    "AGCACACGTCTGAACTCCAGTCACIIIIII",
-    "CGTATGCCGTCTTCTGCTTGAAAAAAAAAA"};
-
-string options_adapter_F="AGATCGGAAGAGCACACGTCTGAACTCCAGTCACIIIIIIIATCTCGTATGCCGTCTTCTGCTTG";
-string options_adapter_S="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATTT";
-
-
-vector<string> adapter_chimeras (chimInit,chimInit+13);
+// vector<string> adapter_chimeras (chimInit,chimInit+13);
 
 
 
@@ -64,27 +27,6 @@ vector<string> adapter_chimeras (chimInit,chimInit+13);
 // double cutoff_merge_trim = 0.80;
 
 
-size_t maxadapter_comp  = 30; /**< maximum number of bases to be compared in the adapter */
-size_t min_overlap_seqs = 10; /**< maximum number that have to match in the case of partial overlap */
-
-// //  Key variables ///
- bool handle_key           = false;
-string keys0="";
-string keys1="";
-int len_key1=0;
-int len_key2=0;
-
-
-size_t  options_trimCutoff   = 1;
-bool    options_mergeoverlap = false;
-bool    options_allowMissing = false;
-
-double likeMatch[64];
-double likeMismatch[64];
-
-double probForQual[64];
-double likeRandomMatch;    // 1/4
-double likeRandomMisMatch; // 3/4
 
 
 
@@ -96,7 +38,7 @@ double likeRandomMisMatch; // 3/4
   \param c the char to reverse complement
   \return The reverse complement
 */
-static inline char revComp(char c){
+inline char MergeTrimReads::revComp(char c){
     if(c ==    'A')
 	return 'T';
 
@@ -125,7 +67,7 @@ static inline char revComp(char c){
   \return The reverse complement
 */
 
-static inline string revcompl(const string seq){
+inline string MergeTrimReads::revcompl(const string seq){
     string toReturn="";
     int seqL=seq.length();
     int i=0;
@@ -166,7 +108,7 @@ static inline string revcompl(const string seq){
 
 */
 
-void initMerge(){
+void MergeTrimReads::initMerge(){
 
     
     likeRandomMatch       = log( 1.0/4.0 )/log(10);
@@ -225,7 +167,7 @@ void initMerge(){
   \param  logScores vector of ints of log scores
   \return The string ready to be written as a BAM
 */
-static inline string convert_logprob_quality(vector<int> logScores){
+inline string MergeTrimReads::convert_logprob_quality(vector<int> logScores){
     string toReturn="";
     for(unsigned int i=0;i<logScores.size();i++){
 	toReturn+=char(max(qualOffset,min(126,logScores[i]+qualOffset)));
@@ -249,8 +191,8 @@ static inline string convert_logprob_quality(vector<int> logScores){
  
   \return Random double
 */
-static inline double randomGen(){
-    static bool initialized = false;
+inline double MergeTrimReads::randomGen(){
+    //    static bool initialized = false;
 
     if(initialized == false){
 	struct timeval time;
@@ -275,7 +217,7 @@ static inline double randomGen(){
 
   \return consensus base (as baseQual struct)
 */
-static inline baseQual cons_base_prob(baseQual  base1,baseQual base2){
+inline baseQual MergeTrimReads::cons_base_prob(baseQual  base1,baseQual base2){
     const string dnaAlphabet  = "ACGT";
     
     vector<char> bases;
@@ -355,7 +297,7 @@ static inline baseQual cons_base_prob(baseQual  base1,baseQual base2){
   \param reverse Reverse adapter
   \param chimera Potential chimeras (comma separated)
 */
-void set_adapter_sequences(const string& forward, const string& reverse, const string& chimera){
+void MergeTrimReads::set_adapter_sequences(const string& forward, const string& reverse, const string& chimera){
     options_adapter_F.assign( forward.length(), 0 );
     options_adapter_S.assign( reverse.length(), 0 );
     transform(forward.begin(), forward.end(), options_adapter_F.begin(), ::toupper);
@@ -419,7 +361,7 @@ void set_adapter_sequences(const string& forward, const string& reverse, const s
   \param delim   Field delimited for main string
   \return First token
 */
-string returnFirstToken(string * toparse,string delim){
+string MergeTrimReads::returnFirstToken(string * toparse,string delim){
     size_t found;
     string toreturn;
     found=toparse->find(delim);
@@ -444,7 +386,7 @@ string returnFirstToken(string * toparse,string delim){
   \param key1 Forward key
   \param key2 Reverse key
 */
-void set_keys(const string& key1, const string& key2){
+void MergeTrimReads::set_keys(const string& key1, const string& key2){
 
     keys0=key1;
     if(key2==""){
@@ -477,7 +419,7 @@ void set_keys(const string& key1, const string& key2){
   \param mergeoverlap Whether we merge partially overlapping reads
   
 */
-void set_options(int trimcutoff,bool allowMissing,bool mergeoverlap){
+void MergeTrimReads::set_options(int trimcutoff,bool allowMissing,bool mergeoverlap){
     options_trimCutoff   = trimcutoff;
     options_allowMissing = allowMissing;
     options_mergeoverlap = mergeoverlap;
@@ -501,10 +443,10 @@ void set_options(int trimcutoff,bool allowMissing,bool mergeoverlap){
   \param offsetChimera Whether we will allow a small offset in the chimeric string (e.g. 1)
   \return The likelihood of the observation 
 */
-static inline double detectChimera(const string      & read,
-				   const vector<int> & qual,
-				   const string      & chimeraString,
-				   unsigned int        offsetChimera=0){
+inline double MergeTrimReads::detectChimera(const string      & read,
+					    const vector<int> & qual,
+					    const string      & chimeraString,
+					    unsigned int        offsetChimera){
 
     double likelihoodMatch=0.0;
     unsigned int maxidx=min(read.length(),chimeraString.length()-offsetChimera);
@@ -566,14 +508,14 @@ static inline double detectChimera(const string      & read,
 
   \return The likelihood of observing an overlap between two sequences
 */
-static inline double measureOverlap(const string      & read1,
+inline double MergeTrimReads::measureOverlap(const string      & read1,
 				    const vector<int> & qual1,
 				    const string      & read2,
 				    const vector<int> & qual2,
 				    const int         & maxLengthForPair,
-				    unsigned int      offsetRead=0,				    
+				    unsigned int      offsetRead,				    
 				    //double *          iterations =0 ,
-				    int  *            matches=0){
+				    int  *            matches){
     
 #ifdef DEBUGOVERLAP
     string comparedread1;
@@ -682,16 +624,16 @@ static inline double measureOverlap(const string      & read1,
   \param matches Variable used as accumulator for the # of matches
   \return The likelihood of the observation 
 */
-static inline double detectAdapter(const string      & read,
+inline double MergeTrimReads::detectAdapter(const string      & read,
 				   const vector<int> & qual,
 				   const string      & adapterString,
-				   unsigned int        offsetRead=0,
-				   int              *  matches=0){
+				   unsigned int        offsetRead,
+				    int              *  matches){
     
     double likelihoodMatch=0.0;
     
     unsigned maxIterations=min ( min( (read.length()-offsetRead),
-			       adapterString.length())  , maxadapter_comp  );
+				      adapterString.length())  , maxadapter_comp  );
 
 
 #ifdef DEBUGADAPT
@@ -707,14 +649,16 @@ static inline double detectAdapter(const string      & read,
 	comparedread+=read[indexRead];
 #endif
 
-	
+// 	cerr<<"apt "<<i<<"\t"<<likelihoodMatch<<"\tq:"<<qual[indexRead]<<"\t"<<likeMatch[ qual[indexRead] ]<<"\t"<<likeMismatch[ qual[indexRead] ]<<endl;
+
 	if(         read[indexRead]           == adapterString[i] || 
-		    adapterString[indexRead]  == 'I' ){ //match
+		    adapterString[i]          == 'I' ){ //match
 	    (*matches)++;
 	    likelihoodMatch  +=    likeMatch[ qual[indexRead] ];
 	}else{ //mismatch
 	    likelihoodMatch  += likeMismatch[ qual[indexRead] ];
 	}
+// 	cerr<<"apt "<<i<<"\t"<<likelihoodMatch<<"\tq:"<<qual[indexRead]<<"\t"<<likeMatch[ qual[indexRead] ]<<"\t"<<likeMismatch[ qual[indexRead] ]<<endl;
 	//(*iterations)++;
 	i++;
 
@@ -750,7 +694,7 @@ static inline double detectAdapter(const string      & read,
   \param seq2 Second string to evaluate
   \return The # of mismatches
 */
-static inline int edits(const string & seq1,const string & seq2){
+inline int MergeTrimReads::edits(const string & seq1,const string & seq2){
     int lmin = min(seq1.length(),seq2.length());
     int lmax = max(seq1.length(),seq2.length());
     int dist = lmax-lmin;
@@ -772,7 +716,7 @@ static inline int edits(const string & seq1,const string & seq2){
   \param seq DNA string to evaluate
   \param qual Quality score string to check
 */
-static inline void sanityCheckLength(const string & seq,const string & qual){
+inline void MergeTrimReads::sanityCheckLength(const string & seq,const string & qual){
 
     if( (seq.length() != qual.length()) ){
 	cerr<<"MergeTrimReads: The reads and qualities must have equal lengths"<<endl;
@@ -794,7 +738,7 @@ static inline void sanityCheckLength(const string & seq,const string & qual){
   \param toReturn merged struct to hold the results
   \return true if the key was not observed, false otherwise
 */
-static inline bool checkKeySingleEnd(string & read1,string & qual1,merged & toReturn){
+inline bool MergeTrimReads::checkKeySingleEnd(string & read1,string & qual1,merged & toReturn){
 
 
     if( handle_key ){
@@ -835,7 +779,7 @@ static inline bool checkKeySingleEnd(string & read1,string & qual1,merged & toRe
   \param toReturn merged struct to hold the results
   \return true if the key was not observed, false otherwise
 */
-static inline bool checkKeyPairedEnd(string & read1,string & qual1,
+inline bool MergeTrimReads::checkKeyPairedEnd(string & read1,string & qual1,
 				     string & read2,string & qual2,
 				     merged & toReturn){
 
@@ -892,10 +836,10 @@ static inline bool checkKeyPairedEnd(string & read1,string & qual1,
   \param toReturn merged struct to hold the results
   \return true if the key was not observed, false otherwise
 */
-static inline bool checkChimera(const string & read1,
-				const vector<int> & qualv1,
-				merged & toReturn, 
-				const double & logLikelihoodTotal){
+inline bool MergeTrimReads::checkChimera(const string & read1,
+					 const vector<int> & qualv1,
+					 merged & toReturn, 
+					 const double & logLikelihoodTotal){
 
 
     for(unsigned int indexChimera=0;indexChimera<adapter_chimeras.size();indexChimera++){
@@ -931,13 +875,17 @@ static inline bool checkChimera(const string & read1,
   \param qual  The string of quality scores (input)
   \param qualv The vector of quality scores as integers (output)
 */
-static inline void string2NumericalQualScores(const string & qual,vector<int> & qualv){
+inline void MergeTrimReads::string2NumericalQualScores(const string & qual,vector<int> & qualv){
 
     for(unsigned int i=0;i<qual.length();i++){
-	qualv.push_back( max( (int(char( qual[i] ))-qualOffset),2) );
+	//this nonsense is to make old compilers happy
+	int t2  = int(char( qual[i] ))-qualOffset;
+	int t = max( t2,2);
+	qualv.push_back( t  );
     }
     
 }
+
 
 
 //! Computes all likelihoods for single-end reads
@@ -957,7 +905,7 @@ static inline void string2NumericalQualScores(const string & qual,vector<int> & 
   \param sndlogLikelihoodTotalIdx  Index of second best likelihood found for all indices
 
 */
-static inline void computeBestLikelihoodSingle(const string      & read1,
+inline void MergeTrimReads::computeBestLikelihoodSingle(const string      & read1,
 					       const vector<int> & qualv1,
 					       double & logLikelihoodTotal,
 					       int &    logLikelihoodTotalIdx,
@@ -1028,7 +976,7 @@ static inline void computeBestLikelihoodSingle(const string      & read1,
 
 */
 
-static inline void computeBestLikelihoodPairedEnd(const string &      read1,
+inline void MergeTrimReads::computeBestLikelihoodPairedEnd(const string &      read1,
 						  const vector<int> & qualv1,
 
 						  const string &      read2,
@@ -1086,7 +1034,7 @@ static inline void computeBestLikelihoodPairedEnd(const string &      read1,
 	
 
 #ifdef DEBUGPR
-    	cerr<<"idx: "<<indexAdapter<<"\ttl:"<<logLike<<"\tlr:"<<"\tit:"<<iterations<<"\tma:"<<matches<<endl;
+    	cerr<<"idx: "<<indexAdapter<<"\ttl:"<<logLike<<"\tlr:"<<"\tit:"<<"\tma:"<<matches<<endl;
     	//cerr<<logLike1<<"\t"<<logLike2<<"\t"<<logLike3<<endl;
 #endif
 	
@@ -1140,23 +1088,23 @@ static inline void computeBestLikelihoodPairedEnd(const string &      read1,
 
 */
 
-static inline void computeConsensusPairedEnd( const string & read1,
-					      const vector<int> &   qualv1,
+inline void MergeTrimReads::computeConsensusPairedEnd( const string & read1,
+							      const vector<int> &   qualv1,
+							      
+							      const string & read2_rev,
+							      const vector<int> & qualv2_rev,
 
-					      const string & read2_rev,
-					      const vector<int> & qualv2_rev,
-
-
-					      const double & logLikelihoodTotal,
-					      const int    & logLikelihoodTotalIdx,
-					      const int    & logLikelihoodTotalMatches,
+							      
+							      const double & logLikelihoodTotal,
+							      const int    & logLikelihoodTotalIdx,
+							      const int    & logLikelihoodTotalMatches,
 					      
-					      const double & sndlogLikelihoodTotal,
-					      const int    & sndlogLikelihoodTotalIdx,
-					      const int    & sndlogLikelihoodTotalMatches,
+							      const double & sndlogLikelihoodTotal,
+							      const int    & sndlogLikelihoodTotalIdx,
+							      const int    & sndlogLikelihoodTotalMatches,
 					      
-					      const int & maxLengthForPair,
-					      merged & toReturn){
+							      const int & maxLengthForPair,
+							      merged & toReturn){
 
     baseQual b1;
     baseQual b2;
@@ -1279,7 +1227,7 @@ static inline void computeConsensusPairedEnd( const string & read1,
   \return A merged struct, detailing the result
 
 */
-merged process_SR(string  read1, 
+merged MergeTrimReads::process_SR(string  read1, 
 		  string  qual1){
 
     merged toReturn;
@@ -1412,8 +1360,8 @@ merged process_SR(string  read1,
 
     \return A merged struct, detailing the type of result obtained
 */
-merged process_PE( string  read1,  string  qual1,
-		   string  read2,  string  qual2){
+merged MergeTrimReads::process_PE( string  read1,  string  qual1,
+				   string  read2,  string  qual2){
 
 
     merged toReturn;
@@ -1568,3 +1516,476 @@ merged process_PE( string  read1,  string  qual1,
 
 
 
+
+inline string MergeTrimReads::sortUniqueChar(string v){
+    // vector<char> v( input.begin(), input.end() );
+    string::iterator it;
+    sort (v.begin(), v.end());
+    char   previousChar='!';
+    string toReturn    ="";
+    for (it=v.begin(); it!=v.end();it++ ){
+	if(previousChar == '!' ||
+	   previousChar != *it){
+	    previousChar=*it;
+	    toReturn+=previousChar;
+	}	
+    }
+    return toReturn;
+}
+
+//! return true iff successful
+bool MergeTrimReads::set_extra_flag( BamAlignment &al, int32_t f )
+{
+    char tp=0;
+    if(!al.GetTagType(MERGEDBAMFLAG,tp)) {
+        if(al.AddTag(MERGEDBAMFLAG,"i",f)) return 1;
+    }
+    else {
+        int v=0;
+        switch(tp) {
+            case 'i': case 'I': case 's': case 'S': case 'c': case 'C': 
+                al.GetTag(MERGEDBAMFLAG,v);
+                al.RemoveTag(MERGEDBAMFLAG);
+                if(al.AddTag(MERGEDBAMFLAG,"i",v|f)) return 1;
+                break ;
+            default:
+                cerr << "ERROR: " << MERGEDBAMFLAG << " has type " << tp << endl;
+        }
+    }
+    cerr << "Unable to add tag " << MERGEDBAMFLAG << endl;
+    return true;
+}
+
+
+
+
+MergeTrimReads::MergeTrimReads (const string& forward_, const string& reverse_, const string& chimera_,
+				const string& key1_, const string& key2_,
+				int trimcutoff_,bool allowMissing_,bool mergeoverlap_) : 
+    min_length (5),
+    qualOffset (33),
+
+
+
+    //FLAGs for merged reads
+    MERGEDBAMFLAG     ( "FF" ),
+    TRIMMEDFLAG       ( 1 ),
+    MERGEDFLAG        ( 2 ),
+    TRIMMEDMERGEDFLAG ( 3 )    
+ {
+    initialized = false;
+
+    //TODO: the default values should be stored in the config.json file, not here
+    max_prob_N = 0.25;
+    
+    maxLikelihoodRatio = 0.95;
+    
+    maxadapter_comp  = 30; /**< maximum number of bases to be compared in the adapter */
+    min_overlap_seqs = 10; /**< maximum number that have to match in the case of partial overlap */
+    
+//     min_length =5;
+//     qualOffset =33;
+
+    count_all = 0;
+    count_fkey = 0;
+    count_merged = 0;
+    count_merged_overlap = 0;
+    count_trimmed = 0;
+    count_nothing = 0;
+    count_chimera = 0;
+
+    checkedTags.push_back("RG");
+    checkedTags.push_back("XI");
+    checkedTags.push_back("YI");
+    checkedTags.push_back("XJ");
+    checkedTags.push_back("YJ");
+
+
+    
+
+    //  chimInit[]= {
+    // 	"ACACTCTTTCCCTACACGTCTGAACTCCAG",
+    // 	"ACACTCTTTCCCACACGTCTGAACTCCAGT",
+    // 	"ACACTCTTTCCCTACACACGTCTGAACTCC",
+    // 	"CTCTTTCCCTACACGTCTGAACTCCAGTCA",
+    // 	"GAAGAGCACACGTCTGAACTCCAGTCACII",
+    // 	"GAGCACACGTCTGAACTCCAGTCACIIIII",
+    // 	"GATCGGAAGAGCACACGTCTGAACTCCAGT",
+    // 	"AGATCGGAAGAGCACACGTCTGAACTCCAG",
+    // 	"AGAGCACACGTCTGAACTCCAGTCACIIII",
+    // 	"ACACGTCTGAACTCCAGTCACIIIIIIIAT",
+    // 	"GTGCACACGTCTGAACTCCAGTCACIIIII",
+    // 	"AGCACACGTCTGAACTCCAGTCACIIIIII",
+    // 	"CGTATGCCGTCTTCTGCTTGAAAAAAAAAA"};
+
+    //     options_adapter_F="AGATCGGAAGAGCACACGTCTGAACTCCAGTCACIIIIIIIATCTCGTATGCCGTCTTCTGCTTG";
+    //     options_adapter_S="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATTT";
+
+    set_adapter_sequences(forward_,reverse_,chimera_);
+
+    //adapter_chimeras = vector<string>(chimInit,chimInit+13);
+
+    set_keys(key1_,key2_);
+
+    // //  Key variables ///
+    //     handle_key           = false;
+    //     keys0="";
+    //     keys1="";
+    //     len_key1=0;
+    //     len_key2=0;
+    set_options(trimcutoff_,allowMissing_,mergeoverlap_);
+
+    // size_t  options_trimCutoff   = 
+    // bool    options_mergeoverlap = false;
+    // bool    options_allowMissing = false;
+
+    initMerge();
+    
+}
+
+MergeTrimReads::~MergeTrimReads (){
+
+}
+
+pair<BamAlignment,BamAlignment> MergeTrimReads::processPair(const BamAlignment & al,const BamAlignment & al2){
+    
+    string read1;
+    string read2;
+    string qual1;
+    string qual2;
+
+    if(al.Name != al2.Name ){
+	cerr << "Seq#1 has a different id than seq #2, exiting " << endl;
+	exit(1);
+    }
+    count_all ++;
+    if(al.IsFirstMate()  &&
+       al2.IsSecondMate() ){
+	read1 =string(al.QueryBases);
+	read2 =string(al2.QueryBases);
+	qual1 =string(al.Qualities);
+	qual2 =string(al2.Qualities);		    
+    }else{
+	if(al2.IsFirstMate()  &&
+	   al.IsSecondMate() ){
+	    read1 =string(al2.QueryBases);
+	    qual1 =string(al2.Qualities);
+	    read2 =string(al.QueryBases);
+	    qual2 =string(al.Qualities);		    
+	}else{
+	    cerr << "Seq#1 must be the first mate for seq #2, exiting " << endl;
+	    exit(1);
+	}
+    }
+    
+    if(qual1 == "*"){
+	qual1=string(read1.length(),'0');
+    }
+    if(qual2 == "*"){
+	qual2=string(read1.length(),'0');
+    }
+    
+    
+    merged result=process_PE(read1,qual1,
+			     read2,qual2);
+
+//     if(al.Name == "M00518_0167_000000000-A3Y1J_CH_A2109:1:1101:12584:1649"){
+// 	cerr<<"SEQ #"<<result.sequence<<"#"<<endl;
+// 	exit(1);
+//     }
+
+    if(result.code != ' '){ //keys or chimeras
+	string prevZQ1="";
+	string prevZQ2="";
+	pair<BamAlignment,BamAlignment> toReturn (al,al2);
+
+	toReturn.first.SetIsFailedQC(true);
+	toReturn.first.GetTag("ZQ",prevZQ1);		    
+	prevZQ1+=result.code;
+	if(toReturn.first.HasTag("ZQ") ){ //this is done because bamtools was not intelligent enough to understand that "ZQ:A" becomes "ZQ:Z" when you add a char, oh well.. 
+	    toReturn.first.RemoveTag("ZQ");
+	    if(toReturn.first.HasTag("ZQ") ){
+		cerr << "Failed to remove tag for "<< toReturn.first.Name<<endl;
+		exit(1);
+	    }
+	}
+
+	if(prevZQ1 != "")
+	    if(!toReturn.first.AddTag("ZQ","Z",sortUniqueChar(prevZQ1))){
+		cerr << "Error while editing tags new tag11:"<<prevZQ1 <<"#"<< endl;
+		exit(1);
+	    }
+
+		   
+
+	toReturn.second.SetIsFailedQC(true);
+	toReturn.second.GetTag("ZQ",prevZQ2);
+	prevZQ2+=result.code;
+	if(toReturn.second.HasTag("ZQ") ){ 
+	    toReturn.second.RemoveTag("ZQ");
+	    if(toReturn.second.HasTag("ZQ") ){ 
+		cerr << "Failed to remove tag for "<< toReturn.second.Name<< endl;
+		exit(1);
+	    }
+	}
+	if(prevZQ2 != "")
+	    if(!toReturn.second.AddTag("ZQ","Z",sortUniqueChar(prevZQ2))){
+		cerr << "Error while editing tags new tag21:" << prevZQ2<<"#"<<endl;
+		exit(1);
+	    }
+
+		  
+		    
+	if( result.code == 'K'){
+	    count_fkey ++;
+	}else{
+	    if( result.code  == 'D'){
+		count_chimera++;
+	    }else{
+		cerr << "mergeTrimReadsBAM: Wrong return code =\""<<result.code<<"\""<<endl;
+		exit(1);
+	    }
+	}
+	return toReturn;
+    }
+
+
+
+
+
+
+
+    if(result.sequence != ""){ //new sequence
+	BamAlignment toWrite (al);//build from the previous one
+	string towriteZQ="";
+	al.GetTag("ZQ",towriteZQ);  //get from the first one
+	// if(!toWrite.RemoveTag("ZQ")){ 
+	//     cerr << "Failed to remove tag for new "<< toWrite.Name<< endl;
+	//     exit(1);
+	// }
+
+	//not failed
+	toWrite.AlignmentFlag=4;
+	toWrite.MapQuality=0;
+		  
+	toWrite.QueryBases = result.sequence;
+	toWrite.Qualities  = result.quality;
+	toWrite.SetIsMapped(false);
+		
+
+	toWrite.Position    =-1;
+	toWrite.MatePosition=-1;
+	toWrite.SetIsFailedQC( al.IsFailedQC() && al2.IsFailedQC() ); //fail the new one if both fail 
+	toWrite.TagData=al.TagData; //copy tag info
+
+	if( result.code == ' '){
+	    //cerr<<"TEST2 #"<<result.code<<" "<<endl<<result.sequence<<endl<<read1<<endl;
+	    if( result.sequence.length() > max(read1.length(),read2.length())){
+		//cerr<<"test3"<<endl;
+		count_merged_overlap ++;			  
+		if( !set_extra_flag(toWrite,  MERGEDFLAG) ) exit(1);
+	    }else{
+ 		//cerr<<"test4"<<endl;
+		count_merged++;
+		if( !set_extra_flag(toWrite,  TRIMMEDMERGEDFLAG) ) exit(1);
+	    }
+	}
+	//  	cerr<<"TEST #"<<result.code<<"#"<<endl;
+	// 	exit(1);
+
+	//toWrite.RemoveTag("ZQ");
+	if(toWrite.HasTag("ZQ") ){ 
+	    toWrite.RemoveTag("ZQ");
+	    if(toWrite.HasTag("ZQ") ){ 
+		cerr << "Failed to remove tag for new "<< toWrite.Name<< endl;
+		exit(1);
+	    }
+	}
+
+	if( toWrite.QueryBases.length()  < min_length){
+	    toWrite.SetIsFailedQC( true );		   
+	    // if(!al.EditTag("ZQ","Z",string("L"))){
+	    // 	  cerr << "Error while editing tags" << endl;
+	    // 	  exit(1);
+	    // }
+	    towriteZQ+="L";
+	}
+
+	/////////////////////////////
+	//       Fixing tags       //
+	/////////////////////////////
+	string dummy1;
+	string dummy2;
+		  
+
+	//paranoid check to make sure our tags are identical
+	for(size_t idx=0;idx<checkedTags.size();idx++)
+	    if(al.GetTag(checkedTags[idx],dummy1)){
+		if(al2.GetTag(checkedTags[idx],dummy2)){
+		    if(dummy1 != dummy2){
+			cerr << "Value for "<<checkedTags[idx]<<" cannot differ between mates " << endl;
+			exit(1);
+		    }
+		    //fine otherwise
+		}else{
+		    cerr << "One read has been assigned a  "<<checkedTags[idx]<<" tag but not the other " << endl;
+		    exit(1);
+
+		}
+	    }
+
+	//The new read has the same ZQ tag as al. at this point
+	if(al.HasTag("ZQ") || al2.HasTag("ZQ") ){
+	    if( al2.HasTag("ZQ") ){
+		if(!al.GetTag("ZQ",dummy1)) {
+		    cerr << "Failed to get ZQ field from read 1" << endl;
+		    exit(1);
+		}
+		if(!al.GetTag("ZQ",dummy2)) {
+		    cerr << "Failed to get ZQ field from read 2" << endl;
+		    exit(1);
+		}
+		//we then need to add the ZQ from the second read
+		if(dummy1 != dummy2){
+		    towriteZQ+=dummy2;
+		}	       	    
+	    }
+	}
+
+
+	if(towriteZQ != ""){
+	    if(!toWrite.AddTag("ZQ","Z",sortUniqueChar(towriteZQ))){
+		cerr << "Error while editing tags new tag20:"<<towriteZQ <<"#"<< endl;
+		exit(1);
+	    }
+	}	
+	//we keep the original reads
+	// 	if(keepOrig){
+	// 	    al.SetIsDuplicate(true);
+	// 	    al2.SetIsDuplicate(true);
+	// 	    writer.SaveAlignment(al2);
+	// 	    writer.SaveAlignment(al);
+	// 	}
+	BamAlignment empty;
+	return 	pair<BamAlignment,BamAlignment>(toWrite,empty);
+		    
+    }else{
+	if( result.code == ' ')
+	    count_nothing++;
+	//if we use the Dup flag ourselves, clear it
+	// 	if(keepOrig){ 
+	// 	    al.SetIsDuplicate(false);
+	// 	    al2.SetIsDuplicate(false);
+	// 	}
+	//keep the sequences as pairs
+	
+	return 	pair<BamAlignment,BamAlignment>(al,al2);
+
+	//writer.SaveAlignment(al2);
+	//writer.SaveAlignment(al);
+    }
+
+}
+
+
+
+BamAlignment MergeTrimReads::processSingle(const BamAlignment & al){
+
+    string read1;
+    string qual1;
+
+    count_all ++;
+
+    read1 =string(al.QueryBases);
+    qual1 =string(al.Qualities);
+    if(qual1 == "*"){
+	qual1=string(read1.length(),'0');
+    }
+	
+
+    merged result=process_SR(read1,qual1);
+		
+    if(result.code != ' '){ //either chimera or missing key
+	string prevZQ1="";
+	BamAlignment toWrite (al);//build from the previous one
+
+	toWrite.SetIsFailedQC(true);
+	toWrite.GetTag("ZQ",prevZQ1);
+	prevZQ1+=result.code;
+	if(toWrite.HasTag("ZQ") ){ 
+	    toWrite.RemoveTag("ZQ");
+	    if(toWrite.HasTag("ZQ") ){ 
+		cerr << "Failed to remove tag for "<< toWrite.Name<< endl;
+		exit(1);
+	    }
+	}
+
+	if(prevZQ1 != ""){
+	    if(!toWrite.EditTag("ZQ","Z",sortUniqueChar(prevZQ1))){
+		cerr << "Error while editing tags new tag11:"<<prevZQ1 <<"#"<< endl;
+		exit(1);
+	    }
+	}	
+	    
+	if( result.code == 'K'){
+	    count_fkey ++;
+	}else{
+	    if( result.code  == 'D'){
+		count_chimera++;
+	    }else{
+		cerr << "mergeTrimReadsBAM: Wrong return code =\""<<result.code<<"\""<<endl;
+		exit(1);
+	    }
+
+	}
+	return toWrite;
+    }
+
+    if(result.sequence != ""){ //new sequence
+
+	BamAlignment toWrite (al);//build from the previous al
+	toWrite.MapQuality=0;
+
+	toWrite.QueryBases = result.sequence;
+	toWrite.Qualities  = result.quality;
+	toWrite.SetIsMapped(false);
+	if(!set_extra_flag( toWrite, TRIMMEDFLAG ))
+	    exit(1); 
+
+	toWrite.Position    =-1;
+	toWrite.MatePosition=-1;		    
+	if( result.code == ' ')
+	    count_trimmed++;
+
+	// 	if(keepOrig){
+	// 	    al.SetIsDuplicate(true);
+	// 	    writer.SaveAlignment(al);
+	// 	}
+	return toWrite;
+
+    }else{
+	if( result.code == ' ')
+	    count_nothing++;
+
+	return al;
+    }
+
+
+}
+
+
+string MergeTrimReads::reportSingleLine(){
+    return "Total " + stringify( count_all ) +"; Merged (trimming) "+ stringify(count_merged  ) +"; Merged (overlap) "+ stringify(count_merged_overlap  ) +"; Kept PE/SR "+ stringify( count_nothing ) +"; Trimmed SR "+ stringify(count_trimmed  ) +"; Adapter dimers/chimeras "+ stringify(count_chimera  ) +"; Failed Key "+ stringify(count_fkey  ) ;
+
+}
+
+
+string MergeTrimReads::reportMultipleLines(){
+    return  "Total reads :"            +stringify(count_all)+           "\t"+stringify(100.0*double(count_all)           /double(count_all))+"%\n"+
+      	    "Merged (trimming) "       +stringify(count_merged)+        "\t"+stringify(100.0*double(count_merged)        /double(count_all))+"%\n"+
+	    "Merged (overlap) "        +stringify(count_merged_overlap)+"\t"+stringify(100.0*double(count_merged_overlap)/double(count_all))+"%\n"+
+	    "Kept PE/SR "              +stringify(count_nothing)+       "\t"+stringify(100.0*double(count_nothing)       /double(count_all))+"%\n"+
+	    "Trimmed SR "              +stringify(count_trimmed)+       "\t"+stringify(100.0*double(count_trimmed)       /double(count_all))+"%\n"+
+	    "Adapter dimers/chimeras " +stringify(count_chimera)+       "\t"+stringify(100.0*double(count_chimera)       /double(count_all))+"%\n"+
+	"Failed Key "              +stringify(count_fkey)+          "\t"+stringify(100.0*double(count_fkey)          /double(count_all))+"%\n";
+}
