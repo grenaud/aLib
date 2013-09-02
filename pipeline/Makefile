@@ -26,6 +26,7 @@ errorRatePerCycle: errorRatePerCycle.o   ${LIBGAB}ReconsReferenceBAM.o
 
 
 
+
 generate_report: generate_report.hs
 	cabal update
 	cabal install xml
