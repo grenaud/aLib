@@ -66,7 +66,6 @@ inline char MergeTrimReads::revComp(char c){
   \param seq The string to reverse complement
   \return The reverse complement
 */
-
 inline string MergeTrimReads::revcompl(const string seq){
     string toReturn="";
     int seqL=seq.length();
@@ -1517,6 +1516,13 @@ merged MergeTrimReads::process_PE( string  read1,  string  qual1,
 
 
 
+//! Subroutine to return the unique characters as a sorted string 
+/*!
+Subroutine to return the unique characters as a sorted string 
+
+\param v input string
+\return The sorted string of unique characters
+*/
 inline string MergeTrimReads::sortUniqueChar(string v){
     // vector<char> v( input.begin(), input.end() );
     string::iterator it;
@@ -1533,12 +1539,21 @@ inline string MergeTrimReads::sortUniqueChar(string v){
     return toReturn;
 }
 
-//! return true iff successful
+
+//! Subroutine to add extra bam flags
+/*!
+This subroutine sets the MERGEDBAMFLAG bam flag in for the BamAlignment.
+If the flag is already present, it will remove it
+
+\param al The BamAlignment object where the flags will be added
+\param f an int for the type of flag to add
+\return true iff successful
+*/
 bool MergeTrimReads::set_extra_flag( BamAlignment &al, int32_t f )
 {
     char tp=0;
     if(!al.GetTagType(MERGEDBAMFLAG,tp)) {
-        if(al.AddTag(MERGEDBAMFLAG,"i",f)) return 1;
+        if(al.AddTag(MERGEDBAMFLAG,"i",f)) return true;
     }
     else {
         int v=0;
@@ -1546,19 +1561,32 @@ bool MergeTrimReads::set_extra_flag( BamAlignment &al, int32_t f )
             case 'i': case 'I': case 's': case 'S': case 'c': case 'C': 
                 al.GetTag(MERGEDBAMFLAG,v);
                 al.RemoveTag(MERGEDBAMFLAG);
-                if(al.AddTag(MERGEDBAMFLAG,"i",v|f)) return 1;
+                if(al.AddTag(MERGEDBAMFLAG,"i",v|f)) return true;
                 break ;
             default:
                 cerr << "ERROR: " << MERGEDBAMFLAG << " has type " << tp << endl;
         }
     }
     cerr << "Unable to add tag " << MERGEDBAMFLAG << endl;
-    return true;
+    return false;
 }
 
 
 
 
+//! General contructor
+/*!
+This constructor initialize basic variables to begin using proceePair or processSingle()
+
+\param forward_ Sequence of the adapters for the adapter seen in the first read
+\param reverse_ Sequence of the adapters for the adapter seen in the second read
+\param chimera_ A string of comma separated substring representing putative chimeras
+\param key1_ If keying was used, sequence of the key for the first read
+\param key2_ If keying was used, sequence of the key for the seonc read
+\param trimcutoff The minimum number of bases we should have observed for single reads
+\param allowMissing boolean, if set to true, it will allow imperfect matches to the key
+\param mergeoverlap boolean, if set to true, it will allow merging of reads where the adapter was never seen and the reconstructed sequence is longer than the initial reads
+*/
 MergeTrimReads::MergeTrimReads (const string& forward_, const string& reverse_, const string& chimera_,
 				const string& key1_, const string& key2_,
 				int trimcutoff_,bool allowMissing_,bool mergeoverlap_) : 
@@ -1643,10 +1671,25 @@ MergeTrimReads::MergeTrimReads (const string& forward_, const string& reverse_, 
     
 }
 
+
+//! Destructor
+/*!
+Destructor
+*/
 MergeTrimReads::~MergeTrimReads (){
 
 }
 
+
+//! Processes the reads for paired-end reads 
+/*!
+This subroutine will call process_PE() on the sequence and return a pair<> of BamAlignment objects
+corresponding to the pair of reads. If the reads have been merged, the second object will be empty.
+It will also fix the BAM tags accordingly.
+\param al BamAlignment object as input representing the first pair
+\param al2 BamAlignment object as input representing the first pair
+\return The pair<BamAlignment,BamAlignment> representing the pair to be written to the bam file. If there was a merger, the second BamAlignment object will contain an empty record
+*/
 pair<BamAlignment,BamAlignment> MergeTrimReads::processPair(const BamAlignment & al,const BamAlignment & al2){
     
     string read1;
@@ -1889,6 +1932,14 @@ pair<BamAlignment,BamAlignment> MergeTrimReads::processPair(const BamAlignment &
 
 
 
+//! Processes the reads for single-end reads 
+/*!
+This subroutine will call process_SR() on the sequence and return a new BamALignment object
+corresponding to the potentially trimmed sequence.
+It will fix the BAM tags accordingly.
+\param al BamAlignment object as input
+\return The BamAlignment to be written
+*/
 BamAlignment MergeTrimReads::processSingle(const BamAlignment & al){
 
     string read1;
@@ -1974,12 +2025,24 @@ BamAlignment MergeTrimReads::processSingle(const BamAlignment & al){
 }
 
 
+//! Returns a summary report as a string
+/*!
+  Returns a summary report as a string of all operations performed by this object since its creation
+  
+  \return A string reprenting the tally for the reads
+*/
 string MergeTrimReads::reportSingleLine(){
     return "Total " + stringify( count_all ) +"; Merged (trimming) "+ stringify(count_merged  ) +"; Merged (overlap) "+ stringify(count_merged_overlap  ) +"; Kept PE/SR "+ stringify( count_nothing ) +"; Trimmed SR "+ stringify(count_trimmed  ) +"; Adapter dimers/chimeras "+ stringify(count_chimera  ) +"; Failed Key "+ stringify(count_fkey  ) ;
 
 }
 
 
+//! Returns a full report as a string
+/*!
+  Returns a full report as a string of all operations performed by this object since its creation
+  
+  \return A string reprenting the tally for the reads
+*/
 string MergeTrimReads::reportMultipleLines(){
     return  "Total reads :"            +stringify(count_all)+           "\t"+stringify(100.0*double(count_all)           /double(count_all))+"%\n"+
       	    "Merged (trimming) "       +stringify(count_merged)+        "\t"+stringify(100.0*double(count_merged)        /double(count_all))+"%\n"+
