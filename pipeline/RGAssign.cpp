@@ -466,6 +466,22 @@ inline int RGAssign::computeMM(const string & indexRef,const string & indexRead)
     return toReturn;
 }
 
+
+//! Computes the most likely read group assignment for a given set of sequences
+/*!
+This subroutine is the main bulk of the read group assignment algorithm. It searches the prefix trees for 
+both indices. Computes the likelihood of belonging to each possible read group and computes the read group 
+assignment quality and wrongness score
+
+\param index1 sequence of the first index
+\param index1q quality for the sequence of the first index
+\param index2 sequence of the second index
+\param index2q quality for the sequence of the second index
+\param rgScoreCutoff TO REMOVE !
+\param fracConflict
+\param mismatchesTrie Maximum number of mismatches for the prefix tree
+\return A struct describing the read group assignment performed
+*/
 rgAssignment RGAssign::assignReadGroup(string &index1, 
 				       string &index1q, 
 				       string &index2,
