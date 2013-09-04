@@ -43,8 +43,15 @@ struct compareNameTally {
 };
 
 
-// Returns log10( pow(10,x)+pow(10,y) ), but does so without causing
-// overflow or loss of precision.
+
+//! Computes log10( pow(10,x)+pow(10,y) )
+/*!
+Returns log10( pow(10,x)+pow(10,y) ), but does so without causing
+overflow or loss of precision.
+\param x (see description)
+\param y (see description)
+\return result (see description)
+*/
 double RGAssign::oplus( double x, double y )
 {
     return x > y 
@@ -53,13 +60,24 @@ double RGAssign::oplus( double x, double y )
 }
 
 
-
+//! Sets string to upper case
+/*!
+Takes a string as input and returns it as upper case
+\param toCheck input string
+\return same string but upper case
+*/
 string RGAssign::toUpperCase(string toCheck){
     string toReturn=toCheck;
     transform(toReturn.begin(), toReturn.end(), toReturn.begin(), ::toupper);
     return toReturn;
 }
 
+//! Checks if a string contains DNA
+/*!
+Returns if true iff the string contains A,C,G,T
+\param tocheck
+\return true iff the string contains A,C,G,T
+*/
 bool RGAssign::isValidDNA(string tocheck){
     for(unsigned int  i=0;i<tocheck.size();i++){
 	if(tocheck[i] != 'A' &&
@@ -71,6 +89,13 @@ bool RGAssign::isValidDNA(string tocheck){
     return true;
 }
 
+
+//! Checks if a read group name is usable
+/*!
+Returns if true iff the string is not "unknown" or "wrong" or any of the 
+previously used problematic read group names
+\param tocheck potential read group name
+*/
 void RGAssign::checkRGname(string tocheck){
     if(tocheck == "unknown") {  cerr<<"Error: Cannot use reserved name \"unknown\" as read group name"<<endl;  exit(1);}
     if(tocheck == "conflict"){  cerr<<"Error: Cannot use reserved name \"conflict\" as read group name"<<endl; exit(1);}
@@ -78,6 +103,14 @@ void RGAssign::checkRGname(string tocheck){
     //fine
 }
 
+
+//! Internal subroutine to read the file containing the index sequences
+/*!
+Will initialize the likelihood scores and read the file containing the index sequences for the various 
+read groups
+\param filename full path of the file with the index sequences for the various read groups
+\return A struct indexData containing the collected information
+*/
 indexData RGAssign::intern_readIndex(string filename){
     string line;
     ifstream myFile;
@@ -269,6 +302,16 @@ indexData RGAssign::intern_readIndex(string filename){
 }
 
 
+
+//! Subroutine to build the prefix tree
+/*!
+This subroutine will build the prefix trees and search for potential conflicts between index sequences used by 
+read groups
+\param filename full path of the file with the index sequences for the various read groups
+\param Number of mismatches used during the search for the prefix trees
+\param _shiftByOne Whether we will try to shift sequences by one during the search in the prefix tree
+\return A map where the key are the names of the read groups and the values are the comments. 
+*/
 map<string,string>  RGAssign::readIndexFile(string filename,int mismatchesTrie,bool _shiftByOne){
     values = intern_readIndex(filename);
     shiftByOne=_shiftByOne;
@@ -356,9 +399,17 @@ map<string,string>  RGAssign::readIndexFile(string filename,int mismatchesTrie,b
     return values.namesMap ;
 }
 
-// likelihood for an index read given the correct index sequence
-// this is effectively the sum of qualities of mismatching bases; a
-// negative number is our world.
+
+//! Computes the likelihood of match to a given RG
+/*!
+Computes likelihood of having a match between a potential index sequence for a read group and an observed index sequence 
+this is effectively the sum of qualities of mismatching bases; a
+negative number is our world.
+\param indexRef The string of the index sequence of the proposed RG
+\param indexRead The string of the index sequence for the read
+\param quals The associated quality scores for the indexRead
+\return Likelihood of match
+*/
 inline double RGAssign::computeLike(const string & indexRef,const string & indexRead,const vector<int> * quals){
 #ifdef DEBUG2
     cerr<<"computeLike() "<<indexRef<<"\t"<<indexRead<<endl;
@@ -394,7 +445,15 @@ inline double RGAssign::computeLike(const string & indexRef,const string & index
 
 
 
-//computes mismatches between index ref and index from the read
+//computes 
+
+//! Computes mismatches between index sequence of a given read group and index from the read
+/*!
+ Computes mismatches between index sequence of a given read group and index from the read
+\param indexRef The string of the index sequence of the proposed RG
+\param indexRead The string of the index sequence for the read
+\return Number of mismatches
+*/
 inline int RGAssign::computeMM(const string & indexRef,const string & indexRead){
     int toReturn=0;
     for(unsigned int i=0;i<min(indexRef.length(),indexRead.length());i++){
