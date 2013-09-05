@@ -46,11 +46,11 @@ struct compareNameTally {
 
 //! Computes log10( pow(10,x)+pow(10,y) )
 /*!
-Returns log10( pow(10,x)+pow(10,y) ), but does so without causing
-overflow or loss of precision.
-\param x (see description)
-\param y (see description)
-\return result (see description)
+  Returns log10( pow(10,x)+pow(10,y) ), but does so without causing
+  overflow or loss of precision.
+  \param x (see description)
+  \param y (see description)
+  \return result (see description)
 */
 double RGAssign::oplus( double x, double y )
 {
@@ -62,9 +62,9 @@ double RGAssign::oplus( double x, double y )
 
 //! Sets string to upper case
 /*!
-Takes a string as input and returns it as upper case
-\param toCheck input string
-\return same string but upper case
+  Takes a string as input and returns it as upper case
+  \param toCheck input string
+  \return same string but upper case
 */
 string RGAssign::toUpperCase(string toCheck){
     string toReturn=toCheck;
@@ -74,9 +74,9 @@ string RGAssign::toUpperCase(string toCheck){
 
 //! Checks if a string contains DNA
 /*!
-Returns if true iff the string contains A,C,G,T
-\param tocheck
-\return true iff the string contains A,C,G,T
+  Returns if true iff the string contains A,C,G,T
+  \param tocheck
+  \return true iff the string contains A,C,G,T
 */
 bool RGAssign::isValidDNA(string tocheck){
     for(unsigned int  i=0;i<tocheck.size();i++){
@@ -106,10 +106,10 @@ void RGAssign::checkRGname(string tocheck){
 
 //! Internal subroutine to read the file containing the index sequences
 /*!
-Will initialize the likelihood scores and read the file containing the index sequences for the various 
-read groups
-\param filename full path of the file with the index sequences for the various read groups
-\return A struct indexData containing the collected information
+  Will initialize the likelihood scores and read the file containing the index sequences for the various 
+  read groups
+  \param filename full path of the file with the index sequences for the various read groups
+  \return A struct indexData containing the collected information
 */
 indexData RGAssign::intern_readIndex(string filename){
     string line;
@@ -305,12 +305,12 @@ indexData RGAssign::intern_readIndex(string filename){
 
 //! Subroutine to build the prefix tree
 /*!
-This subroutine will build the prefix trees and search for potential conflicts between index sequences used by 
-read groups
-\param filename full path of the file with the index sequences for the various read groups
-\param Number of mismatches used during the search for the prefix trees
-\param _shiftByOne Whether we will try to shift sequences by one during the search in the prefix tree
-\return A map where the key are the names of the read groups and the values are the comments. 
+  This subroutine will build the prefix trees and search for potential conflicts between index sequences used by 
+  read groups
+  \param filename full path of the file with the index sequences for the various read groups
+  \param Number of mismatches used during the search for the prefix trees
+  \param _shiftByOne Whether we will try to shift sequences by one during the search in the prefix tree
+  \return A map where the key are the names of the read groups and the values are the comments. 
 */
 map<string,string>  RGAssign::readIndexFile(string filename,int mismatchesTrie,bool _shiftByOne){
     values = intern_readIndex(filename);
@@ -402,13 +402,13 @@ map<string,string>  RGAssign::readIndexFile(string filename,int mismatchesTrie,b
 
 //! Computes the likelihood of match to a given RG
 /*!
-Computes likelihood of having a match between a potential index sequence for a read group and an observed index sequence 
-this is effectively the sum of qualities of mismatching bases; a
-negative number is our world.
-\param indexRef The string of the index sequence of the proposed RG
-\param indexRead The string of the index sequence for the read
-\param quals The associated quality scores for the indexRead
-\return Likelihood of match
+  Computes likelihood of having a match between a potential index sequence for a read group and an observed index sequence 
+  this is effectively the sum of qualities of mismatching bases; a
+  negative number is our world.
+  \param indexRef The string of the index sequence of the proposed RG
+  \param indexRead The string of the index sequence for the read
+  \param quals The associated quality scores for the indexRead
+  \return Likelihood of match
 */
 inline double RGAssign::computeLike(const string & indexRef,const string & indexRead,const vector<int> * quals){
 #ifdef DEBUG2
@@ -445,14 +445,13 @@ inline double RGAssign::computeLike(const string & indexRef,const string & index
 
 
 
-//computes 
 
 //! Computes mismatches between index sequence of a given read group and index from the read
 /*!
- Computes mismatches between index sequence of a given read group and index from the read
-\param indexRef The string of the index sequence of the proposed RG
-\param indexRead The string of the index sequence for the read
-\return Number of mismatches
+  Computes mismatches between index sequence of a given read group and index from the read
+  \param indexRef The string of the index sequence of the proposed RG
+  \param indexRead The string of the index sequence for the read
+  \return Number of mismatches
 */
 inline int RGAssign::computeMM(const string & indexRef,const string & indexRead){
     int toReturn=0;
@@ -469,26 +468,27 @@ inline int RGAssign::computeMM(const string & indexRef,const string & indexRead)
 
 //! Computes the most likely read group assignment for a given set of sequences
 /*!
-This subroutine is the main bulk of the read group assignment algorithm. It searches the prefix trees for 
-both indices. Computes the likelihood of belonging to each possible read group and computes the read group 
-assignment quality and wrongness score
+  This subroutine is the main bulk of the read group assignment algorithm. It searches the prefix trees for 
+  both indices. Computes the likelihood of belonging to each possible read group and computes the read group 
+  assignment quality and wrongness score
 
-\param index1 sequence of the first index
-\param index1q quality for the sequence of the first index
-\param index2 sequence of the second index
-\param index2q quality for the sequence of the second index
-\param rgScoreCutoff TO REMOVE !
-\param fracConflict
-\param mismatchesTrie Maximum number of mismatches for the prefix tree
-\return A struct describing the read group assignment performed
+  \param index1 sequence of the first index
+  \param index1q quality for the sequence of the first index
+  \param index2 sequence of the second index
+  \param index2q quality for the sequence of the second index
+  \param rgScoreCutoff TO REMOVE !
+  \param fracConflict
+  \param mismatchesTrie Maximum number of mismatches for the prefix tree
+  \return A struct describing the read group assignment performed
 */
 rgAssignment RGAssign::assignReadGroup(string &index1, 
 				       string &index1q, 
 				       string &index2,
 				       string &index2q, 
-				       double rgScoreCutoff,
-				       double fracConflict,
-				       int mismatchesTrie){
+				       // double rgScoreCutoff,
+				       // double fracConflict,
+				       // int mismatchesTrie
+){
     //BEGIN DEBUG
     // cout<<"DEBUG"<<endl;
     // vector< int > * test1=new vector<int>();
@@ -715,12 +715,25 @@ rgAssignment RGAssign::assignReadGroup(string &index1,
 
 
 
+//! Get directory where program lives
+/*!
+  Get directory where program lives to retrieve information in json
+  \return cwd as string
+*/
 string RGAssign::getCWD(){
    char temp[1000];
    return ( getcwd(temp, 1000) ? string( temp ) : string("") );
 }
 
 
+
+//! Retrieve BAM tag 
+/*!
+  Subroutine to return the BAM tag 
+  \param al The BamAlignment object
+  \param name The name of the tag
+  \return The values of associated with tag "name", empty string otherwise
+*/
 inline string RGAssign::get_string_field( BamAlignment &al, const char* name ) 
 {
     if(al.HasTag(name)) {
@@ -748,7 +761,15 @@ inline string RGAssign::get_string_field( BamAlignment &al, const char* name )
     return string() ;
 }
 
-static void getIndices( const BamAlignment &al,string & index1,string & index1Q,string & index2,string & index2Q){
+
+//! Retrieve BAM tag 
+/*!
+  Subroutine to return the BAM tag 
+  \param al The BamAlignment object
+  \param name The name of the tag
+  \return The values of associated with tag "name", empty string otherwise
+*/
+inline void RGAssign::getIndices( const BamAlignment &al,string & index1,string & index1Q,string & index2,string & index2Q){
     if(!al.GetTag("XI",index1) ){ 	
 	cerr << "Cannot retrieve XI field  "<<al.Name << endl;
 	exit(1); 
@@ -769,6 +790,16 @@ static void getIndices( const BamAlignment &al,string & index1,string & index1Q,
 }
 
 
+
+
+//! Modify the BamAlignment with the read group
+/*!
+  Subroutine to modify the BamAlignment with the read group.
+  It adds/modify the RG tag and potentially the ZQ tag 
+   
+  \param al The BamAlignment object to be modified
+  \param rg The struct with the rg assignment
+*/
 void RGAssign::updateRecord( BamAlignment &al, const rgAssignment &rg )
 {
     // get old ZQ field, remove "ICW"
@@ -833,10 +864,26 @@ void RGAssign::updateRecord( BamAlignment &al, const rgAssignment &rg )
 	al.EditTag( "ZQ", "Z", zq ) ;
 }
 
+//! Check if the string contains Ns
+/*!
+   Check if the string contains Ns
+   
+  \param sN The string to check
+  \return true if the string contains no Ns
+*/
 inline bool RGAssign::containsNoNs(const string & sN){
     return (sN.find("N") == string::npos);
 }
 
+
+//! Read json file for known index sequences
+/*!
+  This subroutine reads the config json file for known index sequences
+  to see the tally of unassigned index.
+   
+  \param trieKnownString  The trie used to contain the known strings
+  \param configFile The full path to the json configuration file 
+*/
 void RGAssign::initializeKnownIndices(PrefixTree<string> * trieKnownString,string configFile){
     //p7 300
     string line;
@@ -947,6 +994,17 @@ void RGAssign::initializeKnownIndices(PrefixTree<string> * trieKnownString,strin
 }
 
 
+
+
+//! Print unknown sequences to a stream
+/*!
+  This subroutine prints the sequences 
+  for which no read group was found and 
+  potential known sequences to check 
+
+  \param unfound The set of sequences and number of those found amount the reads
+  \param fileError The string to print
+*/
 void RGAssign::printUnfoundToFile(vector< pair<string,int> > * unfound,stringstream & fileError){
 
     for(int i=0;i<min(int(unfound->size()),maxErrorHits);i++){	       
@@ -986,12 +1044,27 @@ void RGAssign::printUnfoundToFile(vector< pair<string,int> > * unfound,stringstr
     }
 }
 
+
+
+//! Check if a read failed any of the threshold
+/*!
+  Check if a read group assignment  failed any of the threshold
+
+  \param rg Struct that will be changed according to the cutoffs
+*/
 void RGAssign::check_thresholds( rgAssignment &rg ) {
     rg.unknown  = -10 * rg.logLikelihoodScore > rgScoreCutoff ;
     rg.conflict = -10 * rg.logRatioTopToSecond < fracConflict && rg.logRatioTopToSecond < 0 ;
     rg.wrong    = -10 * rg.topWrongToTopCorrect > wrongness ;
 }
 
+
+//! Process single-end reads
+/*!
+  Process single-end reads, the BamAlignment must be written afterwards
+
+  \param al To update
+*/
 void RGAssign::processSingleEndReads( BamAlignment &al){ //, BamWriter &writer, bool printError, map<string,int> &unknownSeq, map<string,int> &wrongSeq, map<string,int> &conflictSeq)
     //{
     string index1;
@@ -1023,6 +1096,14 @@ void RGAssign::processSingleEndReads( BamAlignment &al){ //, BamWriter &writer, 
 
 }
 
+
+//! Process paired-end reads
+/*!
+  Process paired-end reads, the BamAlignments must be written afterwards
+
+  \param al First mate to update
+  \param al Second mate to update
+*/
 void RGAssign::processPairedEndReads( BamAlignment &al, BamAlignment &al2){//, BamWriter &writer, bool printError, map<string,int> &unknownSeq, map<string,int> &wrongSeq, map<string,int> &conflictSeq)
 
     string index1;
@@ -1069,10 +1150,27 @@ void RGAssign::processPairedEndReads( BamAlignment &al, BamAlignment &al2){//, B
 }
 
 
+
+//! Get all read groups
+/*!
+  Get all read groups to write in the BAM
+  header
+
+  \return all read groups as a map<string,string>
+*/
 const map<string,string> *  RGAssign::getRGS(){
     return &rgs;
 }
 
+
+
+//! Get all read groups
+/*!
+  Get all read groups to write in the BAM
+  header
+
+  \return all read groups as a map<string,string>
+*/
 RGAssign::RGAssign( double rgScoreCutoff_  ,
 		    double fracConflict_   ,
 		    double wrongness_      ,
@@ -1163,6 +1261,13 @@ RGAssign::RGAssign( double rgScoreCutoff_  ,
 //     delete indTrie2;
 // }
 
+//! Get a summary string of the assignment
+/*!
+  Get a summary string of the assignment
+  to check how many were assigned
+
+  \return summary as string
+*/
 string RGAssign::getSummaryString(){
     map<string,tallyForRG>::iterator it;   
     unsigned int totalRG=0;	
@@ -1211,6 +1316,13 @@ string RGAssign::getSummaryString(){
 
 }
 
+//! Get a error string of the read group assignment
+/*!
+  Get a error string of the ones that were conflictual
+  or problematic
+
+  \return The error report
+*/
 string RGAssign::getErrorString(){
     vector< pair<string,int> > conflictToPrint( conflictSeq.begin(), conflictSeq.end() ) ;
     vector< pair<string,int> > unknownToPrint(  unknownSeq.begin(),  unknownSeq.end() ) ;
@@ -1232,6 +1344,11 @@ string RGAssign::getErrorString(){
     return fileError.str();
 }
 
+
+//! Destructor
+/*!
+  Frees the prefix trees
+*/
 RGAssign::~RGAssign() {
     // cout<<"deallocate"<<endl;
     delete indTrie1;

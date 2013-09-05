@@ -67,7 +67,7 @@ class RGAssign{
 
     indexData intern_readIndex(string filename);
     map<string,string>  readIndexFile(string filename,int mismatchesTrie,bool _shiftByOne);
-    rgAssignment assignReadGroup(string  & index1,string & index1q,string & index2,string & index2q,double rgScoreCutoff,double fracConflict,int mismatchesTrie);
+    rgAssignment assignReadGroup(string  & index1,string & index1q,string & index2,string & index2q );//,double rgScoreCutoff,double fracConflict,int mismatchesTrie);
     void deallocate();
 
     // XXX really, a global?!
@@ -123,6 +123,7 @@ class RGAssign{
     void initializeKnownIndices(PrefixTree<string> * trieKnownString,string configFile);
     void check_thresholds( rgAssignment &rg ) ;
 
+    inline void getIndices( const BamAlignment &al,string & index1,string & index1Q,string & index2,string & index2Q);
 
     void printUnfoundToFile(vector< pair<string,int> > * unfound,stringstream & fileError);
 
