@@ -221,8 +221,10 @@ class MergeTrimReads{
     MergeTrimReads & operator= (const MergeTrimReads & other);
     
 
-    pair<BamAlignment,BamAlignment> processPair(const BamAlignment & al,const BamAlignment & al2);
-    BamAlignment                    processSingle(const BamAlignment & al);
+    /* pair<BamAlignment,BamAlignment> processPair(const BamAlignment & al,const BamAlignment & al2); */
+    /* BamAlignment                    processSingle(const BamAlignment & al); */
+    bool processPair(   BamAlignment & al , BamAlignment & al2);
+    void processSingle( BamAlignment & al );
 
     string reportSingleLine();
     string reportMultipleLines();

@@ -10,8 +10,8 @@
 // // #define DEBUGPARTIALOV
 // // #define CONSBASEPROB
 
-#define DEBUGPR
-#define DEBUGSCORE
+// #define DEBUGPR
+// #define DEBUGSCORE
 
 
 
@@ -1683,14 +1683,15 @@ MergeTrimReads::~MergeTrimReads (){
 
 //! Processes the reads for paired-end reads 
 /*!
-This subroutine will call process_PE() on the sequence and return a pair<> of BamAlignment objects
-corresponding to the pair of reads. If the reads have been merged, the second object will be empty.
-It will also fix the BAM tags accordingly.
-\param al BamAlignment object as input representing the first pair
-\param al2 BamAlignment object as input representing the first pair
-\return The pair<BamAlignment,BamAlignment> representing the pair to be written to the bam file. If there was a merger, the second BamAlignment object will contain an empty record
+  This subroutine will call process_PE() on the sequence and return a pair<> of BamAlignment objects
+  corresponding to the pair of reads. If the reads have been merged, the second object will be empty.
+  It will also fix the BAM tags accordingly.
+  \param al BamAlignment object as input representing the first pair
+  \param al2 BamAlignment object as input representing the first pair
+  \return True if the pair was merged and is contained within al only
 */
-pair<BamAlignment,BamAlignment> MergeTrimReads::processPair(const BamAlignment & al,const BamAlignment & al2){
+//pair<BamAlignment,BamAlignment> MergeTrimReads::processPair(const BamAlignment & al,const BamAlignment & al2){
+bool MergeTrimReads::processPair( BamAlignment & al, BamAlignment & al2){
     
     string read1;
     string read2;
@@ -1728,51 +1729,54 @@ pair<BamAlignment,BamAlignment> MergeTrimReads::processPair(const BamAlignment &
 	qual2=string(read1.length(),'0');
     }
     
-    
+    // cerr<<"read1 "<<read1<<endl;
+    // cerr<<"read2 "<<read2<<endl;
+
     merged result=process_PE(read1,qual1,
 			     read2,qual2);
 
-//     if(al.Name == "M00518_0167_000000000-A3Y1J_CH_A2109:1:1101:12584:1649"){
-// 	cerr<<"SEQ #"<<result.sequence<<"#"<<endl;
-// 	exit(1);
-//     }
+    //     if(al.Name == "M00518_0167_000000000-A3Y1J_CH_A2109:1:1101:12584:1649"){
+    // 	cerr<<"SEQ #"<<result.sequence<<"#"<<endl;
+    // 	exit(1);
+    //     }
 
     if(result.code != ' '){ //keys or chimeras
 	string prevZQ1="";
 	string prevZQ2="";
-	pair<BamAlignment,BamAlignment> toReturn (al,al2);
+	//	pair<BamAlignment,BamAlignment> toReturn (al,al2);
 
-	toReturn.first.SetIsFailedQC(true);
-	toReturn.first.GetTag("ZQ",prevZQ1);		    
+	al.SetIsFailedQC(true);
+	al.GetTag("ZQ",prevZQ1);		    
 	prevZQ1+=result.code;
-	if(toReturn.first.HasTag("ZQ") ){ //this is done because bamtools was not intelligent enough to understand that "ZQ:A" becomes "ZQ:Z" when you add a char, oh well.. 
-	    toReturn.first.RemoveTag("ZQ");
-	    if(toReturn.first.HasTag("ZQ") ){
-		cerr << "Failed to remove tag for "<< toReturn.first.Name<<endl;
+	if(al.HasTag("ZQ") ){ //this is done because bamtools was not intelligent enough to understand that "ZQ:A" becomes "ZQ:Z" when you add a char, oh well.. 
+	    al.RemoveTag("ZQ");
+	    if(al.HasTag("ZQ") ){
+		cerr << "Failed to remove tag for "<< al.Name<<endl;
 		exit(1);
 	    }
 	}
 
 	if(prevZQ1 != "")
-	    if(!toReturn.first.AddTag("ZQ","Z",sortUniqueChar(prevZQ1))){
+	    if(!al.AddTag("ZQ","Z",sortUniqueChar(prevZQ1))){
 		cerr << "Error while editing tags new tag11:"<<prevZQ1 <<"#"<< endl;
 		exit(1);
 	    }
 
 		   
 
-	toReturn.second.SetIsFailedQC(true);
-	toReturn.second.GetTag("ZQ",prevZQ2);
+	al2.SetIsFailedQC(true);
+	al2.GetTag("ZQ",prevZQ2);
 	prevZQ2+=result.code;
-	if(toReturn.second.HasTag("ZQ") ){ 
-	    toReturn.second.RemoveTag("ZQ");
-	    if(toReturn.second.HasTag("ZQ") ){ 
-		cerr << "Failed to remove tag for "<< toReturn.second.Name<< endl;
+	if(al2.HasTag("ZQ") ){ 
+	    al2.RemoveTag("ZQ");
+	    if(al2.HasTag("ZQ") ){ 
+		cerr << "Failed to remove tag for "<< al2.Name<< endl;
 		exit(1);
 	    }
 	}
+
 	if(prevZQ2 != "")
-	    if(!toReturn.second.AddTag("ZQ","Z",sortUniqueChar(prevZQ2))){
+	    if(!al2.AddTag("ZQ","Z",sortUniqueChar(prevZQ2))){
 		cerr << "Error while editing tags new tag21:" << prevZQ2<<"#"<<endl;
 		exit(1);
 	    }
@@ -1789,64 +1793,66 @@ pair<BamAlignment,BamAlignment> MergeTrimReads::processPair(const BamAlignment &
 		exit(1);
 	    }
 	}
-	return toReturn;
+	return false;
     }
 
 
 
 
 
-
+    //    cerr<<"new #"<<result.sequence<<"#"<<endl;
 
     if(result.sequence != ""){ //new sequence
-	BamAlignment toWrite (al);//build from the previous one
+	//BamAlignment toWrite (al);//build from the previous one
 	string towriteZQ="";
-	al.GetTag("ZQ",towriteZQ);  //get from the first one
-	// if(!toWrite.RemoveTag("ZQ")){ 
-	//     cerr << "Failed to remove tag for new "<< toWrite.Name<< endl;
-	//     exit(1);
-	// }
+	al.GetTag("ZQ",towriteZQ);   //get from the first one
+	// string towriteZQ2="";
+	// al2.GetTag("ZQ",towriteZQ2);  //get from the first one
 
-	//not failed
-	toWrite.AlignmentFlag=4;
-	toWrite.MapQuality=0;
-		  
-	toWrite.QueryBases = result.sequence;
-	toWrite.Qualities  = result.quality;
-	toWrite.SetIsMapped(false);
+
+	al.AlignmentFlag=4; 	//not failed
+	
+	al.SetIsFailedQC( al.IsFailedQC() && al2.IsFailedQC() ); //fail the new one if both fail 
+	
+	al.Position    = -1;
+	al.MapQuality  =  0;
+	//RNEXT
+	al.MatePosition=-1;
+	
+
+	al.QueryBases = result.sequence;
+	al.Qualities  = result.quality;
+	// toWrite.SetIsMapped(false);
 		
 
-	toWrite.Position    =-1;
-	toWrite.MatePosition=-1;
-	toWrite.SetIsFailedQC( al.IsFailedQC() && al2.IsFailedQC() ); //fail the new one if both fail 
-	toWrite.TagData=al.TagData; //copy tag info
-
+	//copy tag info
+	// toWrite.TagData=al.TagData; 	
 	if( result.code == ' '){
 	    //cerr<<"TEST2 #"<<result.code<<" "<<endl<<result.sequence<<endl<<read1<<endl;
 	    if( result.sequence.length() > max(read1.length(),read2.length())){
 		//cerr<<"test3"<<endl;
 		count_merged_overlap ++;			  
-		if( !set_extra_flag(toWrite,  MERGEDFLAG) ) exit(1);
+		if( !set_extra_flag(al,  MERGEDFLAG) ) exit(1);
 	    }else{
  		//cerr<<"test4"<<endl;
 		count_merged++;
-		if( !set_extra_flag(toWrite,  TRIMMEDMERGEDFLAG) ) exit(1);
+		if( !set_extra_flag(al,  TRIMMEDMERGEDFLAG) ) exit(1);
 	    }
 	}
 	//  	cerr<<"TEST #"<<result.code<<"#"<<endl;
 	// 	exit(1);
 
 	//toWrite.RemoveTag("ZQ");
-	if(toWrite.HasTag("ZQ") ){ 
-	    toWrite.RemoveTag("ZQ");
-	    if(toWrite.HasTag("ZQ") ){ 
-		cerr << "Failed to remove tag for new "<< toWrite.Name<< endl;
+	if(al.HasTag("ZQ") ){ 
+	    al.RemoveTag("ZQ");
+	    if(al.HasTag("ZQ") ){ 
+		cerr << "Failed to remove tag for new "<< al.Name<< endl;
 		exit(1);
 	    }
 	}
 
-	if( toWrite.QueryBases.length()  < min_length){
-	    toWrite.SetIsFailedQC( true );		   
+	if( al.QueryBases.length()  < min_length){
+	    al.SetIsFailedQC( true );		   
 	    // if(!al.EditTag("ZQ","Z",string("L"))){
 	    // 	  cerr << "Error while editing tags" << endl;
 	    // 	  exit(1);
@@ -1897,8 +1903,8 @@ pair<BamAlignment,BamAlignment> MergeTrimReads::processPair(const BamAlignment &
 
 
 	if(towriteZQ != ""){
-	    if(!toWrite.AddTag("ZQ","Z",sortUniqueChar(towriteZQ))){
-		cerr << "Error while editing tags new tag20:"<<towriteZQ <<"#"<< endl;
+	    if(!al.AddTag("ZQ","Z",sortUniqueChar(towriteZQ))){
+		cerr << "Error while editing tags new tag20 :"<<towriteZQ <<"#"<< endl;
 		exit(1);
 	    }
 	}	
@@ -1909,10 +1915,12 @@ pair<BamAlignment,BamAlignment> MergeTrimReads::processPair(const BamAlignment &
 	// 	    writer.SaveAlignment(al2);
 	// 	    writer.SaveAlignment(al);
 	// 	}
-	BamAlignment empty;
-	return 	pair<BamAlignment,BamAlignment>(toWrite,empty);
-		    
-    }else{
+	// BamAlignment empty;
+	// return 	pair<BamAlignment,BamAlignment>(toWrite,empty);
+	return true;
+	    
+    }else{ //keep as is
+	
 	if( result.code == ' ')
 	    count_nothing++;
 	//if we use the Dup flag ourselves, clear it
@@ -1922,10 +1930,12 @@ pair<BamAlignment,BamAlignment> MergeTrimReads::processPair(const BamAlignment &
 	// 	}
 	//keep the sequences as pairs
 	
-	return 	pair<BamAlignment,BamAlignment>(al,al2);
+	// return 	pair<BamAlignment,BamAlignment>(al,al2);
 
 	//writer.SaveAlignment(al2);
 	//writer.SaveAlignment(al);
+	return false;
+
     }
 
 }
@@ -1934,13 +1944,13 @@ pair<BamAlignment,BamAlignment> MergeTrimReads::processPair(const BamAlignment &
 
 //! Processes the reads for single-end reads 
 /*!
-This subroutine will call process_SR() on the sequence and return a new BamALignment object
-corresponding to the potentially trimmed sequence.
-It will fix the BAM tags accordingly.
-\param al BamAlignment object as input
-\return The BamAlignment to be written
+  This subroutine will call process_SR() on the sequence and return a new BamALignment object
+  corresponding to the potentially trimmed sequence.
+  It will fix the BAM tags accordingly.
+  \param al BamAlignment object as input and that will be written out
+  \return The BamAlignment to be written
 */
-BamAlignment MergeTrimReads::processSingle(const BamAlignment & al){
+void MergeTrimReads::processSingle(BamAlignment & al){
 
     string read1;
     string qual1;
@@ -1958,21 +1968,21 @@ BamAlignment MergeTrimReads::processSingle(const BamAlignment & al){
 		
     if(result.code != ' '){ //either chimera or missing key
 	string prevZQ1="";
-	BamAlignment toWrite (al);//build from the previous one
+	//BamAlignment toWrite (al);//build from the previous one
 
-	toWrite.SetIsFailedQC(true);
-	toWrite.GetTag("ZQ",prevZQ1);
+	al.SetIsFailedQC(true);
+	al.GetTag("ZQ",prevZQ1);
 	prevZQ1+=result.code;
-	if(toWrite.HasTag("ZQ") ){ 
-	    toWrite.RemoveTag("ZQ");
-	    if(toWrite.HasTag("ZQ") ){ 
-		cerr << "Failed to remove tag for "<< toWrite.Name<< endl;
+	if(al.HasTag("ZQ") ){ 
+	    al.RemoveTag("ZQ");
+	    if(al.HasTag("ZQ") ){ 
+		cerr << "Failed to remove tag for "<< al.Name<< endl;
 		exit(1);
 	    }
 	}
 
 	if(prevZQ1 != ""){
-	    if(!toWrite.EditTag("ZQ","Z",sortUniqueChar(prevZQ1))){
+	    if(!al.EditTag("ZQ","Z",sortUniqueChar(prevZQ1))){
 		cerr << "Error while editing tags new tag11:"<<prevZQ1 <<"#"<< endl;
 		exit(1);
 	    }
@@ -1989,22 +1999,22 @@ BamAlignment MergeTrimReads::processSingle(const BamAlignment & al){
 	    }
 
 	}
-	return toWrite;
+	//return toWrite;
     }
 
     if(result.sequence != ""){ //new sequence
 
-	BamAlignment toWrite (al);//build from the previous al
-	toWrite.MapQuality=0;
+	///BamAlignment toWrite (al);//build from the previous al
+	al.MapQuality=0;
 
-	toWrite.QueryBases = result.sequence;
-	toWrite.Qualities  = result.quality;
-	toWrite.SetIsMapped(false);
-	if(!set_extra_flag( toWrite, TRIMMEDFLAG ))
+	al.QueryBases = result.sequence;
+	al.Qualities  = result.quality;
+	al.SetIsMapped(false);
+	if(!set_extra_flag( al, TRIMMEDFLAG ))
 	    exit(1); 
 
-	toWrite.Position    =-1;
-	toWrite.MatePosition=-1;		    
+	al.Position    =-1;
+	al.MatePosition=-1;		    
 	if( result.code == ' ')
 	    count_trimmed++;
 
@@ -2012,13 +2022,13 @@ BamAlignment MergeTrimReads::processSingle(const BamAlignment & al){
 	// 	    al.SetIsDuplicate(true);
 	// 	    writer.SaveAlignment(al);
 	// 	}
-	return toWrite;
-
+	//return toWrite;
+	
     }else{
 	if( result.code == ' ')
 	    count_nothing++;
 
-	return al;
+	//return al;
     }
 
 

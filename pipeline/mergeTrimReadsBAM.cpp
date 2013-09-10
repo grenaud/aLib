@@ -302,40 +302,51 @@ int main (int argc, char *argv[]) {
 	    if(al.IsPaired() && 
 	       !al2Null){
 
-		pair<BamAlignment,BamAlignment>  result =  mtr.processPair(al,al2);
+		bool  result =  mtr.processPair(al,al2);
 		
-		if( isBamAlignEmpty(result.second) ){//was merged
+		if( result ){//was merged
+		    BamAlignment orig;
+		    BamAlignment orig2;
+
 		    if(keepOrig){
-			al.SetIsDuplicate(true);
-			al2.SetIsDuplicate(true);
-			writer.SaveAlignment(al2);
-			writer.SaveAlignment(al);
+			orig2 = al2;
+			orig  = al;
 		    }
-		    writer.SaveAlignment(result.first);
+
+		    writer.SaveAlignment(al);
+
+		    if(keepOrig){
+			orig.SetIsDuplicate(true);
+			orig2.SetIsDuplicate(true);
+			writer.SaveAlignment(orig2);
+			writer.SaveAlignment(orig);
+		    }
+
 		    //the second record is empty
 		}else{
-		    if(keepOrig){ 
-			al.SetIsDuplicate(false);
-			al2.SetIsDuplicate(false);
-		    }
 		    //keep the sequences as pairs
-		    writer.SaveAlignment(result.second);
-		    writer.SaveAlignment(result.first);
+
+		    writer.SaveAlignment(al2);		    
+		    writer.SaveAlignment(al);
 		}
 
 		//
 		//  SINGLE END
 		//
 	    }else{ 
-
-		BamAlignment  result =	mtr.processSingle(al);
+		BamAlignment orig;
 		if(keepOrig){
-		    if(result.QueryBases.length()  != al.QueryBases.length()){
-			al.SetIsDuplicate(true);
-			writer.SaveAlignment(al);
+		    orig =al;
+		}
+		mtr.processSingle(al);
+		if(keepOrig){
+		    //write duplicate
+		    if(orig.QueryBases.length()  != al.QueryBases.length()){
+			orig.SetIsDuplicate(true);
+			writer.SaveAlignment(orig);
 		    }
 		}
-		writer.SaveAlignment(result);
+		writer.SaveAlignment(al);
 
 
 

@@ -35,7 +35,7 @@ int main (int argc, char *argv[]) {
     bool entropy      = false;
     bool frequency    = false;
     double compOrEntCutoff = 0.85;
-    double cutoffLikelihood = 0.5;
+    //    double cutoffLikelihood = 0.5;
     double cutoffAvgExpError = 0.01;
   
     ofstream likelihoodOS;
@@ -45,10 +45,10 @@ int main (int argc, char *argv[]) {
     ofstream frequencyOS;
     bool     frequencyOSFlag  = false;
     bool     verbose=false;
-    bool usePercent=false;
-    double bottomPercent=0.0;
-    bool definedCutoff=false;
-    bool definedExpCutoff=false;
+    //    bool usePercent=false;
+    //    double bottomPercent=0.0;
+    //bool definedCutoff=false;
+    //    bool definedExpCutoff=false;
 
     bool trimSeqs=false;
     bool produceUnCompressedBAM=false; 
@@ -82,15 +82,15 @@ int main (int argc, char *argv[]) {
 			      "\t\t"+"-o"+" "+"--outfile"+"\t[outfile]"+"\t\t"+"Specify output file"+"\n"+
 
 			      "\n\tFiltering options:"+"\n"+
-			      "\t\t"+"-c" +" "+"--cutoff"+"\t[cutoff]""\t\t"+"Sequence likelihood cutoff (Default: "+stringify(cutoffLikelihood)+")"+"\n"+
+			      //			      "\t\t"+"-c" +" "+"--cutoff"+"\t[cutoff]""\t\t"+"Sequence likelihood cutoff (Default: "+stringify(cutoffLikelihood)+")"+"\n"+
 			      "\t\t"+"" +""+"--cutexp"+"\t[cutoff]""\t\t"+"Average of expectancy of base error cutoff (Default: "+stringify(cutoffAvgExpError)+")"+"\n"+
 
 			      "\t\t"+"" +""+"--trim"+"\t\t\t\t\t"+"Try to trim from the 3' end (TO IMPLEMENT) (Default: "+booleanAsString(trimSeqs)+")"+"\n"+
 
 
-			      "\t\t"+"" +""+"--min_length"+"\t[cutoff]"+"\t\t"+"Flag any sequence with strickly less than this min length as failed (Default: "+stringify(minLength)+""+"\n"+
-			      "\t\t"+"" +""+"--max_length"+"\t[cutoff]"+"\t\t"+"Flag any sequence with strickly more than this max length as failed (Default: "+stringify(maxLength)+""+"\n"+
-			      "\t\t"+"" +""+"--percent"+"\t[percentage]"+"\t\t"+"Flag any sequence the bottom % as failed, to use with only small datasets (Default: not used)"+"\n"+
+			      "\t\t"+"" +""+"--min_length"+"\t[cutoff]"+"\t\t"+"Flag any sequence with strickly less than this min length as failed (Default: "+stringify(minLength)+")"+"\n"+
+			      "\t\t"+"" +""+"--max_length"+"\t[cutoff]"+"\t\t"+"Flag any sequence with strickly more than this max length as failed (Default: "+stringify(maxLength)+")"+"\n"+
+			      //"\t\t"+"" +""+"--percent"+"\t[percentage]"+"\t\t"+"Flag any sequence the bottom % as failed, to use with only small datasets (Default: not used)"+"\n"+
 
 			      "\n\tComplexity filter options:"+"\n"+
 			      
@@ -176,23 +176,23 @@ int main (int argc, char *argv[]) {
 	    continue;
 	}
 
-	if(  (strcmp(argv[i],"--percent") == 0)   ){
-	    bottomPercent =destringify<double>(argv[i+1]);
-	    usePercent=true;
-	    i++;
-	    continue;
-	}
+	// if(  (strcmp(argv[i],"--percent") == 0)   ){
+	//     bottomPercent =destringify<double>(argv[i+1]);
+	//     usePercent=true;
+	//     i++;
+	//     continue;
+	// }
 
-	if( (strcmp(argv[i],"-c") == 0) || (strcmp(argv[i],"--cutoff") == 0)   ){
-	    cutoffLikelihood =destringify<double>(argv[i+1]);
-	    definedCutoff=true;
-	    i++;
-	    continue;
-	}
+	// if( (strcmp(argv[i],"-c") == 0) || (strcmp(argv[i],"--cutoff") == 0)   ){
+	//     cutoffLikelihood =destringify<double>(argv[i+1]);
+	//     definedCutoff=true;
+	//     i++;
+	//     continue;
+	// }
 
 	if(  (strcmp(argv[i],"--cutexp") == 0)   ){
 	    cutoffAvgExpError =destringify<double>(argv[i+1]);
-	    definedExpCutoff=true;
+	    //	    definedExpCutoff=true;
 	    i++;
 	    continue;
 	}
@@ -239,22 +239,22 @@ int main (int argc, char *argv[]) {
 	return 1;             
     }
 
-    if(usePercent && definedCutoff){
-	cerr<<"Cannot defined a likelihood cutoff and a percentage"<<endl;
-	return 1;             
-    }
+    // if(usePercent && definedCutoff){
+    // 	cerr<<"Cannot defined a likelihood cutoff and a percentage"<<endl;
+    // 	return 1;             
+    // }
     
     
-    if(definedExpCutoff && (usePercent || definedCutoff) ){
-	cerr<<"Cannot defined a expectancy cutoffs and a likelihood cutoff or percentage one"<<endl;
-	return 1;             
-    }
+    // if(definedExpCutoff && (usePercent || definedCutoff) ){
+    // 	cerr<<"Cannot defined a expectancy cutoffs and a likelihood cutoff or percentage one"<<endl;
+    // 	return 1;             
+    // }
 
-    if(usePercent &&
-       (bottomPercent<0 || bottomPercent>1 ) ){
-	cerr<<"Cutoffs percentage must be between 0 and 1 for --percent"<<endl;
-	return 1;    
-    }
+    // if(usePercent &&
+    //    (bottomPercent<0 || bottomPercent>1 ) ){
+    // 	cerr<<"Cutoffs percentage must be between 0 and 1 for --percent"<<endl;
+    // 	return 1;    
+    // }
 
     if(outfile.size() == 0){
 	cerr<<"The field -o is mandatory exiting"<<endl;
@@ -278,10 +278,10 @@ int main (int argc, char *argv[]) {
 	return 1;             
     }
 
-    if( (cutoffLikelihood<0 || cutoffLikelihood>1 ) ){
-	cerr<<"The cutoff for likelihood must be between 0 and 1 for"<<endl;
-	return 1;             
-    }
+    // if( (cutoffLikelihood<0 || cutoffLikelihood>1 ) ){
+    // 	cerr<<"The cutoff for likelihood must be between 0 and 1 for"<<endl;
+    // 	return 1;             
+    // }
        
 
     //initializeLikelihoodScores();
@@ -293,29 +293,30 @@ int main (int argc, char *argv[]) {
     	cerr << "Could not open input BAM files." << endl;
     	return 1;
     }
-    FilterBAMal fm (minLength,maxLength,cutoffLikelihood,cutoffAvgExpError,frequency,entropy,compOrEntCutoff,
+
+    FilterBAMal fm (minLength,maxLength,cutoffAvgExpError,frequency,entropy,compOrEntCutoff,
 		   likelihoodFlag,&likelihoodOS, entropyOSFlag, &entropyOS, frequencyOSFlag, &frequencyOS,verbose,resetQC);
 
   
-    if(usePercent){
-	BamAlignment al2;
-	vector<double> likelihoodsFound;
-	while ( reader.GetNextAlignment(al2) ) {
-	    likelihoodsFound.push_back(fm.compLikelihoodSeq(&al2));
-	}
-	//	cout<<likelihoodsFound.size()<<endl;
+    // if(usePercent){
+    // 	BamAlignment al2;
+    // 	vector<double> likelihoodsFound;
+    // 	while ( reader.GetNextAlignment(al2) ) {
+    // 	    likelihoodsFound.push_back(fm.compLikelihoodSeq(&al2));
+    // 	}
+    // 	//	cout<<likelihoodsFound.size()<<endl;
 
-	sort (likelihoodsFound.begin(), likelihoodsFound.end());
+    // 	sort (likelihoodsFound.begin(), likelihoodsFound.end());
 
-	cutoffLikelihood=likelihoodsFound[ int(bottomPercent*(likelihoodsFound.size()))  ];
+    // 	cutoffLikelihood=likelihoodsFound[ int(bottomPercent*(likelihoodsFound.size()))  ];
 
-	if ( !reader.Open(bamfiletopen) ) {
-	    cerr << "Could not open input BAM files." << endl;
-	    return 1;
-	}
+    // 	if ( !reader.Open(bamfiletopen) ) {
+    // 	    cerr << "Could not open input BAM files." << endl;
+    // 	    return 1;
+    // 	}
 
-	//return 1;
-    }
+    // 	//return 1;
+    // }
 
     // cout<<"h"<<endl;
     // cout<<"outfile "<<outfile<<endl;

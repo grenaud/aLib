@@ -484,11 +484,11 @@ inline int RGAssign::computeMM(const string & indexRef,const string & indexRead)
 rgAssignment RGAssign::assignReadGroup(string &index1, 
 				       string &index1q, 
 				       string &index2,
-				       string &index2q, 
+				       string &index2q//, 
 				       // double rgScoreCutoff,
 				       // double fracConflict,
 				       // int mismatchesTrie
-){
+				       ){
     //BEGIN DEBUG
     // cout<<"DEBUG"<<endl;
     // vector< int > * test1=new vector<int>();
@@ -1074,7 +1074,7 @@ void RGAssign::processSingleEndReads( BamAlignment &al){ //, BamWriter &writer, 
 
     getIndices(al,index1,index1Q,index2,index2Q);
 
-    rgAssignment rgReturn=assignReadGroup(index1,index1Q,index2,index2Q,rgScoreCutoff,fracConflict,mismatchesTrie);
+    rgAssignment rgReturn=assignReadGroup(index1,index1Q,index2,index2Q);//,rgScoreCutoff,fracConflict,mismatchesTrie);
     check_thresholds( rgReturn ) ;
 
     updateRecord(al,rgReturn);
@@ -1126,7 +1126,7 @@ void RGAssign::processPairedEndReads( BamAlignment &al, BamAlignment &al2){//, B
     if(index2 !=sindex2 ){cerr<<"Seq#1 has a different index 2 than seq #2, exiting "        <<al.Name<<" vs "<<al2.Name<< endl; exit(1);}
     if(index2Q!=sindex2Q){cerr<<"Seq#1 has a different index 2 quality than seq #2, exiting "<<al.Name<<" vs "<<al2.Name<< endl; exit(1);}
 
-    rgAssignment rgReturn = assignReadGroup(index1,index1Q,index2,index2Q,rgScoreCutoff,fracConflict,mismatchesTrie);
+    rgAssignment rgReturn = assignReadGroup(index1,index1Q,index2,index2Q);//,rgScoreCutoff,fracConflict,mismatchesTrie);
     check_thresholds( rgReturn ) ;
 
     updateRecord(al, rgReturn);

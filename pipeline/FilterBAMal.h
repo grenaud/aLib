@@ -67,7 +67,7 @@ class FilterBAMal{
     Report repToPrint;
 
  public:
-    FilterBAMal(int _minLength,int _maxLength,double _cutoffLikelihood,double _cutoffAvgExpError,bool _frequency,bool _entropy,bool _compOrEntCutoff,bool _likelihoodFlag,ofstream * _likelihoodOS,bool _entropyOSFlag,ofstream  * _entropyOS,bool _frequencyOSFlag,ofstream  * _frequencyOS,bool verbose,bool _resetQC);
+    FilterBAMal(int _minLength,int _maxLength,double _cutoffAvgExpError,bool _frequency,bool _entropy,bool _compOrEntCutoff,bool _likelihoodFlag,ofstream * _likelihoodOS,bool _entropyOSFlag,ofstream  * _entropyOS,bool _frequencyOSFlag,ofstream  * _frequencyOS,bool verbose,bool _resetQC);
     FilterBAMal(const FilterBAMal & other);
     ~FilterBAMal();
     FilterBAMal & operator= (const FilterBAMal & other);
@@ -75,7 +75,7 @@ class FilterBAMal{
 
     string printLog();
     void filterBAMAlign(BamAlignment * al);
-    double compLikelihoodSeq(BamAlignment * al);
+    /* double compLikelihoodSeq(BamAlignment * al); */
 
 };
 

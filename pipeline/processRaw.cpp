@@ -36,6 +36,11 @@ static int    maxErrorHits   = 20;
 
 
 
+inline bool isBamAlignEmpty(const BamAlignment & toTest){
+    return ( toTest.Name.empty() &&
+	     toTest.Length == 0 );    
+}
+
 int main (int argc, char *argv[]) {
 
     BamReader reader;
@@ -107,11 +112,12 @@ int main (int argc, char *argv[]) {
     bool     entropyOSFlag  = false;
     ofstream frequencyOS;
     bool     frequencyOSFlag  = false;
+
     //     bool     verbose=false;
-    bool usePercent=false;
-    double bottomPercent=0.0;
-    bool definedCutoff=false;
-    bool definedExpCutoff=false;
+    //    bool usePercent=false;
+    //    double bottomPercent=0.0;
+    // bool definedCutoff=false;
+    // bool definedExpCutoff=false;
 
     bool trimSeqs=false;
     //     bool produceUnCompressedBAM=false; 
@@ -146,7 +152,7 @@ int main (int argc, char *argv[]) {
 			      "\n\n\n\t"+"------------------------------------------------------------------------------------------------------------"+"\n"+
 
 			      "\t"+"Paired End merging/Single Read trimming options"+"\n"+
-			      "\t\t"+"--log [log file]" +"\t"+"Print a tally of merged reads to this log file (default only to stderr)"+"\n"+
+			      "\t\t"+"--log\t\t\t[log file]" +"\t"+"Print a tally of merged reads to this log file (default only to stderr)"+"\n"+
 			      "\t\t"+"--mergeoverlap"+"\t\t\t\t"+"Merge PE reads of molecules longer than read length that show a minimum overlap (default "+boolStringify(mergeoverlap)+")"+"\n"+
 			      "\t\t\t\t\t\t\tGood for merging ancient DNA reads into a single sequence\n\n"
 			      "\t\t"+"--keepOrig"+"\t\t\t\t"+"Write original reads if they are trimmed or merged  (default "+boolStringify(keepOrig)+")"+"\n"+
@@ -224,8 +230,8 @@ int main (int argc, char *argv[]) {
 			      "\t\t\t"+"" +""+"--trim"+"\t\t\t\t\t"+"Try to trim from the 3' end (TO IMPLEMENT) (Default: "+booleanAsString(trimSeqs)+")"+"\n"+
 
 
-			      "\t\t\t"+"" +""+"--min_length"+"\t[cutoff]"+"\t\t"+"Flag any sequence with strickly less than this min length as failed (Default: "+stringify(minLength)+""+"\n"+
-			      "\t\t\t"+"" +""+"--max_length"+"\t[cutoff]"+"\t\t"+"Flag any sequence with strickly more than this max length as failed (Default: "+stringify(maxLength)+""+"\n"+
+			      "\t\t\t"+"" +""+"--min_length"+"\t[cutoff]"+"\t\t"+"Flag any sequence with strickly less than this min length as failed (Default: "+stringify(minLength)+")"+"\n"+
+			      "\t\t\t"+"" +""+"--max_length"+"\t[cutoff]"+"\t\t"+"Flag any sequence with strickly more than this max length as failed (Default: "+stringify(maxLength)+")"+"\n"+
 			      "\t\t\t"+"" +""+"--percent"+"\t[percentage]"+"\t\t"+"Flag any sequence the bottom % as failed, to use with only small datasets (Default: not used)"+"\n"+
 
 			      "\n\t\tComplexity filter options:"+"\n"+
@@ -251,6 +257,17 @@ int main (int argc, char *argv[]) {
     }
 
     for(int i=1;i<(argc-1);i++){ //all but the last arg
+	// General I/O options	
+	if(strcmp(argv[i],"-o") == 0 || strcmp(argv[i],"--outfile") == 0 ){
+	    bamFileOUT =string(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+	if(strcmp(argv[i],"-u") == 0  ){
+	    produceUnCompressedBAM=true;
+	    continue;
+	}
 
 	if(strcmp(argv[i],"--log") == 0 ){
 	    logFileName =string(argv[i+1]);
@@ -259,15 +276,12 @@ int main (int argc, char *argv[]) {
 	    continue;
 	}
 
+
 	if(strcmp(argv[i],"-p") == 0 || strcmp(argv[i],"--PIPE") == 0 ){
 	    cerr<<"This version no longer works with pipe, exiting"<<endl;
 	    return 1;	    
 	}
 
-	if(strcmp(argv[i],"-u") == 0  ){
-	    produceUnCompressedBAM=true;
-	    continue;
-	}
 
 	if(strcmp(argv[i],"--aligned") == 0  ){
 	    allowAligned=true;
@@ -276,16 +290,14 @@ int main (int argc, char *argv[]) {
 
 
 
-	if(strcmp(argv[i],"-o") == 0 || strcmp(argv[i],"--outfile") == 0 ){
-	    bamFileOUT =string(argv[i+1]);
-	    i++;
-	    continue;
-	}
 
 	if(strcmp(argv[i],"-v") == 0 || strcmp(argv[i],"--verbose") == 0 ){
 	    verbose=true;
 	    continue;
-	}
+	}		
+	
+	//"\t"+"Paired End merging/Single Read trimming options"+"\n"+
+
 
 	if(strcmp(argv[i],"--mergeoverlap") == 0 ){
 	    mergeoverlap=true;
@@ -333,6 +345,243 @@ int main (int argc, char *argv[]) {
 	    i++;
 	    continue;
 	}
+
+
+	// "\t"+"Demultiplexing options"+"\n"+
+	
+	
+	if(strcmp(argv[i],"--shift") == 0 ){
+	    shiftByOne      = true;
+	    continue;
+	}
+
+	if(strcmp(argv[i],"--rgval") == 0 ){
+	    string temp =string(argv[i+1]);
+	    rgqualOS.open(temp.c_str(), ios::out | ios::binary);
+	    rgqualFlag      = true;
+	    if (!rgqualOS){
+		cerr<<"Cannot print to file "<<temp<<endl;
+		exit(1);
+	    }
+	    //setFileForRGQual(&rgqualOS);
+	    flag_rgqual=true;
+	    i++;
+	    continue;
+	}
+
+
+	if(strcmp(argv[i],"-u") == 0  ){ 
+	    produceUnCompressedBAM=true; 
+	    continue; 
+	} 
+	
+
+	if(strcmp(argv[i],"--ratio") == 0 ){
+	    string temp =string(argv[i+1]);
+	    ratioValuesOS.open(temp.c_str(), ios::out | ios::binary);
+	    ratioValuesFlag = true;
+
+	    if (!ratioValuesOS){
+		cerr<<"Cannot print to file "<<temp<<endl;
+		exit(1);
+	    }
+	    //setFileForRatio(&ratioValuesOS);
+	    flag_ratioValues=true;
+	    i++;
+	    continue;
+	}
+
+	if(strcmp(argv[i],"-e") == 0 || strcmp(argv[i],"--error") == 0 ){
+	    printError=true;
+	    filenameError =string(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+
+
+	if(strcmp(argv[i],"-s") == 0 || strcmp(argv[i],"--summary") == 0 ){
+	    printSummary=true;
+	    filenameSummary =string(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+
+
+
+
+	if(strcmp(argv[i],"--maxerr") == 0 ){
+	    maxErrorHits =destringify<int>(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+
+	if(strcmp(argv[i],"--rgqual") == 0 ){
+	    rgScoreCutoff =destringify<double>(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+
+
+	if(strcmp(argv[i],"--fracconf") == 0 ){
+	    fracConflict =destringify<double>(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+	if(strcmp(argv[i],"--wrongness") == 0 ){
+	    wrongness =destringify<double>(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+	if(strcmp(argv[i],"--mm") == 0 ){
+	    mismatchesTrie =destringify<int>(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+
+
+	if(strcmp(argv[i],"-i") == 0 || strcmp(argv[i],"--index") == 0 ){
+	    index =string(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+	// if(strcmp(argv[i],"-o") == 0 || strcmp(argv[i],"--outfile") == 0 ){
+	//     outfile=string(argv[i+1]);
+	//     i++;
+	//     continue;
+	// }
+
+
+
+
+
+
+	//"\t"+"Filtering options"+"\n"+
+
+	if(strcmp(argv[i],"--freq") == 0 ){
+	    string temp =string(argv[i+1]);
+	    frequencyOS.open(temp.c_str(), ios::out | ios::binary);
+	    frequencyOSFlag      = true;
+	    if (!frequencyOS){
+		cerr<<"Cannot print to file "<<temp<<endl;
+		exit(1);
+	    }
+	    i++;
+	    continue;
+	}
+
+	if(strcmp(argv[i],"-u") == 0  ){ 
+	    produceUnCompressedBAM=true; 
+	    continue; 
+	} 
+
+	if(strcmp(argv[i],"-r") == 0  ){ 
+	    resetQC=true; 
+	    continue; 
+	} 
+
+	if(strcmp(argv[i],"--trim") == 0  ){ 
+	    cerr<<"to implement"<<endl;
+	    return 1;
+	} 
+	
+	if(strcmp(argv[i],"--ent") == 0 ){
+	    string temp =string(argv[i+1]);
+	    entropyOS.open(temp.c_str(), ios::out | ios::binary);
+	    entropyOSFlag      = true;
+	    if (!entropyOS){
+		cerr<<"Cannot print to file "<<temp<<endl;
+		exit(1);
+	    }
+	    i++;
+	    continue;
+	}
+
+	if(strcmp(argv[i],"--like") == 0 ){
+	    string temp =string(argv[i+1]);
+	    likelihoodOS.open(temp.c_str(), ios::out | ios::binary);
+	    likelihoodFlag      = true;
+	    if (!likelihoodOS){
+		cerr<<"Cannot print to file "<<temp<<endl;
+		exit(1);
+	    }
+	    i++;
+	    continue;
+	}
+
+	if(strcmp(argv[i],"--log") == 0 ){
+	    reportFile =string(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+	// if(  (strcmp(argv[i],"--percent") == 0)   ){
+	//     bottomPercent =destringify<double>(argv[i+1]);
+	//     usePercent=true;
+	//     i++;
+	//     continue;
+	// }
+
+	// if( (strcmp(argv[i],"-c") == 0) || (strcmp(argv[i],"--cutoff") == 0)   ){
+	//     cutoffLikelihood =destringify<double>(argv[i+1]);
+	//     definedCutoff=true;
+	//     i++;
+	//     continue;
+	// }
+
+	// if(  (strcmp(argv[i],"--cutexp") == 0)   ){
+	//     cutoffAvgExpError =destringify<double>(argv[i+1]);
+	//     definedExpCutoff=true;
+	//     i++;
+	//     continue;
+	// }
+
+
+	if( (strcmp(argv[i],"-e") == 0) || (strcmp(argv[i],"--entropy") == 0)   ){
+	    entropy=true;
+	    continue;
+	}
+
+	if( (strcmp(argv[i],"-f") == 0) || (strcmp(argv[i],"--frequency") == 0) ){
+	    frequency=true;
+	    continue;
+	}
+
+
+
+	if(strcmp(argv[i],"--min_length") == 0 ){
+	    minLength =destringify<double>(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+	if(strcmp(argv[i],"--max_length") == 0 ){
+	    maxLength =destringify<double>(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+	// if(strcmp(argv[i],"-o") == 0 || strcmp(argv[i],"--outfile") == 0 ){
+	//     outfile=string(argv[i+1]);
+	//     i++;
+	//     continue;
+	// }
+
+
+	if( (strcmp(argv[i],"-v") == 0) || (strcmp(argv[i],"--verbose") == 0)   ){
+	    verbose=true;
+	    continue;
+	}
+
+
+
 	
 	cerr<<"Unknown option "<<argv[i] <<" exiting"<<endl;
 	return 1;	    
@@ -369,8 +618,8 @@ int main (int argc, char *argv[]) {
 
     
 
-    string pID          = "mergeTrimReadsBAM";   
-    string pName        = "mergeTrimReadsBAM";   
+    string pID          = "processRaw";   
+    string pName        = "processRaw";   
     string pCommandLine = "";
     for(int i=0;i<(argc);i++){
 	pCommandLine += (string(argv[i])+" ");
@@ -378,6 +627,7 @@ int main (int argc, char *argv[]) {
     putProgramInHeader(&header,pID,pName,pCommandLine,returnGitHubVersion(string(argv[0]),".."));
 
     const RefVector references = reader.GetReferenceData();
+
     //we will not call bgzip with full compression, good for piping into another program to 
     //lessen the load on the CPU
     if(produceUnCompressedBAM) 
@@ -402,11 +652,35 @@ int main (int argc, char *argv[]) {
 			key1,key2,
 			trimCutoff,allowMissing,mergeoverlap);
 
+    RGAssign rga =    RGAssign(  rgScoreCutoff  ,
+				 fracConflict   ,
+				 wrongness      ,
+
+				 mismatchesTrie ,
+				 maxErrorHits ,
+				 shiftByOne,
+				 
+				 printSummary ,
+				 printError ,
+	       
+				 flag_ratioValues,
+				 flag_rgqual,
+
+				 &rgqualOS,
+				 &ratioValuesOS,
+
+
+				 index
+				 ) ;
+
+    FilterBAMal fm (minLength,maxLength,cutoffAvgExpError,frequency,entropy,compOrEntCutoff,
+		   likelihoodFlag,&likelihoodOS, entropyOSFlag, &entropyOS, frequencyOSFlag, &frequencyOS,verbose,resetQC);
 
     BamAlignment al;
     BamAlignment al2;
     bool al2Null=true;
     
+
     while ( reader.GetNextAlignment(al) ) {
 
 	
@@ -429,40 +703,60 @@ int main (int argc, char *argv[]) {
 	    if(al.IsPaired() && 
 	       !al2Null){
 
-		pair<BamAlignment,BamAlignment>  result =  mtr.processPair(al,al2);
+		bool  result =  mtr.processPair(al,al2);
 		
-		if( mtr.isBamAlignEmpty(result.second) ){//was merged
+		if( result ){//was merged
+		    BamAlignment orig;
+		    BamAlignment orig2;
+
 		    if(keepOrig){
-			al.SetIsDuplicate(true);
-			al2.SetIsDuplicate(true);
-			writer.SaveAlignment(al2);
-			writer.SaveAlignment(al);
+			orig2 = al2;
+			orig  = al;
 		    }
-		    writer.SaveAlignment(result.first);
+
+		    rga.processSingleEndReads(al);//,writer,printError,unknownSeq,wrongSeq,conflictSeq);
+		    fm.filterBAMAlign(&al);
+
+		    writer.SaveAlignment(al);
+
+		    if(keepOrig){
+			orig.SetIsDuplicate(true);
+			orig2.SetIsDuplicate(true);
+			writer.SaveAlignment(orig2);
+			writer.SaveAlignment(orig);
+		    }
+
 		    //the second record is empty
 		}else{
-		    if(keepOrig){ 
-			al.SetIsDuplicate(false);
-			al2.SetIsDuplicate(false);
-		    }
 		    //keep the sequences as pairs
-		    writer.SaveAlignment(result.second);
-		    writer.SaveAlignment(result.first);
+		    rga.processPairedEndReads(al,al2); //,writer,printError,unknownSeq,wrongSeq,conflictSeq);
+		    fm.filterBAMAlign(&al);
+		    fm.filterBAMAlign(&al2);
+
+		    writer.SaveAlignment(al2);		    
+		    writer.SaveAlignment(al);
 		}
 
 		//
 		//  SINGLE END
 		//
 	    }else{ 
-
-		BamAlignment  result =	mtr.processSingle(al);
+		BamAlignment orig;
 		if(keepOrig){
-		    if(result.QueryBases.length()  != al.QueryBases.length()){
-			al.SetIsDuplicate(true);
-			writer.SaveAlignment(al);
+		    orig =al;
+		}
+		mtr.processSingle(al);
+		if(keepOrig){
+		    //write duplicate
+		    if(orig.QueryBases.length()  != al.QueryBases.length()){
+			orig.SetIsDuplicate(true);
+			writer.SaveAlignment(orig);
 		    }
 		}
-		writer.SaveAlignment(result);
+		rga.processSingleEndReads(al);//,writer,printError,unknownSeq,wrongSeq,conflictSeq);
+		fm.filterBAMAlign(&al);
+
+		writer.SaveAlignment(al);
 
 
 
@@ -472,6 +766,7 @@ int main (int argc, char *argv[]) {
 		    
 
     } //while al
+
     reader.Close();
     writer.Close();
 
@@ -490,6 +785,12 @@ int main (int argc, char *argv[]) {
 	fileLog.close();
     }
    
+    if(rgqualFlag)
+	rgqualOS.close();
+
+    if(ratioValuesFlag)
+	ratioValuesOS.close();
+
     return 0;
 }
 
