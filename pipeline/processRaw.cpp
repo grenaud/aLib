@@ -103,7 +103,7 @@ int main (int argc, char *argv[]) {
     bool entropy      = false;
     bool frequency    = false;
     double compOrEntCutoff = 0.85;
-    double cutoffLikelihood = 0.5;
+    ///double cutoffLikelihood = 0.5;
     double cutoffAvgExpError = 0.01;
   
     ofstream likelihoodOS;
@@ -142,6 +142,7 @@ int main (int argc, char *argv[]) {
 			      //"\t"+" , --SAM" +"\n\t\t"+"Output SAM not BAM."+"\n"+
 			      "\t"+"--aligned" +"\t\t"+"Allow reads to be aligned (default "+boolStringify(allowAligned)+")"+"\n"+
 			      "\t"+"-v , --verbose" +"\t\t"+"Turn all messages on (default "+boolStringify(verbose)+")"+"\n"+
+			      "\t"+"--keepOrig"     +"\t\t"+"Write original reads if they are trimmed or merged  (default "+boolStringify(keepOrig)+")"+"\n"+
 
 
 
@@ -152,16 +153,15 @@ int main (int argc, char *argv[]) {
 			      "\n\n\n\t"+"------------------------------------------------------------------------------------------------------------"+"\n"+
 
 			      "\t"+"Paired End merging/Single Read trimming options"+"\n"+
-			      "\t\t"+"--log\t\t\t[log file]" +"\t"+"Print a tally of merged reads to this log file (default only to stderr)"+"\n"+
+			      "\t\t"+"--logmerge\t\t[log file]" +"\t"+"Print a tally of merged reads to this log file (default only to stderr)"+"\n"+
 			      "\t\t"+"--mergeoverlap"+"\t\t\t\t"+"Merge PE reads of molecules longer than read length that show a minimum overlap (default "+boolStringify(mergeoverlap)+")"+"\n"+
 			      "\t\t\t\t\t\t\tGood for merging ancient DNA reads into a single sequence\n\n"
-			      "\t\t"+"--keepOrig"+"\t\t\t\t"+"Write original reads if they are trimmed or merged  (default "+boolStringify(keepOrig)+")"+"\n"+
 			      "\t\t\t\t\t\t\tSuch reads will be marked as PCR duplicates\n\n"
 			      "\t\t"+"-f , --adapterFirstRead" +"\t\t\t"+"Adapter that is observed after the forward read (def. Multiplex: "+adapter_F.substr(0,30)+")"+"\n"+
 			      "\t\t"+"-s , --adapterSecondRead" +"\t\t"+"Adapter that is observed after the reverse read (def. Multiplex: "+adapter_S.substr(0,30)+")"+"\n"+
 			      "\t\t"+"-c , --FirstReadChimeraFilter" +"\t\t"+"If the forward read looks like this sequence, the cluster is filtered out.\n\t\t\t\t\t\t\tProvide several sequences separated by comma (def. Multiplex: "+adapter_chimera.substr(0,30)+")"+"\n"+
 			      "\t\t"+"-k , --key"+"\t\t\t\t"+"Key sequence with which each sequence starts. Comma separate for forward and reverse reads. (default '"+key+"')"+"\n"+
-			      "\t\t"+"-i , --allowMissing"+"\t\t\t"+"Allow one base in one key to be missing or wrong. (default "+boolStringify(allowMissing)+")"+"\n"+
+			      "\t\t"+"--allowMissing"+"\t\t\t"+"Allow one base in one key to be missing or wrong. (default "+boolStringify(allowMissing)+")"+"\n"+
 			      "\t\t"+"-t , --trimCutoff"+"\t\t\t"+"Lowest number of adapter bases to be observed for single Read trimming (default "+stringify(trimCutoff)+")"+
 
 
@@ -195,7 +195,7 @@ int main (int argc, char *argv[]) {
 //                               "\t\t"+"-u" +"\t\t\t\t\t"           +"Produce uncompressed bam (good for pipe)"+"\n"+ 
 			      "\t\t\t"+"-s"+","+"--summary"+"\t[summary file]"+"\t\t"+"Summarize the RG tally in this file"+"\n"+
 			      "\t\t\t"+"-e"+","+"--error"  +"\t[error file]"+"\t\t"+"Summarize the indices that were not assigned to a RG"+"\n"+
-			      "\t\t\t"+""+""+"--rgval"  +"\t\t[file]"+"\t\t\t\t"+"Write the rg qualities as a binary file"+"\n"+
+			      "\t\t\t"+""+""+"--rgval"  +"\t\t[file]"+"\t\t\t"+"Write the rg qualities as a binary file"+"\n"+
 			      "\t\t\t"+""+""+"--ratio"   +"\t\t[file]"+"\t\t\t"+"Write the likelihood ratios as a binary file"+"\n"+
 
 
@@ -218,13 +218,13 @@ int main (int argc, char *argv[]) {
 			      "\t\t\t"+""+""+"--ent"  +"\t\t[file]"+"\t\t\t"+"Write the sequence entropy as a binary file"+"\n"+
 			      "\t\t\t"+""+""+"--freq"  +"\t\t[file]"+"\t\t\t"+"Write the sequence frequency complexity as a binary file"+"\n"+
 			      "\t\t\t"+"-v"+","+"--verbose"  +"\t"+"\t\t\t"+"Print info on the stderr (Default: "+booleanAsString(verbose)+")\n"+
-			      "\t\t\t"+""+" "+"--log"  +"\t"+"\t[log file]"+"\t\t"+"Print a report to this file (Default: stderr)\n"+
+			      "\t\t\t"+""+" "+"--logfilter"  +"\t[log file]"+"\t\t"+"Print a report to this file (Default: stderr)\n"+
 
 // 			      "\n\t\t"+"\tMandatory:"+"\n"+
 // 			      "\t\t\t"+"-o"+" "+"--outfile"+"\t[outfile]"+"\t\t"+"Specify output file"+"\n"+
 
 			      "\n\t\tFiltering options:"+"\n"+
-			      "\t\t\t"+"-c" +","+"--cutoff"+"\t[cutoff]""\t\t"+"Sequence likelihood cutoff (Default: "+stringify(cutoffLikelihood)+")"+"\n"+
+			      //"\t\t\t"+"-c" +","+"--cutoff"+"\t[cutoff]""\t\t"+"Sequence likelihood cutoff (Default: "+stringify(cutoffLikelihood)+")"+"\n"+
 			      "\t\t\t"+"" +""+"--cutexp"+"\t[cutoff]""\t\t"+"Average of expectancy of base error cutoff (Default: "+stringify(cutoffAvgExpError)+")"+"\n"+
 
 			      "\t\t\t"+"" +""+"--trim"+"\t\t\t\t\t"+"Try to trim from the 3' end (TO IMPLEMENT) (Default: "+booleanAsString(trimSeqs)+")"+"\n"+
@@ -257,7 +257,9 @@ int main (int argc, char *argv[]) {
     }
 
     for(int i=1;i<(argc-1);i++){ //all but the last arg
+	/////////////////////////////////
 	// General I/O options	
+	/////////////////////////////////
 	if(strcmp(argv[i],"-o") == 0 || strcmp(argv[i],"--outfile") == 0 ){
 	    bamFileOUT =string(argv[i+1]);
 	    i++;
@@ -269,7 +271,7 @@ int main (int argc, char *argv[]) {
 	    continue;
 	}
 
-	if(strcmp(argv[i],"--log") == 0 ){
+	if(strcmp(argv[i],"--logfilter") == 0 ){
 	    logFileName =string(argv[i+1]);
 	    printLog=true;
 	    i++;
@@ -289,25 +291,32 @@ int main (int argc, char *argv[]) {
 	}
 
 
-
-
 	if(strcmp(argv[i],"-v") == 0 || strcmp(argv[i],"--verbose") == 0 ){
 	    verbose=true;
 	    continue;
 	}		
-	
-	//"\t"+"Paired End merging/Single Read trimming options"+"\n"+
 
+	if(strcmp(argv[i],"--keepOrig") == 0 ){
+	    keepOrig=true;
+	    continue;
+	}
+	
+
+
+
+
+
+
+
+	/////////////////////////////////
+	//Paired End merging/Single Read trimming options
+	/////////////////////////////////
 
 	if(strcmp(argv[i],"--mergeoverlap") == 0 ){
 	    mergeoverlap=true;
 	    continue;
 	}
 
-	if(strcmp(argv[i],"--keepOrig") == 0 ){
-	    keepOrig=true;
-	    continue;
-	}
 
 	if(strcmp(argv[i],"-f") == 0 || strcmp(argv[i],"--adapterFirstRead") == 0 ){
 	    adapter_F =string(argv[i+1]);
@@ -335,7 +344,7 @@ int main (int argc, char *argv[]) {
 	}
 	
 
-	if(strcmp(argv[i],"-i") == 0 || strcmp(argv[i],"--allowMissing") == 0 ){
+	if(strcmp(argv[i],"--allowMissing") == 0 ){
 	    allowMissing=true;
 	    continue;
 	}
@@ -347,8 +356,15 @@ int main (int argc, char *argv[]) {
 	}
 
 
-	// "\t"+"Demultiplexing options"+"\n"+
-	
+
+
+
+
+
+
+	/////////////////////////////////
+	// Demultiplexing options
+	/////////////////////////////////
 	
 	if(strcmp(argv[i],"--shift") == 0 ){
 	    shiftByOne      = true;
@@ -462,9 +478,9 @@ int main (int argc, char *argv[]) {
 
 
 
-
-	//"\t"+"Filtering options"+"\n"+
-
+	/////////////////////////////////
+	//Filtering options
+	/////////////////////////////////
 	if(strcmp(argv[i],"--freq") == 0 ){
 	    string temp =string(argv[i+1]);
 	    frequencyOS.open(temp.c_str(), ios::out | ios::binary);
@@ -477,10 +493,10 @@ int main (int argc, char *argv[]) {
 	    continue;
 	}
 
-	if(strcmp(argv[i],"-u") == 0  ){ 
-	    produceUnCompressedBAM=true; 
-	    continue; 
-	} 
+	// if(strcmp(argv[i],"-u") == 0  ){ 
+	//     produceUnCompressedBAM=true; 
+	//     continue; 
+	// } 
 
 	if(strcmp(argv[i],"-r") == 0  ){ 
 	    resetQC=true; 
@@ -516,7 +532,7 @@ int main (int argc, char *argv[]) {
 	    continue;
 	}
 
-	if(strcmp(argv[i],"--log") == 0 ){
+	if(strcmp(argv[i],"--logmerge") == 0 ){
 	    reportFile =string(argv[i+1]);
 	    i++;
 	    continue;
@@ -587,13 +603,22 @@ int main (int argc, char *argv[]) {
 	return 1;	    
     }
 
-    bamFile=argv[argc-1];
-    //  initMerge();
-    //     set_adapter_sequences(adapter_F,
-    // 			  adapter_S,
-    // 			  adapter_chimera);
-    //     set_options(trimCutoff,allowMissing,mergeoverlap);
+    //////////////////////////////////////////////////////////
 
+    /////////////////////////////////
+    // General I/O options	
+    /////////////////////////////////
+    bamFile=argv[argc-1];
+
+    if( bamFileOUT == ""  ){
+	cerr<<"The output must be a be specified, exiting"<<endl;
+	return 1;
+    }
+
+    
+    /////////////////////////////////
+    //Paired End merging/Single Read trimming options
+    /////////////////////////////////
     if(key != ""){
 	size_t found=key.find(",");
 	if (found == string::npos){ //single end reads
@@ -605,10 +630,45 @@ int main (int argc, char *argv[]) {
 	}
     }
 
-    if( bamFileOUT == ""  ){
-	cerr<<"The output must be a be specified, exiting"<<endl;
-	return 1;
+
+
+    /////////////////////////////////
+    // Demultiplexing options
+    /////////////////////////////////
+
+    if(index.size() == 0){
+	cerr<<"The field -i is mandatory exiting"<<endl;
+	return 1;             
     }
+
+
+    
+    /////////////////////////////////
+    //Filtering options
+    /////////////////////////////////
+    
+    if(entropy && frequency){
+	cerr<<"Specify only one type of complexity filter"<<endl;
+	return 1;             
+    }
+
+    if(frequency &&
+       (compOrEntCutoff<0 || compOrEntCutoff>1 ) ){
+	cerr<<"Cutoffs for frequency between 0 and 1 for --frequency"<<endl;
+	return 1;             
+    }
+
+    if(entropy &&
+       (compOrEntCutoff<0 || compOrEntCutoff>2 ) ){
+	cerr<<"Cutoffs for entropy between 0 and 2 for --entropy"<<endl;
+	return 1;             
+    }
+
+
+    //////////////////////////////////////////////////////////
+
+
+
 
     if ( !reader.Open(bamFile) ) {
     	cerr << "Could not open input BAM file  "<<bamFile << endl;

@@ -2,7 +2,7 @@
 
 
 // #define DEBUG2
-// //#define DEBUGSR
+// #define DEBUGSR
 
 // #define DEBUGADAPT
 // #define DEBUGOVERLAP
@@ -624,11 +624,12 @@ inline double MergeTrimReads::measureOverlap(const string      & read1,
   \return The likelihood of the observation 
 */
 inline double MergeTrimReads::detectAdapter(const string      & read,
-				   const vector<int> & qual,
-				   const string      & adapterString,
-				   unsigned int        offsetRead,
-				    int              *  matches){
+					    const vector<int> & qual,
+					    const string      & adapterString,
+					    unsigned int        offsetRead,
+					    int              *  matches){
     
+
     double likelihoodMatch=0.0;
     
     unsigned maxIterations=min ( min( (read.length()-offsetRead),
@@ -637,18 +638,27 @@ inline double MergeTrimReads::detectAdapter(const string      & read,
 
 #ifdef DEBUGADAPT
     string comparedread;
+    cerr<<"offsetRead "<<offsetRead<<endl<<"read "<<read<<"\n"<<adapterString<<endl;
 #endif
+
     unsigned  i=0;
     unsigned  indexRead=offsetRead;
 
     while(i<maxIterations){
 	indexRead = i+offsetRead;
 
+
 #ifdef DEBUGADAPT
 	comparedread+=read[indexRead];
+	cerr<<"apt0 "<<indexRead<<endl;
+ 	cerr<<"apt1 "<<i<<"\t"<<endl;
+	cerr<<"apt2 "<<likelihoodMatch<<endl;
+	cerr<<"apt3 "<<read[indexRead]<<endl;
+	cerr<<"apt3 "<<qual[indexRead]<<endl;
+	cerr<<"apt4 "<<likeMatch[ qual[indexRead] ]<<endl;
+	cerr<<"apt5 "<<likeMismatch[ qual[indexRead] ]<<endl;
+	cerr<<"apt6 "<<adapterString[i]<<endl;
 #endif
-
-// 	cerr<<"apt "<<i<<"\t"<<likelihoodMatch<<"\tq:"<<qual[indexRead]<<"\t"<<likeMatch[ qual[indexRead] ]<<"\t"<<likeMismatch[ qual[indexRead] ]<<endl;
 
 	if(         read[indexRead]           == adapterString[i] || 
 		    adapterString[i]          == 'I' ){ //match
@@ -657,7 +667,11 @@ inline double MergeTrimReads::detectAdapter(const string      & read,
 	}else{ //mismatch
 	    likelihoodMatch  += likeMismatch[ qual[indexRead] ];
 	}
-// 	cerr<<"apt "<<i<<"\t"<<likelihoodMatch<<"\tq:"<<qual[indexRead]<<"\t"<<likeMatch[ qual[indexRead] ]<<"\t"<<likeMismatch[ qual[indexRead] ]<<endl;
+
+#ifdef DEBUGADAPT
+	cerr<<"apt "<<i<<"\t"<<likelihoodMatch<<"\tq:"<<qual[indexRead]<<"\t"<<likeMatch[ qual[indexRead] ]<<"\t"<<likeMismatch[ qual[indexRead] ]<<endl;
+#endif
+
 	//(*iterations)++;
 	i++;
 
@@ -670,7 +684,7 @@ inline double MergeTrimReads::detectAdapter(const string      & read,
 #endif
 
    
-
+    //Adding the likelihood of the remaining bases
     likelihoodMatch += double( extraBases ) * likeRandomMatch;
 
 
@@ -905,11 +919,11 @@ inline void MergeTrimReads::string2NumericalQualScores(const string & qual,vecto
 
 */
 inline void MergeTrimReads::computeBestLikelihoodSingle(const string      & read1,
-					       const vector<int> & qualv1,
-					       double & logLikelihoodTotal,
-					       int &    logLikelihoodTotalIdx,
-					       double & sndlogLikelihoodTotal,
-					       int &    sndlogLikelihoodTotalIdx){
+							const vector<int> & qualv1,
+							double & logLikelihoodTotal,
+							int    & logLikelihoodTotalIdx,
+							double & sndlogLikelihoodTotal,
+							int    & sndlogLikelihoodTotalIdx){
     // sndlogLikelihoodTotalMatches = logLikelihoodTotalMatches;
 	    
 
@@ -917,7 +931,16 @@ inline void MergeTrimReads::computeBestLikelihoodSingle(const string      & read
 	indexAdapter<(read1.length()-options_trimCutoff);
 	indexAdapter++){
 	//double iterations=0;
-	double logLike=detectAdapter( read1 , qualv1 , options_adapter_F,indexAdapter );
+	int    matches   =0;
+
+#ifdef DEBUGSR
+	cerr<<indexAdapter<<"\t"<<options_adapter_F<<endl;
+#endif
+
+	double logLike=
+	    (double( indexAdapter ) * likeRandomMatch ) //likelihood of remaining bases
+	    +
+	    detectAdapter( read1 , qualv1 , options_adapter_F,indexAdapter , &matches );
 
 
 
@@ -939,7 +962,7 @@ inline void MergeTrimReads::computeBestLikelihoodSingle(const string      & read
 	}
 
 #ifdef DEBUGSR
-	cerr<<indexAdapter<<"\t"<<tm<<endl;
+	cerr<<indexAdapter<<"\t"<<logLike<<endl;
 #endif
     }
 }
@@ -1227,7 +1250,7 @@ inline void MergeTrimReads::computeConsensusPairedEnd( const string & read1,
 
 */
 merged MergeTrimReads::process_SR(string  read1, 
-		  string  qual1){
+				  string  qual1){
 
     merged toReturn;
     // int qualOffset=33;
@@ -1241,7 +1264,7 @@ merged MergeTrimReads::process_SR(string  read1,
 
     sanityCheckLength(read1,qual1);
 
-
+    // cerr<<"read1 1 "<<read1<<endl;
 
 
     vector<int> qualv1;
@@ -1263,6 +1286,7 @@ merged MergeTrimReads::process_SR(string  read1,
     // end detecting chimera //
 
 
+    // cerr<<"read1 2 "<<read1<<endl;
 
 
 
@@ -1271,6 +1295,7 @@ merged MergeTrimReads::process_SR(string  read1,
     double sndlogLikelihoodTotal      = -DBL_MAX;
     int sndlogLikelihoodTotalIdx      = -1;
 
+    // cerr<<"read1 3 "<<read1<<endl;
 
     computeBestLikelihoodSingle(read1,
 				qualv1,
@@ -1285,7 +1310,7 @@ merged MergeTrimReads::process_SR(string  read1,
 
 
 
-     if( logLikelihoodTotalIdx != -1    &&                       //the status quo is not the most likely
+     if( logLikelihoodTotalIdx != -1     &&                       //the status quo is not the most likely
 	 (logLikelihoodTotal/sndlogLikelihoodTotal)      < maxLikelihoodRatio ){
      
 	
@@ -1963,9 +1988,12 @@ void MergeTrimReads::processSingle(BamAlignment & al){
 	qual1=string(read1.length(),'0');
     }
 	
+    // cerr<<read1<<endl;
+    // cerr<<"-----"<<endl;
+    // cerr<<qual1<<endl;
 
     merged result=process_SR(read1,qual1);
-		
+
     if(result.code != ' '){ //either chimera or missing key
 	string prevZQ1="";
 	//BamAlignment toWrite (al);//build from the previous one

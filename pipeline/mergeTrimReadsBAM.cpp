@@ -339,6 +339,7 @@ int main (int argc, char *argv[]) {
 		    orig =al;
 		}
 		mtr.processSingle(al);
+
 		if(keepOrig){
 		    //write duplicate
 		    if(orig.QueryBases.length()  != al.QueryBases.length()){
