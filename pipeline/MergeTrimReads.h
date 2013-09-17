@@ -66,7 +66,8 @@ class MergeTrimReads{
     int len_key1;
     int len_key2;
     size_t options_trimCutoff;
-    bool options_mergeoverlap;
+    //bool options_mergeoverlap;
+    bool ancientDNA ;
     double max_prob_N ;
     /* extern size_t min_length ; */
 
@@ -212,9 +213,9 @@ class MergeTrimReads{
     vector<string> checkedTags;
 
  public:
-    MergeTrimReads (const string& forward, const string& reverse, const string& chimera,
-		    const string& key1="", const string& key2="",
-		    int trimcutoff=1,bool allowMissing=false,bool mergeoverlap=false);
+    MergeTrimReads (const string& forward_, const string& reverse_, const string& chimera_,
+		    const string& key1_="", const string& key2_="",
+		    int trimcutoff_=1,bool allowMissing_=false,bool ancientDNA_=false);
 
     MergeTrimReads(const MergeTrimReads & other);
     ~MergeTrimReads();

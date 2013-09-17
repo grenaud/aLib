@@ -418,10 +418,11 @@ void MergeTrimReads::set_keys(const string& key1, const string& key2){
   \param mergeoverlap Whether we merge partially overlapping reads
   
 */
-void MergeTrimReads::set_options(int trimcutoff,bool allowMissing,bool mergeoverlap){
-    options_trimCutoff   = trimcutoff;
-    options_allowMissing = allowMissing;
-    options_mergeoverlap = mergeoverlap;
+void MergeTrimReads::set_options(int trimcutoff_,bool allowMissing_,  bool ancientDNA_ ){ //,bool mergeoverlap){
+    options_trimCutoff   = trimcutoff_;
+    options_allowMissing = allowMissing_;
+    //options_mergeoverlap = mergeoverlap;
+    ancientDNA = ancientDNA_;
 }
 
 
@@ -508,13 +509,13 @@ inline double MergeTrimReads::detectChimera(const string      & read,
   \return The likelihood of observing an overlap between two sequences
 */
 inline double MergeTrimReads::measureOverlap(const string      & read1,
-				    const vector<int> & qual1,
-				    const string      & read2,
-				    const vector<int> & qual2,
-				    const int         & maxLengthForPair,
-				    unsigned int      offsetRead,				    
-				    //double *          iterations =0 ,
-				    int  *            matches){
+					     const vector<int> & qual1,
+					     const string      & read2,
+					     const vector<int> & qual2,
+					     const int         & maxLengthForPair,
+					     unsigned int      offsetRead,				    
+					     //double *          iterations =0 ,
+					     int  *            matches){
     
 #ifdef DEBUGOVERLAP
     string comparedread1;
@@ -792,9 +793,11 @@ inline bool MergeTrimReads::checkKeySingleEnd(string & read1,string & qual1,merg
   \param toReturn merged struct to hold the results
   \return true if the key was not observed, false otherwise
 */
-inline bool MergeTrimReads::checkKeyPairedEnd(string & read1,string & qual1,
-				     string & read2,string & qual2,
-				     merged & toReturn){
+inline bool MergeTrimReads::checkKeyPairedEnd(string & read1,
+					      string & qual1,
+					      string & read2,
+					      string & qual2,
+					      merged & toReturn){
 
 
     if( handle_key && read1.length() > 0){
@@ -999,25 +1002,25 @@ inline void MergeTrimReads::computeBestLikelihoodSingle(const string      & read
 */
 
 inline void MergeTrimReads::computeBestLikelihoodPairedEnd(const string &      read1,
-						  const vector<int> & qualv1,
+							   const vector<int> & qualv1,
 
-						  const string &      read2,
-						  const vector<int> & qualv2,
+							   const string &      read2,
+							   const vector<int> & qualv2,
 
-						  const string &      read2_rev,
-						  const vector<int> & qualv2_rev,
+							   const string &      read2_rev,
+							   const vector<int> & qualv2_rev,
 
-						  const int & lengthRead1,
-						  const int & lengthRead2,
-						  const int & maxLengthForPair,
+							   const int & lengthRead1,
+							   const int & lengthRead2,
+							   const int & maxLengthForPair,
 
-						  double & logLikelihoodTotal,
-						  int    & logLikelihoodTotalIdx,
-						  int    & logLikelihoodTotalMatches,
+							   double & logLikelihoodTotal,
+							   int    & logLikelihoodTotalIdx,
+							   int    & logLikelihoodTotalMatches,
 
-						  double & sndlogLikelihoodTotal,
-						  int    & sndlogLikelihoodTotalIdx,
-						  int    & sndlogLikelihoodTotalMatches){
+							   double & sndlogLikelihoodTotal,
+							   int    & sndlogLikelihoodTotalIdx,
+							   int    & sndlogLikelihoodTotalMatches){
     
 
 
@@ -1032,7 +1035,8 @@ inline void MergeTrimReads::computeBestLikelihoodPairedEnd(const string &      r
 	int    matches   =0;
 
 	if(indexAdapter > maxLengthForPair) //partial overlap
-	    if(!options_mergeoverlap) //no point in continuing 
+	    //if(!options_mergeoverlap) //no point in continuing 
+	    if(!ancientDNA)
 		break;
 	    
 	//adapters
@@ -1111,28 +1115,29 @@ inline void MergeTrimReads::computeBestLikelihoodPairedEnd(const string &      r
 */
 
 inline void MergeTrimReads::computeConsensusPairedEnd( const string & read1,
-							      const vector<int> &   qualv1,
+						       const vector<int> &   qualv1,
 							      
-							      const string & read2_rev,
-							      const vector<int> & qualv2_rev,
+						       const string & read2_rev,
+						       const vector<int> & qualv2_rev,
 
 							      
-							      const double & logLikelihoodTotal,
-							      const int    & logLikelihoodTotalIdx,
-							      const int    & logLikelihoodTotalMatches,
+						       const double & logLikelihoodTotal,
+						       const int    & logLikelihoodTotalIdx,
+						       const int    & logLikelihoodTotalMatches,
 					      
-							      const double & sndlogLikelihoodTotal,
-							      const int    & sndlogLikelihoodTotalIdx,
-							      const int    & sndlogLikelihoodTotalMatches,
+						       const double & sndlogLikelihoodTotal,
+						       const int    & sndlogLikelihoodTotalIdx,
+						       const int    & sndlogLikelihoodTotalMatches,
 					      
-							      const int & maxLengthForPair,
-							      merged & toReturn){
+						       const int & maxLengthForPair,
+						       merged & toReturn){
 
     baseQual b1;
     baseQual b2;
     //test for merging:
     if( logLikelihoodTotalIdx != -1    &&                       //the status quo is not the most likely
-	(logLikelihoodTotal/sndlogLikelihoodTotal)      < maxLikelihoodRatio &&
+	//(logLikelihoodTotal/sndlogLikelihoodTotal)      < maxLikelihoodRatio &&
+	( (sndlogLikelihoodTotal - logLikelihoodTotal) < log10(maxLikelihoodRatio) ) &&
 	logLikelihoodTotalMatches >= int(min_overlap_seqs)  ){       //sufficient # of mismatches for partial overlap (artifically to min_overlap_seqs for complete overlap)
 
 
@@ -1309,10 +1314,33 @@ merged MergeTrimReads::process_SR(string  read1,
 #endif
 
 
+     //cout<<(sndlogLikelihoodTotal - logLikelihoodTotal)<<endl;
 
-     if( logLikelihoodTotalIdx != -1     &&                       //the status quo is not the most likely
-	 (logLikelihoodTotal/sndlogLikelihoodTotal)      < maxLikelihoodRatio ){
-     
+     // if ( (sndlogLikelihoodTotal - logLikelihoodTotal) > log10(maxLikelihoodRatio)){ //statistical tie
+
+     // 	 if(ancientDNA){ 
+
+     // 	     if( logLikelihoodTotalIdx == -1 ){ //more likely is status quo, under ancient DNA the second is more likely
+     // 		 logLikelihoodTotal    = sndlogLikelihoodTotal;		 
+     // 		 logLikelihoodTotalIdx = sndlogLikelihoodTotalIdx;
+     // 	     }	    
+	     
+     // 	 }else{ //modern DNA
+	     
+     // 	     if( sndlogLikelihoodTotalIdx == -1 ){ //second most likely is status quo, under modern DNA it becomes the most likely
+     // 		 logLikelihoodTotal    = sndlogLikelihoodTotal;		 
+     // 		 logLikelihoodTotalIdx = sndlogLikelihoodTotalIdx;
+     // 	     }
+	     
+     // 	 }
+     // }
+
+
+
+
+     if( logLikelihoodTotalIdx != -1 &&
+	 ( (sndlogLikelihoodTotal - logLikelihoodTotal) < log10(maxLikelihoodRatio) )
+	 ){
 	
         read1 = read1.substr(0,logLikelihoodTotalIdx);
         qual1 = qual1.substr(0,logLikelihoodTotalIdx);
@@ -1614,7 +1642,9 @@ This constructor initialize basic variables to begin using proceePair or process
 */
 MergeTrimReads::MergeTrimReads (const string& forward_, const string& reverse_, const string& chimera_,
 				const string& key1_, const string& key2_,
-				int trimcutoff_,bool allowMissing_,bool mergeoverlap_) : 
+				int trimcutoff_,bool allowMissing_,
+				bool ancientDNA_):
+    //bool mergeoverlap_) : 
     min_length (5),
     qualOffset (33),
 
@@ -1686,7 +1716,7 @@ MergeTrimReads::MergeTrimReads (const string& forward_, const string& reverse_, 
     //     keys1="";
     //     len_key1=0;
     //     len_key2=0;
-    set_options(trimcutoff_,allowMissing_,mergeoverlap_);
+    set_options(trimcutoff_,allowMissing_,ancientDNA_);
 
     // size_t  options_trimCutoff   = 
     // bool    options_mergeoverlap = false;

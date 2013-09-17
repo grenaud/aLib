@@ -66,7 +66,7 @@ int main (int argc, char *argv[]) {
 
     bool produceUnCompressedBAM=false;
     bool verbose=false;
-    bool mergeoverlap=false;
+    bool ancientDNA=false;
     bool keepOrig=false;
 
     string adapter_F=options_adapter_F_BAM;
@@ -103,7 +103,9 @@ int main (int argc, char *argv[]) {
 			      "\t"+"--log [log file]" +"\t"+"Print a tally of merged reads to this log file (default only to stderr)"+"\n"+
 			      
 			      "\n\t"+"Paired End merging/Single Read trimming  options"+"\n"+
-			      "\t\t"+"--mergeoverlap"+"\t\t\t\t"+"Merge PE reads of molecules longer than read length that show a minimum overlap (default "+boolStringify(mergeoverlap)+")"+"\n"+
+			      "\t\t"+"--ancientdna"+"\t\t\t\t"+"ancient DNA (default "+boolStringify(ancientDNA)+")"+"\n"+
+			      "\t\t"+"            "+"\t\t\t\t"+" Allows for partial overlap"+"\n"+
+
 			      "\t\t\t\t\t\t\tGood for merging ancient DNA reads into a single sequence\n\n"
 			      "\t\t"+"--keepOrig"+"\t\t\t\t"+"Write original reads if they are trimmed or merged  (default "+boolStringify(keepOrig)+")"+"\n"+
 			      "\t\t\t\t\t\t\tSuch reads will be marked as PCR duplicates\n\n"
@@ -161,8 +163,8 @@ int main (int argc, char *argv[]) {
 	    continue;
 	}
 
-	if(strcmp(argv[i],"--mergeoverlap") == 0 ){
-	    mergeoverlap=true;
+	if(strcmp(argv[i],"--ancientdna") == 0 ){
+	    ancientDNA=true;
 	    continue;
 	}
 
@@ -273,7 +275,7 @@ int main (int argc, char *argv[]) {
     
     MergeTrimReads mtr (adapter_F,adapter_S,adapter_chimera,
 			key1,key2,
-			trimCutoff,allowMissing,mergeoverlap);
+			trimCutoff,allowMissing,ancientDNA);
 
 
     BamAlignment al;
