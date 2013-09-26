@@ -89,6 +89,11 @@ int main (int argc, char *argv[]) {
     string key1;
     string key2;
     
+    bool useDist=false;
+    double location=-1.0;
+    double scale   =-1.0;
+
+    
     const string usage=string(string(argv[0])+
 			      "This program takes a BAM where each mate are consecutive and\ntrims and merges reads\n"+
 			      +" [options] BAMfile"+"\n"+
@@ -103,9 +108,12 @@ int main (int argc, char *argv[]) {
 			      "\t"+"--log [log file]" +"\t"+"Print a tally of merged reads to this log file (default only to stderr)"+"\n"+
 			      
 			      "\n\t"+"Paired End merging/Single Read trimming  options"+"\n"+
+			      "\t\t"+"You can specify either:"+"\n"+
 			      "\t\t"+"--ancientdna"+"\t\t\t\t"+"ancient DNA (default "+boolStringify(ancientDNA)+")"+"\n"+
 			      "\t\t"+"            "+"\t\t\t\t"+" Allows for partial overlap"+"\n"+
-
+			      "\t\t"+"or if you know your size length distribution:"+"\n"+
+			      "\t\t"+"--loc"+"\t\t\t\t"+"Location for lognormal dist. (default none)"+"\n"+
+			      "\t\t"+"--scale"+"\t\t\t\t"+"Scale for lognormal dist. (default none)"+"\n"+
 			      "\t\t\t\t\t\t\tGood for merging ancient DNA reads into a single sequence\n\n"
 			      "\t\t"+"--keepOrig"+"\t\t\t\t"+"Write original reads if they are trimmed or merged  (default "+boolStringify(keepOrig)+")"+"\n"+
 			      "\t\t\t\t\t\t\tSuch reads will be marked as PCR duplicates\n\n"
@@ -173,6 +181,20 @@ int main (int argc, char *argv[]) {
 	    continue;
 	}
 
+	if(strcmp(argv[i],"--loc") == 0 ){
+	    location =destringify<double>(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+	if(strcmp(argv[i],"--scale") == 0 ){
+	    scale =destringify<double>(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+
+
 	if(strcmp(argv[i],"-f") == 0 || strcmp(argv[i],"--adapterFirstRead") == 0 ){
 	    adapter_F =string(argv[i+1]);
 	    i++;
@@ -215,11 +237,28 @@ int main (int argc, char *argv[]) {
     }
 
     bamFile=argv[argc-1];
-   //  initMerge();
-//     set_adapter_sequences(adapter_F,
-// 			  adapter_S,
-// 			  adapter_chimera);
-//     set_options(trimCutoff,allowMissing,mergeoverlap);
+
+    if( (location != -1.0 && scale == -1.0) ||
+	(location == -1.0 && scale != -1.0) ){
+	cerr<<"Cannot specify --location without specifying --scale"<<endl;
+	return 1;	    
+    }
+	
+    if( (location != -1.0 && scale != -1.0) ){
+	useDist=true;
+	    
+	if(ancientDNA){
+	    cerr<<"Cannot specify --location/--scale and --ancientDNA"<<endl;
+	    return 1;	    
+	}
+    }
+    
+
+    //  initMerge();
+    //     set_adapter_sequences(adapter_F,
+    // 			  adapter_S,
+    // 			  adapter_chimera);
+    //     set_options(trimCutoff,allowMissing,mergeoverlap);
     if(key != ""){
 	size_t found=key.find(",");
 	if (found == string::npos){ //single end reads
@@ -275,8 +314,7 @@ int main (int argc, char *argv[]) {
     
     MergeTrimReads mtr (adapter_F,adapter_S,adapter_chimera,
 			key1,key2,
-			trimCutoff,allowMissing,ancientDNA);
-
+			trimCutoff,allowMissing,ancientDNA,location,scale,useDist);
 
     BamAlignment al;
     BamAlignment al2;

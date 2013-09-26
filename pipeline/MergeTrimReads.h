@@ -16,11 +16,13 @@
 #include <api/BamWriter.h>
 #include <api/BamAlignment.h>
 #include <api/BamAux.h>
+/* #include <boost/math/distributions/lognormal.hpp> */
 
 #include "utils.h"
 
 using namespace std;
 using namespace BamTools;
+/* using namespace boost::math; */
 
 
 
@@ -107,6 +109,10 @@ class MergeTrimReads{
     inline baseQual cons_base_prob(baseQual  base1,baseQual base2);
 
 
+
+    /* double computePDF(const double x); */
+    /* double computeCDF(const double x); */
+    
     void    setLikelihoodScores(double likelihoodChimera_,
 				double likelihoodAdapterSR_,
 				double likelihoodAdapterPR_);
@@ -136,6 +142,10 @@ class MergeTrimReads{
 			 const string      & adapterString,
 			 unsigned int        offsetRead=0,
 			 int              *  matches=0);
+
+    long double logcomppdf(long double mu,long double sigma,long double x);
+    long double logcompcdf(long double mu,long double sigma,long double x);
+
 
     int edits(const string & seq1,const string & seq2);
     void sanityCheckLength(const string & seq,const string & qual);
@@ -212,10 +222,15 @@ class MergeTrimReads{
     int count_chimera ;
     vector<string> checkedTags;
 
+    //lnnorm
+    double location;
+    double scale;
+    bool   useDist;
+    //lognormal_distribution<> p;
  public:
     MergeTrimReads (const string& forward_, const string& reverse_, const string& chimera_,
 		    const string& key1_="", const string& key2_="",
-		    int trimcutoff_=1,bool allowMissing_=false,bool ancientDNA_=false);
+		    int trimcutoff_=1,bool allowMissing_=false,bool ancientDNA_=false,double location_=-1.0,double scale_=-1.0,bool useDist_=false);
 
     MergeTrimReads(const MergeTrimReads & other);
     ~MergeTrimReads();

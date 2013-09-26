@@ -10,11 +10,12 @@
 // // #define DEBUGPARTIALOV
 // // #define CONSBASEPROB
 
-// #define DEBUGPR
+//#define DEBUGPR
 // #define DEBUGSCORE
 
 
 
+const long double PI  = atanl(1.0L)*4;   //acos(-1.0L); //3.141592653589793238462;
 
 
 // vector<string> adapter_chimeras (chimInit,chimInit+13);
@@ -29,6 +30,57 @@
 
 
 
+// double MergeTrimReads::computePDF(const double x){
+//     double  priorDist   = max(pdf(p, x ),1.0e-10);    
+//     return  log( priorDist )/log(10);    
+// }
+
+// double MergeTrimReads::computeCDF(const double x){
+//     double priorDist   = max( 1.0 - cdf(p, x ),1.0e-10);    
+//     //cerr<<"cdf "<<x<<"\t"<<priorDist<<endl;
+//     return log( priorDist )/log(10);    
+// }
+
+
+//! Computes log of probability density function
+/*!
+  Computes the log base 10 of pdf(x)
+  
+  \param mu The mean (location)
+  \param sigma The variance (scale)
+  \param x The value for which we want the pdf
+  \return The values of log base 10 of (pdf(x))
+*/
+long double MergeTrimReads::logcomppdf(long double mu,long double sigma,long double x){
+    long double two = 2.0;   
+    long double exponent = logl(x) - mu;
+    exponent *= -exponent;
+    exponent /= two * sigma * sigma;
+    
+    long double result = exponent/logl(10);
+    result -= logl(sigma * sqrtl(two * PI) * x)/logl(10);
+
+    return result;
+}
+
+
+//! Computes log of cummulative distribution function
+/*!
+  Computes the log base 10 of 1 - cdf(x)
+  
+  \param mu The mean (location)
+  \param sigma The variance (scale)
+  \param x The value for which we want the cdf
+  \return The values of log base 10 of (1 - cdf(x))
+*/
+long double MergeTrimReads::logcompcdf(long double mu,long  double sigma,long  double x){
+    long double two = 2.0;
+    long double result = logl(x) - mu;
+    result /= sigma * sqrtl( two );
+    result =  erfcl(result); //erf(x)  = 1 - erfc(x)
+    result *= 0.5;
+    return logl(result)/logl(10);    
+}
 
 
 //! Computes reverse complement (char)
@@ -945,6 +997,9 @@ inline void MergeTrimReads::computeBestLikelihoodSingle(const string      & read
 	    +
 	    detectAdapter( read1 , qualv1 , options_adapter_F,indexAdapter , &matches );
 
+	if(useDist){
+	    logLike += logcomppdf(location,scale,indexAdapter);
+	}
 
 
 	if(logLikelihoodTotal < logLike){
@@ -1054,13 +1109,19 @@ inline void MergeTrimReads::computeBestLikelihoodPairedEnd(const string &      r
 					   qualv2_rev ,  
 					   maxLengthForPair,					      
 					   indexAdapter,
-					   &matches); 
+					   &matches);
+ 
+	if(useDist){
+	    logLike += logcomppdf(location,scale,indexAdapter);
+	}
+
+
 	// &iterations,
 	// &matches);
 	
 
 #ifdef DEBUGPR
-    	cerr<<"idx: "<<indexAdapter<<"\ttl:"<<logLike<<"\tlr:"<<"\tit:"<<"\tma:"<<matches<<endl;
+    	cerr<<"idx: "<<indexAdapter<<"\ttl:\t"<<logLike<<"\tlr:"<<"\tit:"<<"\tma:"<<matches<<"\tlprior:\t"<<( logcomppdf( location,scale,indexAdapter ))<<endl;
     	//cerr<<logLike1<<"\t"<<logLike2<<"\t"<<logLike3<<endl;
 #endif
 	
@@ -1140,8 +1201,7 @@ inline void MergeTrimReads::computeConsensusPairedEnd( const string & read1,
 	( (sndlogLikelihoodTotal - logLikelihoodTotal) < log10(maxLikelihoodRatio) ) &&
 	logLikelihoodTotalMatches >= int(min_overlap_seqs)  ){       //sufficient # of mismatches for partial overlap (artifically to min_overlap_seqs for complete overlap)
 
-
-
+	
 	int i1=0; //start index read 1
 	int i2=maxLengthForPair-logLikelihoodTotalIdx;
 
@@ -1294,6 +1354,11 @@ merged MergeTrimReads::process_SR(string  read1,
     // cerr<<"read1 2 "<<read1<<endl;
 
 
+    if(useDist){	
+	logLikelihoodTotal +=  logcompcdf(location,scale, (read1.length()-options_trimCutoff) );
+    }
+
+  
 
 
     //second best hit
@@ -1482,11 +1547,22 @@ merged MergeTrimReads::process_PE( string  read1,  string  qual1,
 
    
 
+    //COMPUTE 
+    int maxLengthForPair=max(lengthRead1,lengthRead2);
 
-
+    if(useDist){
+	//double priorDist    = 1.0 - cdf(p, (2*maxLengthForPair-min_overlap_seqs)  );
+	logLikelihoodTotal += logcompcdf(location,scale, (2*maxLengthForPair-min_overlap_seqs) ); //log( priorDist )/log(10);
+    }
 
   
+#ifdef DEBUGPR
+    // cerr<< (2*maxLengthForPair-min_overlap_seqs)<<endl;
+    // cerr<< cdf(p, (2*maxLengthForPair-min_overlap_seqs)) <<endl;
+    // cerr<< (1.0-cdf(p, (2*maxLengthForPair-min_overlap_seqs))) <<endl;
 
+    cerr<<"idx: "<<-1<<"\ttl:\t"<<logLikelihoodTotal<<"\tlr:"<<"\tit:"<<"\tma:"<<0<<"\tlprior:\t"<<( (2*maxLengthForPair-min_overlap_seqs)   )<<endl;
+#endif
 
     //second best hit
     double sndlogLikelihoodTotal      = -DBL_MAX;
@@ -1494,7 +1570,6 @@ merged MergeTrimReads::process_PE( string  read1,  string  qual1,
     int sndlogLikelihoodTotalMatches  =  0;
 
 #ifdef DEBUGPR
-
     cerr<<"fst: "<<read1<<endl<<"raw: "<<read2<<endl<<"rev: "<<read2_rev<<endl<<endl;
 #endif
   
@@ -1508,8 +1583,6 @@ merged MergeTrimReads::process_PE( string  read1,  string  qual1,
 
 
     
-    //COMPUTE 
-    int maxLengthForPair=max(lengthRead1,lengthRead2);
     
     computeBestLikelihoodPairedEnd(read1,
 				   qualv1,
@@ -1643,7 +1716,7 @@ This constructor initialize basic variables to begin using proceePair or process
 MergeTrimReads::MergeTrimReads (const string& forward_, const string& reverse_, const string& chimera_,
 				const string& key1_, const string& key2_,
 				int trimcutoff_,bool allowMissing_,
-				bool ancientDNA_):
+				bool ancientDNA_,double location_,double scale_,bool useDist_):
     //bool mergeoverlap_) : 
     min_length (5),
     qualOffset (33),
@@ -1654,20 +1727,25 @@ MergeTrimReads::MergeTrimReads (const string& forward_, const string& reverse_, 
     MERGEDBAMFLAG     ( "FF" ),
     TRIMMEDFLAG       ( 1 ),
     MERGEDFLAG        ( 2 ),
-    TRIMMEDMERGEDFLAG ( 3 )    
+    TRIMMEDMERGEDFLAG ( 3 ),
+    
+    location(location_),
+    scale(scale_),
+    useDist(useDist_)
  {
     initialized = false;
 
+    
     //TODO: the default values should be stored in the config.json file, not here
     max_prob_N = 0.25;
     
     maxLikelihoodRatio = 0.95;
     
     maxadapter_comp  = 30; /**< maximum number of bases to be compared in the adapter */
-    min_overlap_seqs = 10; /**< maximum number that have to match in the case of partial overlap */
+    min_overlap_seqs = 10; /**< maximum number that have to match in the case of partial overlap */ 
     
-//     min_length =5;
-//     qualOffset =33;
+    //     min_length =5;
+    //     qualOffset =33;
 
     count_all = 0;
     count_fkey = 0;
@@ -1717,6 +1795,14 @@ MergeTrimReads::MergeTrimReads (const string& forward_, const string& reverse_, 
     //     len_key1=0;
     //     len_key2=0;
     set_options(trimcutoff_,allowMissing_,ancientDNA_);
+
+    if(useDist){
+	//p = lognormal_distribution<>(location,scale);	
+	//getting rid of arbitrary cutoffs
+	min_overlap_seqs  = 1; 
+	options_trimCutoff = 1;
+	ancientDNA = true;
+    }
 
     // size_t  options_trimCutoff   = 
     // bool    options_mergeoverlap = false;
