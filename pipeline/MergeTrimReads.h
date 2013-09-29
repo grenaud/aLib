@@ -94,6 +94,9 @@ class MergeTrimReads{
     double likeMatch[64];
     double likeMismatch[64];
     
+    double likeMatchPair[64][64];
+    double likeMismatchPair[64][64];
+
     double probForQual[64];
     double likeRandomMatch;    // 1/4
     double likeRandomMisMatch; // 3/4

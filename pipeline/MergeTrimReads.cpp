@@ -52,6 +52,10 @@ const long double PI  = atanl(1.0L)*4;   //acos(-1.0L); //3.14159265358979323846
   \return The values of log base 10 of (pdf(x))
 */
 long double MergeTrimReads::logcomppdf(long double mu,long double sigma,long double x){
+    if(x==0){
+	x=1.0;
+    }
+
     long double two = 2.0;   
     long double exponent = logl(x) - mu;
     exponent *= -exponent;
@@ -74,6 +78,10 @@ long double MergeTrimReads::logcomppdf(long double mu,long double sigma,long dou
   \return The values of log base 10 of (1 - cdf(x))
 */
 long double MergeTrimReads::logcompcdf(long double mu,long  double sigma,long  double x){
+    if(x==0){
+	x=1.0;
+    }
+
     long double two = 2.0;
     long double result = logl(x) - mu;
     result /= sigma * sqrtl( two );
@@ -155,10 +163,9 @@ inline string MergeTrimReads::revcompl(const string seq){
   For a given quality score i, we use the following formula
   	likeMatch(i)        = 1.0-10.0^(i/-10.0)
 	    
-        likeMismatch(i)     =    (10.0^(i/-10.0) )/3.0  
+        likeMismatch(i)     =    (10.0^(i/-10.0) )/4.0  
 
 */
-
 void MergeTrimReads::initMerge(){
 
     
@@ -176,9 +183,9 @@ void MergeTrimReads::initMerge(){
     for(int i=0;i<2;i++){
 
 	
-	likeMatch[i]        = log1p(    -pow(10.0,2.0/-10.0) )/log(10);
+	likeMatch[i]        = log1p(    -pow(10.0,2.0/-10.0) )    /log(10);
 	    
-        likeMismatch[i]     = log  (     pow(10.0,2.0/-10.0)/3.0 )/log(10);// 2.0/(-10.0*1.0);  
+        likeMismatch[i]     = log  (     pow(10.0,2.0/-10.0)/3.0 )/log(10);
 
 	probForQual[i]      = max(double(1.0)-pow(double(10.0),double(2.0)/double(-10.0)),
 				  max_prob_N);
@@ -191,7 +198,7 @@ void MergeTrimReads::initMerge(){
         // if(i == 0)
         //     likeMatch[i]    = -3.0; // this is vrong, hope it's never accessed
         // else
-	likeMatch[i]        = log1p(    -pow(10.0,i/-10.0) )/log(10);
+	likeMatch[i]        = log1p(    -pow(10.0,i/-10.0) )     /log(10);
 	    
         likeMismatch[i]     = log  (     pow(10.0,i/-10.0)/3.0  )/log(10); //i/(-10.0*1.0);  
 
@@ -205,6 +212,24 @@ void MergeTrimReads::initMerge(){
 #endif
 
     }
+
+
+    for(int i=0;i<64;i++){
+	for(int j=0;j<64;j++){
+	    likeMatchPair[i][j]    = 
+		4.0*likeRandomMatch +                       //prior
+		1.0*likeMatch[i]    + 1.0*   likeMatch[j] + //mm
+		3.0*likeMismatch[j] + 3.0*likeMismatch[j] ; //ww
+	    likeMismatchPair[i][j] = 
+		4.0*likeRandomMatch +                       //prior
+		1.0*likeMatch[i]    + 1.0*likeMismatch[j] + //mw
+		1.0*likeMismatch[i] + 1.0*   likeMatch[j] + //wm
+		2.0*likeMismatch[j] + 2.0*likeMismatch[j] ; //ww
+
+	}
+    }
+
+
 
 
 }
@@ -592,9 +617,11 @@ inline double MergeTrimReads::measureOverlap(const string      & read1,
 
 	    if(read1[i1] == read2[i2] ){	    
 		(*matches)++;
-		likelihoodMatch  +=    likeMatch[    min(qual1[i1],qual2[i2])  ];	    
+		//likelihoodMatch  +=    likeMatch[    min(qual1[i1],qual2[i2])  ];	    
+		likelihoodMatch  +=    likeMatchPair[    qual1[i1] ][ qual2[i2] ];
 	    }else{
-		likelihoodMatch  +=    likeMismatch[ min(qual1[i1],qual2[i2])  ];	    
+		//likelihoodMatch  +=    likeMismatch[   min(qual1[i1],qual2[i2])  ];
+		likelihoodMatch  +=   likeMismatchPair[ qual1[i1] ][ qual2[i2] ];	     //[ min(qual1[i1],qual2[i2])  ];	    
 	    }
 	    likelihoodMatch  += likeRandomMatch; 
 
