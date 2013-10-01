@@ -93,7 +93,7 @@ int main (int argc, char *argv[]) {
     double location=-1.0;
     double scale   =-1.0;
 
-    
+
     const string usage=string(string(argv[0])+
 			      "This program takes a BAM where each mate are consecutive and\ntrims and merges reads\n"+
 			      +" [options] BAMfile"+"\n"+

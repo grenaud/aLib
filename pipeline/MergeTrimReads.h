@@ -24,6 +24,7 @@ using namespace std;
 using namespace BamTools;
 /* using namespace boost::math; */
 
+#define MAXLENGTHSEQUENCE 1000 //should be good for a few years for Illumina at least ...
 
 
 typedef struct{
@@ -93,6 +94,8 @@ class MergeTrimReads{
     //likelihood variables
     double likeMatch[64];
     double likeMismatch[64];
+    double likeMatchProb[64];
+    double likeMismatchProb[64];
     
     double likeMatchPair[64][64];
     double likeMismatchPair[64][64];
@@ -100,7 +103,14 @@ class MergeTrimReads{
     double probForQual[64];
     double likeRandomMatch;    // 1/4
     double likeRandomMisMatch; // 3/4
+    double likeRandomMatchProb;    // 1/4
+    double likeRandomMisMatchProb; // 3/4
 
+
+    //prior dist
+    long double pdfDist[MAXLENGTHSEQUENCE];    
+    long double cdfDist[MAXLENGTHSEQUENCE];
+    
     //vector<string> adapter_chimeras;
 
     //FUNCTIONS

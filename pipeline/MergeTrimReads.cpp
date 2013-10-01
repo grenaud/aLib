@@ -1,7 +1,7 @@
 #include "MergeTrimReads.h"
 
 
-// #define DEBUG2
+//#define DEBUG2
 // #define DEBUGSR
 
 // #define DEBUGADAPT
@@ -11,11 +11,11 @@
 // // #define CONSBASEPROB
 
 //#define DEBUGPR
-// #define DEBUGSCORE
+#define DEBUGSCORE
 
 
 
-const long double PI  = atanl(1.0L)*4;   //acos(-1.0L); //3.141592653589793238462;
+const long double PI  = atanl(1.0L)*4;   
 
 
 // vector<string> adapter_chimeras (chimInit,chimInit+13);
@@ -137,15 +137,6 @@ inline string MergeTrimReads::revcompl(const string seq){
     return toReturn;
 }
 
-// void    setLikelihoodScores(double likelihoodChimera_,
-// 			    double likelihoodAdapterSR_,
-// 			    double likelihoodAdapterPR_){
-
-//     likelihoodChimera   = likelihoodChimera_;
-//     likelihoodAdapterSR = likelihoodAdapterSR_;
-//     likelihoodAdapterPR = likelihoodAdapterPR_;
-    
-// }
 
 
 //! Initializes likelihood scores
@@ -161,14 +152,16 @@ inline string MergeTrimReads::revcompl(const string seq){
   We then compute the likelihood for the remaing quality scores
 
   For a given quality score i, we use the following formula
-  	likeMatch(i)        = 1.0-10.0^(i/-10.0)
+  	likeMatch(i)        =   1.0-10.0^(i/-10.0)
 	    
-        likeMismatch(i)     =    (10.0^(i/-10.0) )/4.0  
+        likeMismatch(i)     =    (10.0^(i/-10.0) )/3.0  
 
 */
 void MergeTrimReads::initMerge(){
 
-    
+    likeRandomMatchProb          =  1.0/4.0 ;
+    likeRandomMisMatchProb       =  3.0/4.0 ;
+
     likeRandomMatch       = log( 1.0/4.0 )/log(10);
     likeRandomMisMatch    = log( 3.0/4.0 )/log(10);
 
@@ -182,53 +175,99 @@ void MergeTrimReads::initMerge(){
     //anyway, we set the min for qual scores at 2
     for(int i=0;i<2;i++){
 
-	
-	likeMatch[i]        = log1p(    -pow(10.0,2.0/-10.0) )    /log(10);
-	    
+	likeMatch[i]        = log1p(    -pow(10.0,2.0/-10.0) )    /log(10);	    
         likeMismatch[i]     = log  (     pow(10.0,2.0/-10.0)/3.0 )/log(10);
 
+	likeMatchProb[i]           = 1.0-pow(10.0,2.0/-10.0) ;
+        likeMismatchProb[i]        =     pow(10.0,2.0/-10.0)/3.0 ;
+ 
 	probForQual[i]      = max(double(1.0)-pow(double(10.0),double(2.0)/double(-10.0)),
 				  max_prob_N);
 
     }
 
 
-    //Computing for quality scores 2 and upwards
+    //Computing for quality scores 2 and up
     for(int i=2;i<64;i++){
-        // if(i == 0)
-        //     likeMatch[i]    = -3.0; // this is vrong, hope it's never accessed
-        // else
-	likeMatch[i]        = log1p(    -pow(10.0,i/-10.0) )     /log(10);
-	    
+	likeMatch[i]        = log1p(    -pow(10.0,i/-10.0) )     /log(10);	    
         likeMismatch[i]     = log  (     pow(10.0,i/-10.0)/3.0  )/log(10); //i/(-10.0*1.0);  
+
+
+	likeMatchProb[i]           = 1.0-pow(10.0,i/-10.0);
+	likeMismatchProb[i]        =     pow(10.0,i/-10.0)/3.0;
 
 	probForQual[i] = max(double(1.0)-pow(double(10.0),double(i)/double(-10.0)),
 			     max_prob_N);
 
 #ifdef DEBUG2
-        cout<<"qual = "<<i<<endl;
-        cout<<likeMatch[i]<<endl;
-        cout<<likeMismatch[i]<<endl;
+        cout<<endl<<"qual = "<<i<<endl;
+        cout<<"match    " <<likeMatch[i]<<endl;
+        cout<<"mismatch " <<likeMismatch[i]<<endl;
+	cout<<"match    " <<likeMatchProb[i]<<endl;
+        cout<<"mismatch " <<likeMismatchProb[i]<<endl;
 #endif
 
     }
 
-
+    //pre-computing the likelihood for pairs of nucleotides
     for(int i=0;i<64;i++){
-	for(int j=0;j<64;j++){
+	for(int j=0;j<64;j++){	    
 	    likeMatchPair[i][j]    = 
-		4.0*likeRandomMatch +                       //prior
-		1.0*likeMatch[i]    + 1.0*   likeMatch[j] + //mm
-		3.0*likeMismatch[j] + 3.0*likeMismatch[j] ; //ww
+		log  ( 
+		      (1.0*   likeMatchProb[i] *    likeMatchProb[j] +     //mm
+		       3.0*likeMismatchProb[i] * likeMismatchProb[j] )     //ww
+		       )/log(10);
 	    likeMismatchPair[i][j] = 
-		4.0*likeRandomMatch +                       //prior
-		1.0*likeMatch[i]    + 1.0*likeMismatch[j] + //mw
-		1.0*likeMismatch[i] + 1.0*   likeMatch[j] + //wm
-		2.0*likeMismatch[j] + 2.0*likeMismatch[j] ; //ww
-
+		log  ( 
+		      (1.0*   likeMatchProb[i] * likeMismatchProb[j] +     //mw
+		       1.0*likeMismatchProb[i] *    likeMatchProb[j] +     //wm
+		       2.0*likeMismatchProb[i] * likeMismatchProb[j] )     //ww
+		       )/log(10);  
 	}
     }
 
+#ifdef DEBUG2
+    cout<<"pair qual match"<<endl;
+    cout<<"\t";
+    for(int i=0;i<64;i++)
+	cout<<i<<"\t";
+
+    for(int i=0;i<64;i++){
+	cout<<i<<"\t";
+	for(int j=0;j<64;j++){
+	    cout<<pow(10.0,likeMatchPair[i][j])<<"\t";	    
+	}
+	cout<<endl;
+    }
+
+    cout<<"pair qual mismatch"<<endl;
+    cout<<"\t";
+    for(int i=0;i<64;i++)
+	cout<<i<<"\t";
+
+    for(int i=0;i<64;i++){
+	cout<<i<<"\t";
+	for(int j=0;j<64;j++){
+	    cout<<pow(10.0,likeMismatchPair[i][j])<<"\t";	    
+	}
+	cout<<endl;
+    }
+
+
+#endif
+
+
+    if(useDist){
+	//compute pdf and cdf for sequences	
+	for(int i=0;i<MAXLENGTHSEQUENCE;i++){
+	    pdfDist[i] = logcomppdf(location,scale, i ); 
+	    cdfDist[i] = logcompcdf(location,scale, i ); 
+
+#ifdef DEBUG2
+	    cout<<"pdfDist["<<i<<"]="<<pow(10.0,pdfDist[i])<<"\t"<<"cdfDist["<<i<<"]="<<pow(10.0,cdfDist[i])<<endl;
+#endif
+	}
+    }
 
 
 
@@ -490,9 +529,9 @@ void MergeTrimReads::set_keys(const string& key1, const string& key2){
   Used by mergeTrimReadsBAM.cpp to set options
 
 
-  \param trimcutoff   After how many bases do we trim a read ?
-  \param allowMissing Whether we allow some missing bases in key
-  \param mergeoverlap Whether we merge partially overlapping reads
+  \param trimcutoff_     After how many bases do we trim a read ?
+  \param allowMissing_   Whether we allow some missing bases in key
+  \param ancientDNA_     Whether we merge partially overlapping reads
   
 */
 void MergeTrimReads::set_options(int trimcutoff_,bool allowMissing_,  bool ancientDNA_ ){ //,bool mergeoverlap){
@@ -559,21 +598,17 @@ inline double MergeTrimReads::detectChimera(const string      & read,
 
   L(observing the same bases in "read1" and "read2" for "offsetRead" bases)  
   = L(base 1 in read 1 matching  base 1 in read 2) * L(base 2 in read 1 matching  base 2 in read 2) * ... 
+  
+  We model the likelihood of matching as:
+  L(base 1 in read 1 matching  base 1 in read 2)  =  P(A) * L(base 1 in read 1 matching  base 1 in read 2|original seq. had an A)
+                                                     P(C) * L(base 1 in read 1 matching  base 1 in read 2|original seq. had an C)
+                                                     P(G) * L(base 1 in read 1 matching  base 1 in read 2|original seq. had an G)
+                                                     P(T) * L(base 1 in read 1 matching  base 1 in read 2|original seq. had an T)
 
-  the likelihood for two different bases identical bases is:
-  L(first base) * L(second base matches the first) 
-
-  for different bases, the likelihood is:
-  L(first base) * L(second base does not match the first) 
+  The L(base 1 in read 1 matching  base 1 in read 2|original seq. had an X) is pre-computed in likeMatchPair and likeMismatchPair
+  for a match or mismatch, The prior P(X) of the base is simply 1/4.
   
-  The L(first base) is 1/4
-  
-  Assuming we have observed the first base, the likelihood of matching
-  or not can be approximated by using the minimum quality score as the likelihood
-  of mismatch of high quality scores will be low.
-  
-  
-
+						     
   \param read1 Actual bases of the first read 
   \param qual1 Quality scores associated with the first read
   \param read2 Actual bases of the second read 
@@ -618,12 +653,12 @@ inline double MergeTrimReads::measureOverlap(const string      & read1,
 	    if(read1[i1] == read2[i2] ){	    
 		(*matches)++;
 		//likelihoodMatch  +=    likeMatch[    min(qual1[i1],qual2[i2])  ];	    
-		likelihoodMatch  +=    likeMatchPair[    qual1[i1] ][ qual2[i2] ];
+		likelihoodMatch  +=    likeMatchPair[   qual1[i1] ][ qual2[i2] ];
 	    }else{
 		//likelihoodMatch  +=    likeMismatch[   min(qual1[i1],qual2[i2])  ];
 		likelihoodMatch  +=   likeMismatchPair[ qual1[i1] ][ qual2[i2] ];	     //[ min(qual1[i1],qual2[i2])  ];	    
 	    }
-	    likelihoodMatch  += likeRandomMatch; 
+	    likelihoodMatch  += likeRandomMatch; //This is added as a prior for all possible matches
 
 	    
 	    i1++;
@@ -1025,7 +1060,8 @@ inline void MergeTrimReads::computeBestLikelihoodSingle(const string      & read
 	    detectAdapter( read1 , qualv1 , options_adapter_F,indexAdapter , &matches );
 
 	if(useDist){
-	    logLike += logcomppdf(location,scale,indexAdapter);
+	    //logLike += logcomppdf(location,scale,indexAdapter);
+	    logLike += pdfDist[indexAdapter];
 	}
 
 
@@ -1137,14 +1173,12 @@ inline void MergeTrimReads::computeBestLikelihoodPairedEnd(const string &      r
 					   maxLengthForPair,					      
 					   indexAdapter,
 					   &matches);
- 
+	//adding prior
 	if(useDist){
-	    logLike += logcomppdf(location,scale,indexAdapter);
+	    //logLike += logcomppdf(location,scale,indexAdapter);
+	    logLike +=  pdfDist[indexAdapter];
 	}
 
-
-	// &iterations,
-	// &matches);
 	
 
 #ifdef DEBUGPR
@@ -1345,7 +1379,6 @@ merged MergeTrimReads::process_SR(string  read1,
 				  string  qual1){
 
     merged toReturn;
-    // int qualOffset=33;
 
 
     //check for the key (if needed)
@@ -1356,7 +1389,6 @@ merged MergeTrimReads::process_SR(string  read1,
 
     sanityCheckLength(read1,qual1);
 
-    // cerr<<"read1 1 "<<read1<<endl;
 
 
     vector<int> qualv1;
@@ -1380,9 +1412,10 @@ merged MergeTrimReads::process_SR(string  read1,
 
     // cerr<<"read1 2 "<<read1<<endl;
 
-
+    //adding distance prior
     if(useDist){	
-	logLikelihoodTotal +=  logcompcdf(location,scale, (read1.length()-options_trimCutoff) );
+	//logLikelihoodTotal +=  logcompcdf(location,scale, (read1.length()-options_trimCutoff) );
+	logLikelihoodTotal +=  cdfDist[ (read1.length()-options_trimCutoff) ];
     }
 
   
@@ -1406,26 +1439,6 @@ merged MergeTrimReads::process_SR(string  read1,
 #endif
 
 
-     //cout<<(sndlogLikelihoodTotal - logLikelihoodTotal)<<endl;
-
-     // if ( (sndlogLikelihoodTotal - logLikelihoodTotal) > log10(maxLikelihoodRatio)){ //statistical tie
-
-     // 	 if(ancientDNA){ 
-
-     // 	     if( logLikelihoodTotalIdx == -1 ){ //more likely is status quo, under ancient DNA the second is more likely
-     // 		 logLikelihoodTotal    = sndlogLikelihoodTotal;		 
-     // 		 logLikelihoodTotalIdx = sndlogLikelihoodTotalIdx;
-     // 	     }	    
-	     
-     // 	 }else{ //modern DNA
-	     
-     // 	     if( sndlogLikelihoodTotalIdx == -1 ){ //second most likely is status quo, under modern DNA it becomes the most likely
-     // 		 logLikelihoodTotal    = sndlogLikelihoodTotal;		 
-     // 		 logLikelihoodTotalIdx = sndlogLikelihoodTotalIdx;
-     // 	     }
-	     
-     // 	 }
-     // }
 
 
 
@@ -1553,8 +1566,7 @@ merged MergeTrimReads::process_PE( string  read1,  string  qual1,
 		    toReturn, 
 		    logLikeFirstRead)){ //we just look at the first read hence we need to only use the likelihood of the first read
 	return toReturn;	
-    }
-   
+    }   
     // end detecting chimera //
 
 
@@ -1579,7 +1591,8 @@ merged MergeTrimReads::process_PE( string  read1,  string  qual1,
 
     if(useDist){
 	//double priorDist    = 1.0 - cdf(p, (2*maxLengthForPair-min_overlap_seqs)  );
-	logLikelihoodTotal += logcompcdf(location,scale, (2*maxLengthForPair-min_overlap_seqs) ); //log( priorDist )/log(10);
+	//logLikelihoodTotal += logcompcdf(location,scale, (2*maxLengthForPair-min_overlap_seqs) ); //log( priorDist )/log(10);
+	logLikelihoodTotal += cdfDist[ (2*maxLengthForPair-min_overlap_seqs) ];
     }
 
   
@@ -1602,10 +1615,10 @@ merged MergeTrimReads::process_PE( string  read1,  string  qual1,
   
 
     
-#ifdef DEBUGSCORE
-    cerr<<"mergeo "<<"\t"<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalIdx<<"\t"<<logLikelihoodTotalMatches<<endl;
-    //cout<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalMatches<<endl;
-#endif
+// #ifdef DEBUGSCORE
+//     cerr<<"mergeo "<<"\t"<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalIdx<<"\t"<<logLikelihoodTotalMatches<<endl;
+//     //cout<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalMatches<<endl;
+// #endif
     
 
 
@@ -1636,7 +1649,7 @@ merged MergeTrimReads::process_PE( string  read1,  string  qual1,
     
     
 #ifdef DEBUGSCORE
-    cerr<<"mergeo "<<"\t"<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalIdx<<"\t"<<logLikelihoodTotalMatches<<"\trt:"<<(sndlogLikelihoodTotal/logLikelihoodTotal)<<"\t"<<sndlogLikelihoodTotal<<"\t"<<(logLikelihoodTotal/sndlogLikelihoodTotal)<<endl;
+    cerr<<"mergeo "<<"\t"<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalIdx<<"\t"<<logLikelihoodTotalMatches<<"\trt:\t"<<(sndlogLikelihoodTotal-logLikelihoodTotal)<<"\t"<<sndlogLikelihoodTotal<<"\t"<<sndlogLikelihoodTotalIdx<<"\t"<<(logLikelihoodTotal/sndlogLikelihoodTotal)<<endl;
     //cout<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalMatches<<endl;
 #endif
     
@@ -1760,82 +1773,83 @@ MergeTrimReads::MergeTrimReads (const string& forward_, const string& reverse_, 
     scale(scale_),
     useDist(useDist_)
  {
-    initialized = false;
+     
+     initialized = false;
 
     
-    //TODO: the default values should be stored in the config.json file, not here
-    max_prob_N = 0.25;
+     //TODO: the default values should be stored in the config.json file, not here
+     max_prob_N = 0.25;
     
-    maxLikelihoodRatio = 0.95;
+     maxLikelihoodRatio = 1.0/20.0;
     
-    maxadapter_comp  = 30; /**< maximum number of bases to be compared in the adapter */
-    min_overlap_seqs = 10; /**< maximum number that have to match in the case of partial overlap */ 
+     maxadapter_comp  = 30; /**< maximum number of bases to be compared in the adapter */
+     min_overlap_seqs = 10; /**< maximum number that have to match in the case of partial overlap */ 
     
-    //     min_length =5;
-    //     qualOffset =33;
+     //     min_length =5;
+     //     qualOffset =33;
 
-    count_all = 0;
-    count_fkey = 0;
-    count_merged = 0;
-    count_merged_overlap = 0;
-    count_trimmed = 0;
-    count_nothing = 0;
-    count_chimera = 0;
+     count_all = 0;
+     count_fkey = 0;
+     count_merged = 0;
+     count_merged_overlap = 0;
+     count_trimmed = 0;
+     count_nothing = 0;
+     count_chimera = 0;
 
-    checkedTags.push_back("RG");
-    checkedTags.push_back("XI");
-    checkedTags.push_back("YI");
-    checkedTags.push_back("XJ");
-    checkedTags.push_back("YJ");
+     checkedTags.push_back("RG");
+     checkedTags.push_back("XI");
+     checkedTags.push_back("YI");
+     checkedTags.push_back("XJ");
+     checkedTags.push_back("YJ");
 
 
     
 
-    //  chimInit[]= {
-    // 	"ACACTCTTTCCCTACACGTCTGAACTCCAG",
-    // 	"ACACTCTTTCCCACACGTCTGAACTCCAGT",
-    // 	"ACACTCTTTCCCTACACACGTCTGAACTCC",
-    // 	"CTCTTTCCCTACACGTCTGAACTCCAGTCA",
-    // 	"GAAGAGCACACGTCTGAACTCCAGTCACII",
-    // 	"GAGCACACGTCTGAACTCCAGTCACIIIII",
-    // 	"GATCGGAAGAGCACACGTCTGAACTCCAGT",
-    // 	"AGATCGGAAGAGCACACGTCTGAACTCCAG",
-    // 	"AGAGCACACGTCTGAACTCCAGTCACIIII",
-    // 	"ACACGTCTGAACTCCAGTCACIIIIIIIAT",
-    // 	"GTGCACACGTCTGAACTCCAGTCACIIIII",
-    // 	"AGCACACGTCTGAACTCCAGTCACIIIIII",
-    // 	"CGTATGCCGTCTTCTGCTTGAAAAAAAAAA"};
+     //  chimInit[]= {
+     // 	"ACACTCTTTCCCTACACGTCTGAACTCCAG",
+     // 	"ACACTCTTTCCCACACGTCTGAACTCCAGT",
+     // 	"ACACTCTTTCCCTACACACGTCTGAACTCC",
+     // 	"CTCTTTCCCTACACGTCTGAACTCCAGTCA",
+     // 	"GAAGAGCACACGTCTGAACTCCAGTCACII",
+     // 	"GAGCACACGTCTGAACTCCAGTCACIIIII",
+     // 	"GATCGGAAGAGCACACGTCTGAACTCCAGT",
+     // 	"AGATCGGAAGAGCACACGTCTGAACTCCAG",
+     // 	"AGAGCACACGTCTGAACTCCAGTCACIIII",
+     // 	"ACACGTCTGAACTCCAGTCACIIIIIIIAT",
+     // 	"GTGCACACGTCTGAACTCCAGTCACIIIII",
+     // 	"AGCACACGTCTGAACTCCAGTCACIIIIII",
+     // 	"CGTATGCCGTCTTCTGCTTGAAAAAAAAAA"};
 
-    //     options_adapter_F="AGATCGGAAGAGCACACGTCTGAACTCCAGTCACIIIIIIIATCTCGTATGCCGTCTTCTGCTTG";
-    //     options_adapter_S="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATTT";
+     //     options_adapter_F="AGATCGGAAGAGCACACGTCTGAACTCCAGTCACIIIIIIIATCTCGTATGCCGTCTTCTGCTTG";
+     //     options_adapter_S="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATTT";
 
-    set_adapter_sequences(forward_,reverse_,chimera_);
+     set_adapter_sequences(forward_,reverse_,chimera_);
 
-    //adapter_chimeras = vector<string>(chimInit,chimInit+13);
+     //adapter_chimeras = vector<string>(chimInit,chimInit+13);
 
-    set_keys(key1_,key2_);
+     set_keys(key1_,key2_);
 
-    // //  Key variables ///
-    //     handle_key           = false;
-    //     keys0="";
-    //     keys1="";
-    //     len_key1=0;
-    //     len_key2=0;
-    set_options(trimcutoff_,allowMissing_,ancientDNA_);
+     // //  Key variables ///
+     //     handle_key           = false;
+     //     keys0="";
+     //     keys1="";
+     //     len_key1=0;
+     //     len_key2=0;
+     set_options(trimcutoff_,allowMissing_,ancientDNA_);
 
-    if(useDist){
-	//p = lognormal_distribution<>(location,scale);	
-	//getting rid of arbitrary cutoffs
-	min_overlap_seqs  = 1; 
-	options_trimCutoff = 1;
-	ancientDNA = true;
-    }
+     if(useDist){
+	 //p = lognormal_distribution<>(location,scale);	
+	 //getting rid of arbitrary cutoffs
+	 min_overlap_seqs   = 1; 
+	 options_trimCutoff = 1;
+	 ancientDNA         = true;
+     }
 
-    // size_t  options_trimCutoff   = 
-    // bool    options_mergeoverlap = false;
-    // bool    options_allowMissing = false;
+     // size_t  options_trimCutoff   = 
+     // bool    options_mergeoverlap = false;
+     // bool    options_allowMissing = false;
 
-    initMerge();
+     initMerge();
     
 }
 
