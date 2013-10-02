@@ -30,18 +30,6 @@ const long double PI  = atanl(1.0L)*4;
 
 
 
-// double MergeTrimReads::computePDF(const double x){
-//     double  priorDist   = max(pdf(p, x ),1.0e-10);    
-//     return  log( priorDist )/log(10);    
-// }
-
-// double MergeTrimReads::computeCDF(const double x){
-//     double priorDist   = max( 1.0 - cdf(p, x ),1.0e-10);    
-//     //cerr<<"cdf "<<x<<"\t"<<priorDist<<endl;
-//     return log( priorDist )/log(10);    
-// }
-
-
 //! Computes log of probability density function
 /*!
   Computes the log base 10 of pdf(x)
@@ -154,7 +142,27 @@ inline string MergeTrimReads::revcompl(const string seq){
   For a given quality score i, we use the following formula
   	likeMatch(i)        =   1.0-10.0^(i/-10.0)
 	    
-        likeMismatch(i)     =    (10.0^(i/-10.0) )/3.0  
+        likeMismatch(i)     =      (10.0^(i/-10.0) )/3.0  
+
+  For a pair of nucleotide, we must compute the likelihood of
+  stemming from the same template. If the nucleotides are identical (say AA)
+  then there are 4 possibilities :
+         template    prob
+         A           (right)(right)
+         C           (wrong)(wrong)
+         G           (wrong)(wrong)
+         T           (wrong)(wrong)
+
+  If the nucleotides differ (say AC) then we have the following:
+         template    prob
+         A           (right)(wrong)
+         C           (wrong)(right)
+         G           (wrong)(wrong)
+         T           (wrong)(wrong)
+  
+  We pre-compute the likelihood for each. In the measureOverlap() subroutine, the prior for the nucleotide is added
+  We also pre-compute the likelihood for the pdf and cdf for the lognormal distribution.
+  
 
 */
 void MergeTrimReads::initMerge(){
@@ -658,7 +666,8 @@ inline double MergeTrimReads::measureOverlap(const string      & read1,
 		//likelihoodMatch  +=    likeMismatch[   min(qual1[i1],qual2[i2])  ];
 		likelihoodMatch  +=   likeMismatchPair[ qual1[i1] ][ qual2[i2] ];	     //[ min(qual1[i1],qual2[i2])  ];	    
 	    }
-	    likelihoodMatch  += likeRandomMatch; //This is added as a prior for all possible matches
+	    likelihoodMatch  += likeRandomMatch; // this is added as a prior for all possible matches, since it is equal for all possible nucleotides
+	    //                                      it can be factored out and added as a log
 
 	    
 	    i1++;
@@ -1025,6 +1034,21 @@ inline void MergeTrimReads::string2NumericalQualScores(const string & qual,vecto
 
   It calls detectAdapter() for every possible index 
   of the adapter and retains the most likely one.
+
+
+  For a given putative index, we compute the likelihood of observing the following:
+    
+  
+                                  L(adapter in read1)
+                                             |--------> (adapter)
+  read1                         ---------------------------------
+  let :
+  logLike1 = L(adapter in read1)
+
+  We compute the following using this :
+  logLike1 = L(seeing adapter bases in read1) + L(remaining bases) (computed using detectAdapter())
+  
+  The total likelihood for that index given by logLike1 
   
   
   \param read1   The single read
@@ -1095,6 +1119,28 @@ inline void MergeTrimReads::computeBestLikelihoodSingle(const string      & read
 /*!
   This subroutine computes all possible likelihoods
   for every possibility of adapters index.
+
+
+  For a given putative index, we compute the likelihood of observing the following:
+    
+
+          L(adapter in read2)+  L(likelihood overlap) + L(adapter in read1)
+                                             |--------> (adapter)
+  read1                         ---------------------------------
+  read2      ---------------------------------
+                      <--------| (adapter 2)
+  let :
+  logLike1 = L(adapter in read1)
+  logLike2 = L(adapter in read2)
+  logLike3 = L(adapter in overlapping region)
+
+  We compute the following using this :
+  logLike1 = L(seeing adapter bases in read1) + L(remaining bases) (detectAdapter())
+  logLike2 = L(seeing adapter bases in read2) + L(remaining bases) (detectAdapter())
+  logLike3 = L(bases matching read1/read2 overlap)   (computed using measureOverlap())
+  
+  The total likelihood for that index is:
+  logLike1 + logLike2 + logLike3
 
   The overall likelihood is given by the sum of :
     - detectAdapter() for the first mate
@@ -1351,23 +1397,8 @@ inline void MergeTrimReads::computeConsensusPairedEnd( const string & read1,
   This subroutine :
     - Checks the key (if needed)
     - Checked for chimera
-    - Computes the likelihood of various 
-      adapter indices
+    - Computes the likelihood of various  adapter indices using computeBestLikelihoodSingle()
     - Trims if sufficient evidence is found
-
-    For a given putative index, we compute the likelihood of observing the following:
-    
-    
-                                    L(adapter in read1)
-                                               |--------> (adapter)
-    read1                         ---------------------------------
-    let :
-    logLike1 = L(adapter in read1)
-
-    We compute the following using this :
-    logLike1 = L(seeing adapter bases in read1) + L(remaining bases) (computed using detectAdapter())
-    
-    The total likelihood for that index given by logLike1 
     
   \param read1       The single-end read
   \param qualv1      The quality scores for the read
@@ -1481,31 +1512,9 @@ merged MergeTrimReads::process_SR(string  read1,
   This subroutine :
     - Checks the key (if needed)
     - Checked for chimera
-    - Computes the likelihood of various 
-      adapter indices for both reads
-    - Merges both reads if there is sufficient 
-      evidence
+    - Computes the likelihood of various  adapter indices for both reads using computeBestLikelihoodPairedEnd()
+    - Merges both reads if there is sufficient evidence using computeConsensusPairedEnd()
 
-    For a given putative index, we compute the likelihood of observing the following:
-    
-    
-            L(adapter in read2)+  L(likelihood overlap) + L(adapter in read1)
-                                               |--------> (adapter)
-    read1                         ---------------------------------
-    read2      ---------------------------------
-                        <--------| (adapter 2)
-    let :
-    logLike1 = L(adapter in read1)
-    logLike2 = L(adapter in read2)
-    logLike3 = L(adapter in overlapping region)
-
-    We compute the following using this :
-    logLike1 = L(seeing adapter bases in read1) + L(remaining bases) (detectAdapter())
-    logLike2 = L(seeing adapter bases in read2) + L(remaining bases) (detectAdapter())
-    logLike3 = L(bases matching read1/read2 overlap) + L(bases read1/read2 overlap)  (measureOverlap())
-    
-    The total likelihood for that index is:
-    logLike1 + logLike2 + logLike3
     
 
 
@@ -1615,10 +1624,10 @@ merged MergeTrimReads::process_PE( string  read1,  string  qual1,
   
 
     
-// #ifdef DEBUGSCORE
-//     cerr<<"mergeo "<<"\t"<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalIdx<<"\t"<<logLikelihoodTotalMatches<<endl;
-//     //cout<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalMatches<<endl;
-// #endif
+    // #ifdef DEBUGSCORE
+    //     cerr<<"mergeo "<<"\t"<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalIdx<<"\t"<<logLikelihoodTotalMatches<<endl;
+    //     //cout<<logLikelihoodTotal<<"\t"<<logLikelihoodTotalMatches<<endl;
+    // #endif
     
 
 
@@ -1708,12 +1717,12 @@ inline string MergeTrimReads::sortUniqueChar(string v){
 
 //! Subroutine to add extra bam flags
 /*!
-This subroutine sets the MERGEDBAMFLAG bam flag in for the BamAlignment.
-If the flag is already present, it will remove it
+  This subroutine sets the MERGEDBAMFLAG bam flag in for the BamAlignment.
+  If the flag is already present, it will remove it
 
-\param al The BamAlignment object where the flags will be added
-\param f an int for the type of flag to add
-\return true iff successful
+  \param al The BamAlignment object where the flags will be added
+  \param f an int for the type of flag to add
+  \return true iff successful
 */
 bool MergeTrimReads::set_extra_flag( BamAlignment &al, int32_t f )
 {
@@ -1742,16 +1751,16 @@ bool MergeTrimReads::set_extra_flag( BamAlignment &al, int32_t f )
 
 //! General contructor
 /*!
-This constructor initialize basic variables to begin using proceePair or processSingle()
+  This constructor initialize basic variables to begin using proceePair or processSingle()
 
-\param forward_ Sequence of the adapters for the adapter seen in the first read
-\param reverse_ Sequence of the adapters for the adapter seen in the second read
-\param chimera_ A string of comma separated substring representing putative chimeras
-\param key1_ If keying was used, sequence of the key for the first read
-\param key2_ If keying was used, sequence of the key for the seonc read
-\param trimcutoff The minimum number of bases we should have observed for single reads
-\param allowMissing boolean, if set to true, it will allow imperfect matches to the key
-\param mergeoverlap boolean, if set to true, it will allow merging of reads where the adapter was never seen and the reconstructed sequence is longer than the initial reads
+  \param forward_ Sequence of the adapters for the adapter seen in the first read
+  \param reverse_ Sequence of the adapters for the adapter seen in the second read
+  \param chimera_ A string of comma separated substring representing putative chimeras
+  \param key1_ If keying was used, sequence of the key for the first read
+  \param key2_ If keying was used, sequence of the key for the seonc read
+  \param trimcutoff The minimum number of bases we should have observed for single reads
+  \param allowMissing boolean, if set to true, it will allow imperfect matches to the key
+  \param mergeoverlap boolean, if set to true, it will allow merging of reads where the adapter was never seen and the reconstructed sequence is longer than the initial reads
 */
 MergeTrimReads::MergeTrimReads (const string& forward_, const string& reverse_, const string& chimera_,
 				const string& key1_, const string& key2_,
@@ -1856,7 +1865,7 @@ MergeTrimReads::MergeTrimReads (const string& forward_, const string& reverse_, 
 
 //! Destructor
 /*!
-Destructor
+  Destructor, no memory is allocated on the heap 
 */
 MergeTrimReads::~MergeTrimReads (){
 
@@ -1868,6 +1877,7 @@ MergeTrimReads::~MergeTrimReads (){
   This subroutine will call process_PE() on the sequence and return a pair<> of BamAlignment objects
   corresponding to the pair of reads. If the reads have been merged, the second object will be empty.
   It will also fix the BAM tags accordingly.
+
   \param al BamAlignment object as input representing the first pair
   \param al2 BamAlignment object as input representing the first pair
   \return True if the pair was merged and is contained within al only
