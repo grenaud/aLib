@@ -377,6 +377,10 @@ if(jsondata["freeibis"]):
 
 #bam files for tile count
 listOfBAMfilesToCheck={};
+#flagstatx files for tile count
+listOfFLGfilesToCheck={};
+
+
 #all files from basecall
 listOfFilesBasecall={};
 #all files from final_sequence
@@ -395,6 +399,7 @@ listOfFilesWithIndices={};
 if(jsondata["bustard"]):
   for lanetopredict in lanesToUse:
     listOfBAMfilesToCheck[lanetopredict] = [];
+    listOfFLGfilesToCheck[lanetopredict] = [];
     listOfFilesBasecall[lanetopredict]   = [];
     listOfFilesFinal[lanetopredict]      = [];
     listOfFilesBWA[lanetopredict]        = [];
@@ -404,6 +409,7 @@ if(jsondata["bustard"]):
 if(jsondata["freeibis"]):
   for lanetopredict in lanesToUse:
     listOfBAMfilesToCheck[lanetopredict] = [];
+    listOfFLGfilesToCheck[lanetopredict] = [];
     listOfFilesBasecall[lanetopredict]   = [];
     listOfFilesFinal[lanetopredict]      = [];
     listOfFilesBWA[lanetopredict]        = [];
@@ -443,13 +449,13 @@ for lanetopredict in lanesToUse:
   indicesWrite = open (fileWithIndices , 'w' ) ;
 
   for jsonrow in jsondata["indicesseq"]:
-    indicesWrite.write( jsonrow["name"] +"\t"); 
-    indicesWrite.write( jsonrow["p7"] );
+
+    indicesWrite.write( jsonrow["p7"]+"\t" );
     if("p5" in jsonrow):
-      indicesWrite.write( "\t"+jsonrow["p5"] );
+      indicesWrite.write( jsonrow["p5"]+"\t" );
+
+    indicesWrite.write( jsonrow["name"] ); 
     indicesWrite.write( "\n" );
-
-
 
     #indicesWrite.write( jsondata["indicesseq"] ); 
   indicesWrite.close();
@@ -765,7 +771,10 @@ for baseCaller in BasecallersUsed:
 
 
       makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx:\t"+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam\n");
-      
+
+      listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx");
+      listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx");
+      listOfFLGfilesToCheck[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx");
 
       conversion_str = "mv "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".temp.bam\n\tsam sort -m 16G -o "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".temp.bam -i "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam.bai -x "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".flgstx -c "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".covstat "+str(tempdir)+" > "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam\n\trm -f "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".temp.bam";
 
@@ -785,7 +794,7 @@ for baseCaller in BasecallersUsed:
 
 
 
-      conversion_str = "bwa bam2bam -t %d -f %s -g  %s %s %s "%(max_threads,
+      conversion_str = "bwa bam2bam -p 52690 -t %d -f %s -g  %s %s %s "%(max_threads,
                                                                 outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam_",
                                                                 BWAGENOMES+"/"+str(jsondata["genomebwa"])+"/bwa-0.4.9",
                                                                 bwaparameter,
@@ -825,7 +834,7 @@ for baseCaller in BasecallersUsed:
   for lanetopredict in lanesToUse:
 
 #CLUSTER COUNT
-    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/QC/clusterTally_"+str(lanetopredict)+".OK:\t"+" ".join(listOfBAMfilesToCheck[lanetopredict])+"\n");
+    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/QC/clusterTally_"+str(lanetopredict)+".OK:\t"+" ".join(listOfBAMfilesToCheck[lanetopredict])+" "+" ".join(listOfFLGfilesToCheck[lanetopredict])+"\n");
     listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/clusterTally_"+str(lanetopredict)+".OK");
 
     cmdTileCounter =  Tilecounter;

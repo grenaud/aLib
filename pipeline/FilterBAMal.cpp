@@ -254,7 +254,7 @@ void filterBAMAlign(BamAlignment * al){
     // 	totalLike += likeQual[ quals1[i] ];
     // }
 
-    double likeSeq=compLikelihoodSeq(al);
+    //double likeSeq=compLikelihoodSeq(al);
 
     
     //cout<<pow(10.0,totalLike)<<endl;
@@ -264,7 +264,7 @@ void filterBAMAlign(BamAlignment * al){
 
     double avgExp=computeExpectationError(al);
     // if(!al->IsPaired() ){
-    //cout<<al->QueryBases.size()<<"\t"<<avgExp<<"\t"<<-10*log10(avgExp)<<endl;
+    // cout<<al->QueryBases.size()<<"\t"<<avgExp<<"\t"<<-10*log10(avgExp)<<endl;
     // }
 
     if(verbose){             
