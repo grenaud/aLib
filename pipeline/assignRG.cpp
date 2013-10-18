@@ -51,10 +51,10 @@ static string dashes = "--------------------------------";
 // XXX really, a global?!
 map<string,tallyForRG> namesMap; //a map name of RG to count of how many observed
 
-string getCWD(){
-   char temp[1000];
-   return ( getcwd(temp, 1000) ? string( temp ) : string("") );
-}
+// string getCWD(){
+//    char temp[1000];
+//    return ( getcwd(temp, 1000) ? string( temp ) : string("") );
+// }
 
 struct compareNameRG {
     bool operator() (pair<string,int> i,pair<string,int> j) {
@@ -609,7 +609,7 @@ int main (int argc, char *argv[]) {
 
     if(printError){
 	trieKnownString = new PrefixTree<string>();
-	initializeKnownIndices(trieKnownString,getCWD()+"/../webForm/config.json");
+	initializeKnownIndices(trieKnownString,getCWD(argv[0])+"/../webForm/config.json");
 	// //debug
 	// vector<string> * temp3=new vector<string>();
 	// vector<string> * temp4=new vector<string>();
