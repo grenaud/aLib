@@ -1,12 +1,19 @@
 #!/usr/bin/python
 
 import sys,os
-import xml.etree.ElementTree as ET
+import json
+
+#import xml.etree.ElementTree as ET
 import shutil
 
 from datetime import date
 from optparse import OptionParser
 from optparse import OptionGroup
+
+def chomp(s):
+  return s.rstrip('\n');
+
+
 
 def isInt(s):
     try:
@@ -28,20 +35,34 @@ todaysdate=date.today();
 
 #BEGIN READ CONFIG FILE
 pathToConfig=sys.argv[0];
-pathToConfig=os.path.dirname(os.path.abspath(pathToConfig))+"/config.xml";
+#pathToConfig=os.path.dirname(os.path.abspath(pathToConfig))+"/config.xml";
+pathToConfig=os.path.dirname(os.path.abspath(pathToConfig))+"/config.json";
+
 #alibdir=os.path.dirname(os.path.abspath( sys.argv[0]+"/../"))
 
 try:
-  tree =ET.parse(pathToConfig);
+#  tree =ET.parse(pathToConfig);
+  fileHandleConf = open ( pathToConfig );
+
 except IOError:
-  print "Cannot open XML config file "+pathToConfig;
+  print "Cannot open json config file "+pathToConfig;
   sys.exit(1);
 
-XMLconfig        = tree.getroot()
+#XMLconfig        = tree.getroot()
+
+jsonstringConf="";
+while 1:
+  line = fileHandleConf.readline();
+  if(not(line)):
+    break
+  line = chomp(line);
+  jsonstringConf+=line;
+fileHandleConf.close();
+jsondataConf=json.loads(jsonstringConf);
 
 
 
-illuminareaddir  = XMLconfig.find("illuminareaddir").text;
+illuminareaddir  = jsondataConf["illuminareaddir"]; #XMLconfig.find("illuminareaddir").text;
 
 
 

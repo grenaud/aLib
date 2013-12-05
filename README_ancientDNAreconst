@@ -1,0 +1,25 @@
+==========================================================
+  Maximum reconstruction of ancient DNA fragments
+==========================================================
+
+RUNNING THE PROGRAM:
+To launch the program simply build the aLib package and type:
+
+    pipeline/mergeTrimReadsBAM
+
+TEST DATA:
+
+A small test set of 50,000 ancient DNA sequences from the Altai Neandertal can be found here:
+
+    testData/rawAncientDNA.bam
+
+
+To launch the reconstruction program for this test data set, use the following command :
+
+    pipeline/mergeTrimReadsBAM -f AGATCGGAAGAGCACACGTCTGAACTCCAG -s GGAAGAGCGTCGTGTAGGGAAAGAGTGTAG --ancientdna  -o testData/reconsAncientDNA.bam testData/rawAncientDNA.bam
+
+The reconstructed ancient DNA fragments will be in 
+
+    testData/reconsAncientDNA.bam
+
+

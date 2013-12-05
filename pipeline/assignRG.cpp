@@ -609,6 +609,8 @@ int main (int argc, char *argv[]) {
 
     if(printError){
 	trieKnownString = new PrefixTree<string>();
+	//cerr<<getCWD(argv[0])+"/../webForm/config.json"<<endl;
+	//	return 1;
 	initializeKnownIndices(trieKnownString,getCWD(argv[0])+"/../webForm/config.json");
 	// //debug
 	// vector<string> * temp3=new vector<string>();

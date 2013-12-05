@@ -878,13 +878,16 @@ function displayStep7() {
     echo "Selecting the target genome:<BR><BR>\n";
     echo "<select name=\"genomebwa\" size=\"1\">\n";
     foreach($arrayofGenomes as $agenome){
-	if($agenome == "hg19_1000g"){
+	if($agenome == "hg19_evan"){
 	    echo "<option value=\"".$agenome."\" selected=\"selected\">".$agenome."</option>\n";
 	}else{
 	    echo "<option value=\"".$agenome."\" >".$agenome."</option>\n";
 	}
-    }
+    }    
     echo "</select><BR><BR>\n";
+
+    echo "<b>hg19_evan</b>: Is the 1000 genomes hg19 plus some decoy sequences (phix,herpes and unmapped potentially human sequences) .<BR><BR>\n";
+    echo "<b>Please note</b>: If you have previous data aligned under a different version of a genome and pretend on merging the bam files for say genotyping, we strongly recommend to consistently use the same version of the genome.<BR><BR>\n";
     echo "Selecting the parameters for BWA:<BR><BR>\n";
     echo "Normally, the following are used:<BR> for modern DNA: \"-n 0.04 -o 1\"<BR>for ancient DNA: \"-n 0.01 -o 2 -l 16500\"<BR><BR>\n";
     

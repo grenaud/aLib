@@ -104,11 +104,11 @@ int main (int argc, char *argv[]) {
 
 		
 		if(!al.IsFailedQC() && !al2.IsFailedQC() ){//read passed
-		    pairr2 <<"@"<< al.Name <<endl <<al.QueryBases<<endl<<"+"<<endl <<al.Qualities<<endl;
-		    pairr1 <<"@"<<al2.Name<<endl <<al2.QueryBases<<endl<<"+"<<endl<<al2.Qualities<<endl;
+		    pairr2 <<"@"<< al.Name<<"/2" <<endl <<al.QueryBases<<endl<<"+"<<endl <<al.Qualities<<endl;
+		    pairr1 <<"@"<<al2.Name<<"/1"<<endl <<al2.QueryBases<<endl<<"+"<<endl<<al2.Qualities<<endl;
 		}else{
-		    pairr2f<<"@"<< al.Name <<endl <<al.QueryBases<<endl<<"+"<<endl <<al.Qualities<<endl;
-		    pairr1f<<"@"<<al2.Name<<endl <<al2.QueryBases<<endl<<"+"<<endl<<al2.Qualities<<endl;
+		    pairr2f<<"@"<< al.Name<<"/2" <<endl <<al.QueryBases<<endl<<"+"<<endl <<al.Qualities<<endl;
+		    pairr1f<<"@"<<al2.Name<<"/1"<<endl <<al2.QueryBases<<endl<<"+"<<endl<<al2.Qualities<<endl;
 		}
 		pairedreads++;
 	    }
