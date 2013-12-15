@@ -456,7 +456,8 @@ rgAssignment assignReadGroup(string &index1,
     }
 
     for(unsigned int i=0;i<index1q.length();i++){
-	int tempIntTopush = (int(char(index1q[i]))-qualOffset);
+	char tempCtocov   = char(index1q[i]);
+	int tempIntTopush = (int( tempCtocov )-qualOffset);
 	quals1.push_back(     max(tempIntTopush ,2)  )   ; //since qual scores less than 2 do not make sense
     }
 
@@ -469,7 +470,8 @@ rgAssignment assignReadGroup(string &index1,
 	}
 	
 	for(unsigned int i=0;i<index2q.length();i++){
-	    int tempIntTopush =(int(char(index2q[i]))-qualOffset);
+	    char tempCtocov   = char(index2q[i]);
+	    int tempIntTopush =(int(tempCtocov)-qualOffset);
 	    quals2.push_back( max( tempIntTopush ,2)  )   ;	//since qual scores less than 2 do not make sense
 	}
     }
