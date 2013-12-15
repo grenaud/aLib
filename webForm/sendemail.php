@@ -29,7 +29,7 @@ $mail->Subject = "Processing finished ".$runid;
 $mail->Message = "This is an automated message.\nThe following run :\n". 
     $runfolder."\n".
     "For the following lane: ".$lane."\n".
-    "is done processing\nPlease refer to the webform for quality control information\n";
+    "is done processing\nIMPORTANT: Before you start working on your data, please refer to the webform for quality control information\n";
     
 $mail->ConnectTimeout = 30;  // Socket connect timeout (sec)
 $mail->ResponseTimeout = 8;  // CMD response timeout (sec)

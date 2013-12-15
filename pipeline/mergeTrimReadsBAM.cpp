@@ -11,6 +11,7 @@
 #include "MergeTrimReads.h"
 #include "PutProgramInHeader.h"
 
+// #include "JSON.h"
 
 #include "utils.h"
 
@@ -24,55 +25,39 @@ using namespace std;
 // using namespace __MergeTrimReads__;
 
 
+
+// void initializeDefaultSequences(string configFile){
+//     string line;
+//     ifstream myFile;
+//     string content="";
+//     myFile.open(configFile.c_str(), ios::in);
+
+//     if (myFile.is_open()){
+// 	while ( getline (myFile,line)){
+// 	    content+=line;
+// 	}
+// 	myFile.close();
+//     }else{
+// 	cerr << "Unable to open config file "<<configFile<<endl;
+// 	exit(1);
+//     }
+
+
+//     JSONValue *value = JSON::Parse(content.c_str());
+//     if (value == NULL){
+// 	cerr<<"Failed to parse JSON file"<<endl;
+// 	exit(1);
+//     }
+
+    
+// }
 string options_adapter_F_BAM="AGATCGGAAGAGCACACGTCTGAACTCCAGTCACIIIIIIIATCTCGTATGCCGTCTTCTGCTTG";
 string options_adapter_S_BAM="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATTT";
 string options_adapter_chimera_BAM="ACACTCTTTCCCTACACGTCTGAACTCCAG,ACACTCTTTCCCACACGTCTGAACTCCAGT,ACACTCTTTCCCTACACACGTCTGAACTCC,CTCTTTCCCTACACGTCTGAACTCCAGTCA,GAAGAGCACACGTCTGAACTCCAGTCACII,GAGCACACGTCTGAACTCCAGTCACIIIII,GATCGGAAGAGCACACGTCTGAACTCCAGT,AGATCGGAAGAGCACACGTCTGAACTCCAG,AGAGCACACGTCTGAACTCCAGTCACIIII,ACACGTCTGAACTCCAGTCACIIIIIIIAT,GTGCACACGTCTGAACTCCAGTCACIIIII,AGCACACGTCTGAACTCCAGTCACIIIIII,CGTATGCCGTCTTCTGCTTGAAAAAAAAAA";
-int maxadapterComp_BAM = 30;
 
-//FLAGs for merged reads
-const string MERGEDBAMFLAG = "FF";
-const int32_t TRIMMEDFLAG       = 1;
-const int32_t MERGEDFLAG        = 2;
-const int32_t TRIMMEDMERGEDFLAG = 3;
-
-
-inline string sortUniqueChar(string v){
-    // vector<char> v( input.begin(), input.end() );
-    string::iterator it;
-    sort (v.begin(), v.end());
-    char   previousChar='!';
-    string toReturn    ="";
-    for (it=v.begin(); it!=v.end();it++ ){
-	if(previousChar == '!' ||
-	   previousChar != *it){
-	    previousChar=*it;
-	    toReturn+=previousChar;
-	}	
-    }
-    return toReturn;
-}
-
-//! return true iff successful
-int set_extra_flag( BamAlignment &al, int32_t f )
-{
-    char tp=0;
-    if(!al.GetTagType(MERGEDBAMFLAG,tp)) {
-        if(al.AddTag(MERGEDBAMFLAG,"i",f)) return 1;
-    }
-    else {
-        int v=0;
-        switch(tp) {
-            case 'i': case 'I': case 's': case 'S': case 'c': case 'C': 
-                al.GetTag(MERGEDBAMFLAG,v);
-                al.RemoveTag(MERGEDBAMFLAG);
-                if(al.AddTag(MERGEDBAMFLAG,"i",v|f)) return 1;
-                break ;
-            default:
-                cerr << "Oh shit, " << MERGEDBAMFLAG << " has type " << tp << endl;
-        }
-    }
-    cerr << "Unable to add tag " << MERGEDBAMFLAG << endl;
-    return 0;
+inline bool isBamAlignEmpty(const BamAlignment & toTest){
+    return ( toTest.Name.empty() &&
+	     toTest.Length == 0 );    
 }
 
 
@@ -81,7 +66,7 @@ int main (int argc, char *argv[]) {
 
     bool produceUnCompressedBAM=false;
     bool verbose=false;
-    bool mergeoverlap=false;
+    bool ancientDNA=false;
     bool keepOrig=false;
 
     string adapter_F=options_adapter_F_BAM;
@@ -100,12 +85,14 @@ int main (int argc, char *argv[]) {
 
     string bamFile;
     string bamFileOUT="";
-    vector<string> checkedTags;
-    checkedTags.push_back("RG");
-    checkedTags.push_back("XI");
-    checkedTags.push_back("YI");
-    checkedTags.push_back("XJ");
-    checkedTags.push_back("YJ");
+
+    string key1;
+    string key2;
+    
+    bool useDist=false;
+    double location=-1.0;
+    double scale   =-1.0;
+
 
     const string usage=string(string(argv[0])+
 			      "This program takes a BAM where each mate are consecutive and\ntrims and merges reads\n"+
@@ -121,13 +108,18 @@ int main (int argc, char *argv[]) {
 			      "\t"+"--log [log file]" +"\t"+"Print a tally of merged reads to this log file (default only to stderr)"+"\n"+
 			      
 			      "\n\t"+"Paired End merging/Single Read trimming  options"+"\n"+
-			      "\t\t"+"--mergeoverlap"+"\t\t\t\t"+"Merge PE reads of molecules longer than read length that show a minimum overlap (default "+boolStringify(mergeoverlap)+")"+"\n"+
+			      "\t\t"+"You can specify either:"+"\n"+
+			      "\t\t"+"--ancientdna"+"\t\t\t\t"+"ancient DNA (default "+boolStringify(ancientDNA)+")"+"\n"+
+			      "\t\t"+"            "+"\t\t\t\t"+" Allows for partial overlap"+"\n"+
+			      "\t\t"+"or if you know your size length distribution:"+"\n"+
+			      "\t\t"+"--loc"+"\t\t\t\t"+"Location for lognormal dist. (default none)"+"\n"+
+			      "\t\t"+"--scale"+"\t\t\t\t"+"Scale for lognormal dist. (default none)"+"\n"+
 			      "\t\t\t\t\t\t\tGood for merging ancient DNA reads into a single sequence\n\n"
 			      "\t\t"+"--keepOrig"+"\t\t\t\t"+"Write original reads if they are trimmed or merged  (default "+boolStringify(keepOrig)+")"+"\n"+
 			      "\t\t\t\t\t\t\tSuch reads will be marked as PCR duplicates\n\n"
-			      "\t\t"+"-f , --adapterFirstRead" +"\t\t\t"+"Adapter that is observed after the forward read (def. Multiplex: "+options_adapter_F_BAM .substr(0,maxadapterComp_BAM)+")"+"\n"+
-			      "\t\t"+"-s , --adapterSecondRead" +"\t\t"+"Adapter that is observed after the reverse read (def. Multiplex: "+options_adapter_S_BAM.substr(0,maxadapterComp_BAM)+")"+"\n"+
-			      "\t\t"+"-c , --FirstReadChimeraFilter" +"\t\t"+"If the forward read looks like this sequence, the cluster is filtered out.\n\t\t\t\t\t\t\tProvide several sequences separated by comma.(def. Multiplex: "+options_adapter_chimera_BAM.substr(0,maxadapterComp_BAM)+")"+"\n"+
+			      "\t\t"+"-f , --adapterFirstRead" +"\t\t\t"+"Adapter that is observed after the forward read (def. Multiplex: "+options_adapter_F_BAM.substr(0,30)+")"+"\n"+
+			      "\t\t"+"-s , --adapterSecondRead" +"\t\t"+"Adapter that is observed after the reverse read (def. Multiplex: "+options_adapter_S_BAM.substr(0,30)+")"+"\n"+
+			      "\t\t"+"-c , --FirstReadChimeraFilter" +"\t\t"+"If the forward read looks like this sequence, the cluster is filtered out.\n\t\t\t\t\t\t\tProvide several sequences separated by comma (def. Multiplex: "+options_adapter_chimera_BAM.substr(0,30)+")"+"\n"+
 			      "\t\t"+"-k , --key"+"\t\t\t\t"+"Key sequence with which each sequence starts. Comma separate for forward and reverse reads. (default '"+key+"')"+"\n"+
 			      "\t\t"+"-i , --allowMissing"+"\t\t\t"+"Allow one base in one key to be missing or wrong. (default "+boolStringify(allowMissing)+")"+"\n"+
 			      "\t\t"+"-t , --trimCutoff"+"\t\t\t"+"Lowest number of adapter bases to be observed for single Read trimming (default "+stringify(trimCutoff)+")");
@@ -179,8 +171,8 @@ int main (int argc, char *argv[]) {
 	    continue;
 	}
 
-	if(strcmp(argv[i],"--mergeoverlap") == 0 ){
-	    mergeoverlap=true;
+	if(strcmp(argv[i],"--ancientdna") == 0 ){
+	    ancientDNA=true;
 	    continue;
 	}
 
@@ -188,6 +180,20 @@ int main (int argc, char *argv[]) {
 	    keepOrig=true;
 	    continue;
 	}
+
+	if(strcmp(argv[i],"--loc") == 0 ){
+	    location =destringify<double>(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+	if(strcmp(argv[i],"--scale") == 0 ){
+	    scale =destringify<double>(argv[i+1]);
+	    i++;
+	    continue;
+	}
+
+
 
 	if(strcmp(argv[i],"-f") == 0 || strcmp(argv[i],"--adapterFirstRead") == 0 ){
 	    adapter_F =string(argv[i+1]);
@@ -232,19 +238,35 @@ int main (int argc, char *argv[]) {
 
     bamFile=argv[argc-1];
 
-    set_adapter_sequences(adapter_F,
-			  adapter_S,
-			  adapter_chimera,
-			  maxadapterComp_BAM);
-    set_options(trimCutoff,allowMissing,mergeoverlap);
+    if( (location != -1.0 && scale == -1.0) ||
+	(location == -1.0 && scale != -1.0) ){
+	cerr<<"Cannot specify --location without specifying --scale"<<endl;
+	return 1;	    
+    }
+	
+    if( (location != -1.0 && scale != -1.0) ){
+	useDist=true;
+	    
+	if(ancientDNA){
+	    cerr<<"Cannot specify --location/--scale and --ancientDNA"<<endl;
+	    return 1;	    
+	}
+    }
     
+
+    //  initMerge();
+    //     set_adapter_sequences(adapter_F,
+    // 			  adapter_S,
+    // 			  adapter_chimera);
+    //     set_options(trimCutoff,allowMissing,mergeoverlap);
     if(key != ""){
 	size_t found=key.find(",");
 	if (found == string::npos){ //single end reads
-	    set_keys(key);
+	    key1=key;
+	    key2="";
 	} else{                     //paired-end
-	    set_keys(key.substr(0,found),
-		     key.substr(found+1,key.length()-found+1));
+	    key1=key.substr(0,found);
+	    key2=key.substr(found+1,key.length()-found+1);
 	}
     }
 
@@ -289,19 +311,10 @@ int main (int argc, char *argv[]) {
     // 	cerr << "Bamfile must be sorted by queryname" << endl;
     // 	return 1;
     // }
-
-    int count_all = 0;
-    int count_fkey = 0;
-    int count_merged = 0;
-    int count_merged_overlap = 0;
-    int count_trimmed = 0;
-    int count_nothing = 0;
-    int count_chimera = 0;
-
-    string read1;
-    string read2;
-    string qual1;
-    string qual2;
+    
+    MergeTrimReads mtr (adapter_F,adapter_S,adapter_chimera,
+			key1,key2,
+			trimCutoff,allowMissing,ancientDNA,location,scale,useDist);
 
     BamAlignment al;
     BamAlignment al2;
@@ -328,328 +341,73 @@ int main (int argc, char *argv[]) {
 	}else{
 	    if(al.IsPaired() && 
 	       !al2Null){
-		if(al.Name != al2.Name ){
-		    cerr << "Seq#1 has a different id than seq #2, exiting " << endl;
-		    return 1;
-		} 
-		count_all ++;
-		if(al.IsFirstMate()  &&
-		   al2.IsSecondMate() ){
-		    read1 =string(al.QueryBases);
-		    read2 =string(al2.QueryBases);
-		    qual1 =string(al.Qualities);
-		    qual2 =string(al2.Qualities);		    
-		}else{
-		    if(al2.IsFirstMate()  &&
-		       al.IsSecondMate() ){
-			read1 =string(al2.QueryBases);
-			qual1 =string(al2.Qualities);
-			read2 =string(al.QueryBases);
-			qual2 =string(al.Qualities);		    
-		    }else{
-			cerr << "Seq#1 must be the first mate for seq #2, exiting " << endl;
-			return 1;
-		    }
-		}
 
-		if(qual1 == "*"){
-		    qual1=string(read1.length(),'0');
-		}
-		if(qual2 == "*"){
-		    qual2=string(read1.length(),'0');
-		}
-
-
-		merged result=process_PE(read1,qual1,
-					 read2,qual2);
-
+		bool  result =  mtr.processPair(al,al2);
 		
-		if(result.code != ' '){ 
-		    string prevZQ1="";
-		    string prevZQ2="";
+		if( result ){//was merged
+		    BamAlignment orig;
+		    BamAlignment orig2;
 
-		    al.SetIsFailedQC(true);
-		    al.GetTag("ZQ",prevZQ1);		    
-		    prevZQ1+=result.code;
-		    if(al.HasTag("ZQ") ){ //this is done because bamtools was not intelligent enough to understand that "ZQ:A" becomes "ZQ:Z" when you add a char, oh well.. 
-			al.RemoveTag("ZQ");
-			if(al.HasTag("ZQ") ){
-			    cerr << "Failed to remove tag for "<< al.Name<<endl;
-			    return 1;
-			}
+		    if(keepOrig){
+			orig2 = al2;
+			orig  = al;
 		    }
 
-		    if(prevZQ1 != "")
-			if(!al.AddTag("ZQ","Z",sortUniqueChar(prevZQ1))){
-			    cerr << "Error while editing tags new tag11:"<<prevZQ1 <<"#"<< endl;
-			    return 1;
-			}
+		    writer.SaveAlignment(al);
 
-		   
-
-		    al2.SetIsFailedQC(true);
-		    al2.GetTag("ZQ",prevZQ2);
-		    prevZQ2+=result.code;
-		    if(al2.HasTag("ZQ") ){ 
-			al2.RemoveTag("ZQ");
-			if(al2.HasTag("ZQ") ){ 
-			    cerr << "Failed to remove tag for "<< al2.Name<< endl;
-			    return 1;
-			}
-		    }
-		    if(prevZQ2 != "")
-		    if(!al2.AddTag("ZQ","Z",sortUniqueChar(prevZQ2))){
-			cerr << "Error while editing tags new tag21:" << prevZQ2<<"#"<<endl;
-			return 1;
+		    if(keepOrig){
+			orig.SetIsDuplicate(true);
+			orig2.SetIsDuplicate(true);
+			writer.SaveAlignment(orig2);
+			writer.SaveAlignment(orig);
 		    }
 
-		  
-		    
-		    if( result.code == 'K'){
-			count_fkey ++;
-		    }else{
-			if( result.code  == 'D'){
-			    count_chimera++;
-			}else{
-			    cerr << "mergeTrimReadsBAM: Wrong return code =\""<<result.code<<"\""<<endl;
-			    return 1;
-			}
-		    }
-		}
-
-
-		if(result.sequence != ""){ //new sequence
-		  BamAlignment toWrite (al);//build from the previous one
-		  string towriteZQ="";
-		  al.GetTag("ZQ",towriteZQ);  //get from the first one
-		  // if(!toWrite.RemoveTag("ZQ")){ 
-		  //     cerr << "Failed to remove tag for new "<< toWrite.Name<< endl;
-		  //     return 1;
-		  // }
-
-		  //not failed
-		  if( result.code == ' '){
-		      if( result.sequence.length() > max(read1.length(),read2.length())){
-			  count_merged_overlap ++;			  
-                          if( !set_extra_flag(al,  MERGEDFLAG) ) return 1 ;
-                          if( !set_extra_flag(al2, MERGEDFLAG) ) return 1 ;
-		      }else{
-			  count_merged++;
-                          if( !set_extra_flag(al,  TRIMMEDMERGEDFLAG) ) return 1 ;
-                          if( !set_extra_flag(al2, TRIMMEDMERGEDFLAG) ) return 1 ;
-                      }
-		  }
-		  
-		  toWrite.AlignmentFlag=4;
-		  toWrite.MapQuality=0;
-		  
-		  toWrite.QueryBases = result.sequence;
-		  toWrite.Qualities  = result.quality;
-		  toWrite.SetIsMapped(false);
-		
-
-		  toWrite.Position    =-1;
-		  toWrite.MatePosition=-1;
-		  toWrite.SetIsFailedQC( al.IsFailedQC() && al2.IsFailedQC() ); //fail the new one if both fail 
-		  toWrite.TagData=al.TagData; //copy tag info
-		  //toWrite.RemoveTag("ZQ");
-		  if(toWrite.HasTag("ZQ") ){ 
-		      toWrite.RemoveTag("ZQ");
-		      if(toWrite.HasTag("ZQ") ){ 
-			  cerr << "Failed to remove tag for new "<< toWrite.Name<< endl;
-			  return 1;
-		      }
-		  }
-
-		  if( toWrite.QueryBases.length()  < min_length){
-		      toWrite.SetIsFailedQC( true );		   
-		      // if(!al.EditTag("ZQ","Z",string("L"))){
-		      // 	  cerr << "Error while editing tags" << endl;
-		      // 	  return 1;
-		      // }
-		      towriteZQ+="L";
-		  }
-
-		  /////////////////////////////
-		  //       Fixing tags       //
-		  /////////////////////////////
-		  string dummy1;
-		  string dummy2;
-		  
-
-		  //paranoid check to make sure our tags are identical
-		  for(size_t idx=0;idx<checkedTags.size();idx++)
-		      if(al.GetTag(checkedTags[idx],dummy1)){
-			  if(al2.GetTag(checkedTags[idx],dummy2)){
-			      if(dummy1 != dummy2){
-				  cerr << "Value for "<<checkedTags[idx]<<" cannot differ between mates " << endl;
-				  return 1;
-			      }
-			      //fine otherwise
-			  }else{
-			      cerr << "One read has been assigned a  "<<checkedTags[idx]<<" tag but not the other " << endl;
-			      return 1;
-
-			  }
-		      }
-
-		  //The new read has the same ZQ tag as al. at this point
-		  if(al.HasTag("ZQ") || al2.HasTag("ZQ") ){
-		      if( al2.HasTag("ZQ") ){
-			  if(!al.GetTag("ZQ",dummy1)) {
-			      cerr << "Failed to get ZQ field from read 1" << endl;
-			      return 1;
-			  }
-			  if(!al.GetTag("ZQ",dummy2)) {
-			      cerr << "Failed to get ZQ field from read 2" << endl;
-			      return 1;
-			  }
-			  //we then need to add the ZQ from the second read
-			  if(dummy1 != dummy2){
-			      towriteZQ+=dummy2;
-			  }	       	    
-		      }
-		  }
-
-
-		  if(towriteZQ != ""){
-		      if(!toWrite.AddTag("ZQ","Z",sortUniqueChar(towriteZQ))){
-			  cerr << "Error while editing tags new tag20:"<<towriteZQ <<"#"<< endl;
-			  return 1;
-		      }
-		  }	
-		  //we keep the original reads
-		  if(keepOrig){
-		      al.SetIsDuplicate(true);
-		      al2.SetIsDuplicate(true);
-		      writer.SaveAlignment(al2);
-		      writer.SaveAlignment(al);
-		  }
-		  writer.SaveAlignment(toWrite);
-		    
+		    //the second record is empty
 		}else{
-		    if( result.code == ' ')
-			count_nothing++;
-            //if we use the Dup flag ourselves, clear it
-            if(keepOrig){ 
-                al.SetIsDuplicate(false);
-                al2.SetIsDuplicate(false);
-            }
 		    //keep the sequences as pairs
-		    writer.SaveAlignment(al2);
+
+		    writer.SaveAlignment(al2);		    
 		    writer.SaveAlignment(al);
 		}
-
-
-
-
 
 		//
 		//  SINGLE END
 		//
 	    }else{ 
-		count_all ++;
-
-		read1 =string(al.QueryBases);
-		qual1 =string(al.Qualities);
-		if(qual1 == "*"){
-		    qual1=string(read1.length(),'0');
+		BamAlignment orig;
+		if(keepOrig){
+		    orig =al;
 		}
-	
+		mtr.processSingle(al);
 
-		merged result=process_SR(read1,qual1);
-		
-		if(result.code != ' '){ 
-		    string prevZQ1="";
-
-		    al.SetIsFailedQC(true);
-		    al.GetTag("ZQ",prevZQ1);
-		    prevZQ1+=result.code;
-		    if(al.HasTag("ZQ") ){ 
-			al.RemoveTag("ZQ");
-			if(al.HasTag("ZQ") ){ 
-			    cerr << "Failed to remove tag for "<< al.Name<< endl;
-			    return 1;
-			}
-		    }
-
-		    if(prevZQ1 != ""){
-			if(!al.EditTag("ZQ","Z",sortUniqueChar(prevZQ1))){
-			    cerr << "Error while editing tags new tag11:"<<prevZQ1 <<"#"<< endl;
-			    return 1;
-			}
-		    }	
-	    
-		    if( result.code == 'K'){
-			count_fkey ++;
-		    }else{
-			if( result.code  == 'D'){
-			    count_chimera++;
-			}else{
-			    cerr << "mergeTrimReadsBAM: Wrong return code =\""<<result.code<<"\""<<endl;
-			    return 1;
-			}
-
+		if(keepOrig){
+		    //write duplicate
+		    if(orig.QueryBases.length()  != al.QueryBases.length()){
+			orig.SetIsDuplicate(true);
+			writer.SaveAlignment(orig);
 		    }
 		}
-
-		if(result.sequence != ""){ //new sequence
-
-		    BamAlignment toWrite (al);//build from the previous al
-		    toWrite.MapQuality=0;
-
-		    toWrite.QueryBases = result.sequence;
-		    toWrite.Qualities  = result.quality;
-		    toWrite.SetIsMapped(false);
-            if(!set_extra_flag( toWrite, TRIMMEDFLAG )) return 1; 
-
-		    toWrite.Position    =-1;
-		    toWrite.MatePosition=-1;		    
-		    if( result.code == ' ')
-			count_trimmed++;
-
-		    if(keepOrig){
-		      al.SetIsDuplicate(true);
-		      writer.SaveAlignment(al);
-		    }
-		    writer.SaveAlignment(toWrite);
-
-		}else{
-		    if( result.code == ' ')
-			count_nothing++;
-
-		    writer.SaveAlignment(al);
-		}
+		writer.SaveAlignment(al);
 
 
 
 	    } //end single end
 	    al2Null=true;
 	}//second pair
-	
-	if(verbose && (count_all%10000 == 0) && (count_all > 0)){
-	    cerr<<"<==> Total "<<count_all<<"; Merged (trimming) "<<count_merged<<"; Merged (overlap) "<<count_merged_overlap<<"; Kept PE/SR "<<count_nothing<<"; Trimmed SR "<<count_trimmed<<"; Adapter dimers/chimeras "<<count_chimera<<"; Failed Key "<<count_fkey<<endl;	
-	}
-	    
+		    
 
     } //while al
     reader.Close();
     writer.Close();
 
-    cerr <<"Total "<< count_all<<"; Merged (trimming) "<<count_merged <<"; Merged (overlap) "<<count_merged_overlap <<"; Kept PE/SR "<< count_nothing<<"; Trimmed SR "<<count_trimmed <<"; Adapter dimers/chimeras "<<count_chimera <<"; Failed Key "<<count_fkey <<endl;
+    cerr <<mtr.reportSingleLine()<<endl;
 
     if(printLog){
 	ofstream fileLog;
 	fileLog.open(logFileName.c_str());
 
 	if (fileLog.is_open()){
-	    fileLog <<"Total reads :"            <<count_all<<           "\t"<<100.0*double(count_all)           /double(count_all)<<"%"<<endl;
-	    fileLog <<"Merged (trimming) "       <<count_merged<<        "\t"<<100.0*double(count_merged)        /double(count_all)<<"%"<<endl;
-	    fileLog <<"Merged (overlap) "        <<count_merged_overlap<<"\t"<<100.0*double(count_merged_overlap)/double(count_all)<<"%"<<endl;
-	    fileLog <<"Kept PE/SR "              <<count_nothing<<       "\t"<<100.0*double(count_nothing)       /double(count_all)<<"%"<<endl;
-	    fileLog <<"Trimmed SR "              <<count_trimmed<<       "\t"<<100.0*double(count_trimmed)       /double(count_all)<<"%"<<endl;
-	    fileLog <<"Adapter dimers/chimeras " <<count_chimera<<       "\t"<<100.0*double(count_chimera)       /double(count_all)<<"%"<<endl;
-	    fileLog <<"Failed Key "              <<count_fkey<<          "\t"<<100.0*double(count_fkey)          /double(count_all)<<"%"<<endl;
+	    fileLog <<mtr.reportMultipleLines() <<endl;
 
 	}else{
 	    cerr << "Unable to print to file "<<logFileName<<endl;
