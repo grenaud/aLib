@@ -1,13 +1,13 @@
 [submodule "biohazard"]
 	path = biohazard
-	url = git@github.com:udo-stenzel/biohazard.git
+	url = https://github.com/udo-stenzel/biohazard.git
 	branch = v0.4.7
 [submodule "libgab"]
 	path = libgab
 	url = https://github.com/grenaud/libgab
 [submodule "network-aware-bwa"]
 	path = network-aware-bwa
-	url = git@github.com:udo-stenzel/network-aware-bwa.git
+	url = https://github.com/udo-stenzel/network-aware-bwa.git
 [submodule "bamtools"]
 	path = bamtools
 	url = https://github.com/pezmaster31/bamtools.git
