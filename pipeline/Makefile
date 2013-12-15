@@ -2,7 +2,6 @@
 
 
 include ../makefile.defs
-LIBGAB   = /home/gabriel_renaud/lib/
 
 CXXFLAGS+= -O3 -Wall -I${BAMTOOLS}/include/ -I${LIBGAB} -I../SimpleJSON/src/
 LDLIBS+= ${BAMTOOLS}/lib/libbamtools.a ${LIBGAB}/utils.o -lm -lz
