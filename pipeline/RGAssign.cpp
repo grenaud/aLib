@@ -455,8 +455,10 @@ rgAssignment assignReadGroup(string &index1,
 	indTrie1->searchMismatch(         (index1.substr(1, index1.size() -1)+"N" ).c_str(),&matchesind1,mismatchesTrie);
     }
 
-    for(unsigned int i=0;i<index1q.length();i++)
-	quals1.push_back(     max( (int(char(index1q[i]))-qualOffset),2)  )   ; //since qual scores less than 2 do not make sense
+    for(unsigned int i=0;i<index1q.length();i++){
+	int tempIntTopush = (int(char(index1q[i]))-qualOffset);
+	quals1.push_back(     max(tempIntTopush ,2)  )   ; //since qual scores less than 2 do not make sense
+    }
 
     if(!index2.empty()){
 	indTrie2->searchMismatch(  index2.c_str(),&matchesind2,mismatchesTrie);
@@ -465,9 +467,11 @@ rgAssignment assignReadGroup(string &index1,
 	    indTrie2->searchMismatch( ("N"+index2.substr(0, index2.size() -1)     ).c_str(),&matchesind2,mismatchesTrie);
 	    indTrie2->searchMismatch(     (index2.substr(1, index2.size() -1)+"N" ).c_str(),&matchesind2,mismatchesTrie);
 	}
-
-	for(unsigned int i=0;i<index2q.length();i++)
-	    quals2.push_back( max( (int(char(index2q[i]))-qualOffset),2)  )   ;	//since qual scores less than 2 do not make sense
+	
+	for(unsigned int i=0;i<index2q.length();i++){
+	    int tempIntTopush =(int(char(index2q[i]))-qualOffset);
+	    quals2.push_back( max( tempIntTopush ,2)  )   ;	//since qual scores less than 2 do not make sense
+	}
     }
 
 
