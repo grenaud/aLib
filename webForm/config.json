@@ -24,7 +24,8 @@
     "genomedirectory": "/mnt/solexa/Genomes/",
     "tempdirectory": "/mnt/solexa/tmp/",
     "freeibispath": "/mnt/solexa/bin/freeIbis/",
-    "controlindex": "TTGCCGC",
+    "controlindex": "CGATTCG",
+    "controlindex2": "CGATTCG",
     "phixref": "/mnt/solexa/Genomes/phiX/control/whole_genome.fa",
     "chimeras": {
       "chimera": [

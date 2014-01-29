@@ -391,6 +391,31 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	}
     }
 
+    //insert size
+    for($lane=1;$lane<=8;$lane++){//
+	foreach(array("Bustard","Ibis") as $basecaller){
+
+	    $targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/insertsize/lane".$lane."/";
+	    if( file_exists($targetfile)){
+		$pdflist = array(); 
+		$myDirectory = opendir($targetfile);
+		
+		while($entryName = readdir($myDirectory)) {
+
+		    if($entryName != "." and $entryName != ".." ){
+			if(substr($entryName,-3) == "pdf"){ 
+			    $rgname=substr($entryName,3,-4);
+			    echo "<H3>RG insert size distribution for ".$rgname.", lane = ".$lane."</H3><BR>";		
+			    convertToPng($targetfile."/".$entryName,$basedirScript,$percentScale);
+			}
+		    }
+	    }
+	    }
+	}
+    }
+
+
+
 
 
     for($lane=1;$lane<=8;$lane++){//

@@ -35,6 +35,7 @@ foreach($jsonconf["chimeras"]["chimera"] as $chimlem){
 							      (string)$chimlem["chimera"] );
 }
 $ctrlindex=$jsonconf["controlindex"];
+$ctrlindex2=$jsonconf["controlindex2"];
 
 //first key is indexing scheme, second is number
 $p7Indices=array();
@@ -691,6 +692,9 @@ function displayStep5() {
 
 function displayStep6() {
     //var_dump($_POST);
+    global $ctrlindex;
+    global $ctrlindex2;
+
     global $p7Indices;
     global $p5Indices;
 
@@ -818,9 +822,9 @@ function displayStep6() {
     if($foundControl == 0){
 	//if($indextype       == "single"){
 	if($runinformation["cyclesindx2"] == 0 ){
-	    $stringToPrint.="TTGCCGC\tcontrol\n";
+	    $stringToPrint.=$ctrlindex."\tcontrol\n";
 	}else{
-	    $stringToPrint.="TTGCCGC\tAGATCTC\tcontrol\n";
+	    $stringToPrint.=$ctrlindex."\t".$ctrlindex2."\tcontrol\n";
 	}
     }
 

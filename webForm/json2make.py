@@ -89,6 +89,8 @@ Predvsobs            = "qualScoreC++/qualScoresObsVsPred";
 PredvsobsR           = "qualScoreC++/generateplot.R";
 FastQCreport         = "fastqc"
 
+insertsizebi         = "insertSize/insertSizeRG"
+insertsizeR          = "insertSize/insertSizeRG.R"
 
 sendemail            = "webForm/sendemail.php"
 
@@ -289,6 +291,17 @@ if not os.path.exists(PredvsobsR):
   print "Required executable file not found "+PredvsobsR;
   sys.exit(1);
 
+insertsizebi = "/home/gabriel_renaud/projects/aLib/aLib/"+insertsizebi;
+if not os.path.exists(insertsizebi):
+  print "Required executable file not found "+insertsizebi;
+  sys.exit(1);
+
+insertsizeR = "/home/gabriel_renaud/projects/aLib/aLib/"+insertsizeR;
+if not os.path.exists(insertsizeR):
+  print "Required executable file not found "+insertsizeR;
+  sys.exit(1);
+
+
 FastQCreport = FastQCreport;
 if not os.path.exists(FastQCreport):
   print "Required executable file not found "+FastQCreport;
@@ -357,20 +370,22 @@ allsubdir=["FastQC/",
            "QC/qscores/",
            "QC/rg/",
            "QC/filter/",
+           "QC/insertsize/",
            "Raw_Sequences/",
            "Final_Sequences/",
            "BWA",
            "FastQ"];
 
-
-if(jsondata["bustard"]):
+for lanetopredict in lanesToUse:
+  allsubdir.append("QC/insertsize/lane"+str(lanetopredict) );
   
+
+if(jsondata["bustard"]):  
   for subdir in allsubdir:
     targetdir=outBaseDirectory+"/Bustard/"+subdir;    
     makedirs(targetdir);
 
-if(jsondata["freeibis"]):
-  
+if(jsondata["freeibis"]):  
   for subdir in allsubdir:
     targetdir=outBaseDirectory+"/Ibis/"+subdir;    
     makedirs(targetdir);
@@ -679,7 +694,7 @@ for baseCaller in BasecallersUsed:
     if(int(jsondata["cyclesread2"]) > 0):
       conversion_str += " -k '%s,%s' -f %s -s %s -c %s "%( jsondata["key1"] ,jsondata["key2"],jsondata["adapter1"] ,jsondata["adapter2"],jsondata["chimeras"])
       if jsondata["mergeoverlap"] :
-        conversion_str += "--mergeoverlap "
+        conversion_str += "--ancientdna "
     else:
 
       conversion_str += " -k '%s' -f '%s'  -c '%s' "%( jsondata["key1"] ,jsondata["adapter1"] ,jsondata["chimeras"])
@@ -830,9 +845,32 @@ for baseCaller in BasecallersUsed:
   listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/*");
   #listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/*");
   listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/qscores/*");
-      
-  for lanetopredict in lanesToUse:
+  listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/filter/*");
+  listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/insertsize/lane*/");
+  listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/*");
 
+  for lanetopredict in lanesToUse:
+#INSERT SIZE
+    targetbaminsert=outBaseDirectory+"/"+baseCaller+"/Final_Sequences/s_"+str(lanetopredict)+"_sequence.bam";
+    if(jsondata["usebwa"]  and str(jsondata["sequencer"]) == "miseq"):
+      targetbaminsert=outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"])+".bam";
+
+    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/QC/insertsize/lane"+str(lanetopredict)+"/insert_"+str(lanetopredict)+".dat:\t"+outBaseDirectory+"/"+baseCaller+"/QC/clusterTally_"+str(lanetopredict)+".OK"+"\n");
+    listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/insertsize/lane"+str(lanetopredict)+"/insert_"+str(lanetopredict)+".dat");
+
+
+    cmdInsertSize   =  insertsizebi;
+    cmdInsertSize  +=  " "+str(targetbaminsert);
+    cmdInsertSize  +=  " > "+outBaseDirectory+"/"+baseCaller+"/QC/insertsize/lane"+str(lanetopredict)+"/insert_"+str(lanetopredict)+".dat\n";
+    cmdInsertSize  +=  "\t"+insertsizeR;
+    cmdInsertSize  +=  "  "+outBaseDirectory+"/"+baseCaller+"/QC/insertsize/lane"+str(lanetopredict)+"/insert_"+str(lanetopredict)+".dat ";
+    cmdInsertSize  +=  "  "+outBaseDirectory+"/"+baseCaller+"/QC/insertsize/lane"+str(lanetopredict)+"/\n";
+    makeWrite[int(lanetopredict)].write("\t"+cmdInsertSize+"\n");
+
+
+
+
+    
 #CLUSTER COUNT
     makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/QC/clusterTally_"+str(lanetopredict)+".OK:\t"+" ".join(listOfBAMfilesToCheck[lanetopredict])+" "+" ".join(listOfFLGfilesToCheck[lanetopredict])+"\n");
     listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/clusterTally_"+str(lanetopredict)+".OK");
@@ -882,6 +920,10 @@ for baseCaller in BasecallersUsed:
       cmdQualPlot += " "+outBaseDirectory+"/"+baseCaller+"/QC/filter/s_"+str(lanetopredict)+"_likelihood.dat";
       cmdQualPlot += " "+outBaseDirectory+"/"+baseCaller+"/QC/filter/s_"+str(lanetopredict)+"_likelihood.pdf";
       makeWrite[int(lanetopredict)].write(cmdQualPlot+"\n");
+
+
+
+
 
 #################################
 #EXTRACTING AND MAPPING CONTROLS#
