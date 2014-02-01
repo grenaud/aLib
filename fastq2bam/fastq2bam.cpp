@@ -183,17 +183,41 @@ int main (int argc, char *argv[]) {
 	FastQObj * fo1=fqp1->getData();
 	vector<string> def1=allTokens( *(fo1->getID()), ' '  );
 	string def1s=def1[0];
+	
+	string ext1s;
+	if(indexFromDefline){
+	    if(def1.size() != 2){
+		cerr << "ERROR: The following record does not have 2 fields for index assignment " <<  *(fo1->getID()) <<endl;
+		return 1;
+	    }
+	    ext1s=def1[1];
+	}
+	// cout<<def1s<<endl;
+	// cout<<ext1s<<endl;
+
 	FastQObj * fo2;
 	string def2s;
+	string ext2s;
 
 	if(!singleEndMode){
 	    if(!fqp2->hasData()){
-		cerr << "ERROR: Discrepency between fastq files " << endl;
+		cerr << "ERROR: Discrepency between fastq files at record " <<  *(fo1->getID()) <<endl;
 		return 1;
 	    }
+
 	    fo2=fqp2->getData();
 	    vector<string> def2=allTokens( *(fo2->getID()), ' ' );
 	    def2s=def2[0];
+
+	    if(indexFromDefline){
+		if(def2.size() != 2){
+		    cerr << "ERROR: The following record does not have 2 fields for index assignment " <<  *(fo2->getID()) <<endl;
+		    return 1;
+		}
+		ext2s=def2[1];
+	    }
+
+
 
 	    if(strEndsWith(def1s,"/1")){
 		def1s=def1s.substr(0,def1s.size()-2);
@@ -215,9 +239,12 @@ int main (int argc, char *argv[]) {
 		return 1;
 	    }
 	}
+	// cout<<def1s<<endl;
+	// cout<<ext1s<<endl;
 
 	if(indexFromDefline){
-	    vector<string> tokensSemiCol=allTokens( def1s, ':' );
+	    vector<string> tokensSemiCol=allTokens( ext1s, ':' );
+	    
 	    if(singleIndexFromDefline){
 		index1 = tokensSemiCol[ tokensSemiCol.size() -1 ]; //last element should be the only index
 
@@ -251,6 +278,8 @@ int main (int argc, char *argv[]) {
 	    }
 	    
 	}
+	// cout<<def1s<<endl;
+	// cout<<ext1s<<endl;
 
 	BamAlignment toWrite1;
 	BamAlignment toWrite2;
@@ -311,7 +340,7 @@ int main (int argc, char *argv[]) {
 	}
 
 	
-	
+
 	writer.SaveAlignment(toWrite1);
 	if(!singleEndMode){
 	    writer.SaveAlignment(toWrite2);
@@ -319,10 +348,12 @@ int main (int argc, char *argv[]) {
 
 	totalSeqs++;
     }
-
+    
     delete fqp1;
-    delete fqp2;
-
+    if(!singleEndMode){
+	delete fqp2;
+    }
+    
     writer.Close();
 
     cerr<<"Wrote "<<totalSeqs<<" sequences successfully"<<endl;

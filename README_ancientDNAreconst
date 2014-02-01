@@ -38,5 +38,5 @@ Running on fastq input:
     fastq2bam/fastq2bam -o /dev/stdout input.f1.gz  input.f2.gz |  pipeline/mergeTrimReadsBAM --ancientdna  -o out.bam /dev/stdout
 
 
-
-
+QUESTIONS :
+   gabriel[dot]reno[ at sign ]gmail.com
