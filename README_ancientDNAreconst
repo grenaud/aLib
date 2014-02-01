@@ -1,6 +1,9 @@
 ==========================================================
-  Maximum reconstruction of ancient DNA fragments
+  Maximum likelihood reconstruction of ancient DNA fragments
 ==========================================================
+
+INSTALLATION INSTRUCTIONS:
+Read the main readme file (README.md). If certain submodules fail to build it is fine as long as you built the ones in pipeline/ correctly.
 
 RUNNING THE PROGRAM:
 To launch the program simply build the aLib package and type:
