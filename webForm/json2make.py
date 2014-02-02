@@ -291,12 +291,12 @@ if not os.path.exists(PredvsobsR):
   print "Required executable file not found "+PredvsobsR;
   sys.exit(1);
 
-insertsizebi = "/home/gabriel_renaud/projects/aLib/aLib/"+insertsizebi;
+insertsizebi = alibdir+insertsizebi;
 if not os.path.exists(insertsizebi):
   print "Required executable file not found "+insertsizebi;
   sys.exit(1);
 
-insertsizeR = "/home/gabriel_renaud/projects/aLib/aLib/"+insertsizeR;
+insertsizeR = alibdir+insertsizeR;
 if not os.path.exists(insertsizeR):
   print "Required executable file not found "+insertsizeR;
   sys.exit(1);
