@@ -10,7 +10,7 @@ all:
 	make -C plotQualScores
 	make -C qualScoreC++
 	make -C tileCount
-	cd biohazard ; [ -d ~/.cabal ] || cabal update ; cabal configure ; cabal build
+	cd biohazard ; [ -d ~/.cabal ] || cabal update ; cabal install
 	make -C network-aware-bwa all
 
 
