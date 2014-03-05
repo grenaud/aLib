@@ -2082,7 +2082,7 @@ bool MergeTrimReads::processPair( BamAlignment & al, BamAlignment & al2){
 		    cerr << "Failed to get ZQ field from read 1" << endl;
 		    exit(1);
 		}
-		if(!al.GetTag("ZQ",dummy2)) {
+		if(!al2.GetTag("ZQ",dummy2)) {
 		    cerr << "Failed to get ZQ field from read 2" << endl;
 		    exit(1);
 		}
