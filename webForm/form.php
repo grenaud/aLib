@@ -252,11 +252,11 @@ function checkAnalysisRequest($runid,$numberLanes) {
 		foreach($arrayLane2prockeys as $arrayLane2prockeysit) {		    
 		    $procsubmitted =  array_unique($arrayLane2proc[$arrayLane2prockeysit]);		   		    
 		    
-		    if(count($procsubmitted)>1){
-			print "procsubmitted\n"; 
-		        var_dump($procsubmitted);
-			exit;
-		    }
+		    /* if(count($procsubmitted)>1){ */
+		    /* 	print "procsubmitted\n";  */
+		    /*     var_dump($procsubmitted); */
+		    /* 	exit; */
+		    /* } */
 		    sort($procsubmitted, SORT_NUMERIC);
 		    $stringToAddLanes = $arrayLane2prockeysit.":".implode(",",$procsubmitted );
 		    

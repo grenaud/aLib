@@ -149,7 +149,7 @@ illuminawritedir = jsondataConf["illuminawritedir"];
 illuminareaddir  = jsondataConf["illuminareaddir"];
 tempdir          = jsondataConf["tempdirectory"];
 alibdir          = jsondataConf["alibdir"];
-alibdir          = "/home/gabriel_renaud/projects/aLib/aLib/";
+#alibdir          = "/home/gabriel_renaud/projects/aLib/aLib/";
 
 FREEIBIS         = jsondataConf["freeibispath"];
 BWAGENOMES       = jsondataConf["genomedirectory"];
@@ -514,12 +514,12 @@ for lanetopredict in lanesToUse:
   indicesWriteRaw = open (fileWithIndicesRaw , 'w' ) ;
 
   for jsonrow in jsondata["indicesraw"]:
+    indicesWriteRaw.write( jsonrow["name"] ); 
 
     indicesWriteRaw.write( jsonrow["p7"]+"\t" );
     if("p5" in jsonrow):
-      indicesWriteRaw.write( jsonrow["p5"]+"\t" );
+      indicesWriteRaw.write( jsonrow["p5"] );
 
-    indicesWriteRaw.write( jsonrow["name"] ); 
     indicesWriteRaw.write( "\n" );
 
     #indicesWrite.write( jsondata["indicesseq"] ); 
@@ -1153,8 +1153,8 @@ lanelist=[];
 for lanepred in range(1,int(jsondata["LaneCount"])+1):
   lanelist.append("lane"+str(lanepred));
   for procnum in range(1,100):
-    if(os.path.exists("lane"+str(lanepred)+"/proc"+str(procnum))):
-      lanelist.append("lane"+str(lanepred)+"/proc"+str(procnum))):
+    if( os.path.exists("lane"+str(lanepred)+"/proc"+str(procnum)) ):
+      lanelist.append( "lane"+str(lanepred)+"/proc"+str(procnum) );
     else:
       break;
 
