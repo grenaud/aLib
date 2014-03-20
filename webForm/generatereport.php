@@ -409,8 +409,34 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 			    convertToPng($targetfile."/".$entryName,$basedirScript,$percentScale);
 			}
 		    }
+		}
 	    }
+
+	    for($proc=1;$proc<=100;$proc++){
+		
+		$targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/insertsize/proc".$proc."lane".$lane."/";
+		
+		if( file_exists($targetfile)){
+		    $pdflist = array(); 
+		    $myDirectory = opendir($targetfile);
+		
+		    while($entryName = readdir($myDirectory)) {
+
+			if($entryName != "." and $entryName != ".." ){
+			    if(substr($entryName,-3) == "pdf"){ 
+				$rgname=substr($entryName,3,-4);
+				echo "<H3>RG insert size distribution for ".$rgname.", processing ".$proc.", lane = ".$lane."</H3><BR>";		
+				convertToPng($targetfile."/".$entryName,$basedirScript,$percentScale);
+			    }
+			}
+		    }
+
+		}else{
+		    break;
+		}
+		
 	    }
+
 	}
     }
 
@@ -467,6 +493,17 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	    if( file_exists($targetfile)){	    
 		echo "<H3>Filtering log for ".$basecaller." basecalls, lane = ".$lane." </H3><BR>";
 		openAndPrint($targetfile);	
+	    }
+
+	    for($proc=1;$proc<=100;$proc++){
+		$targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/filter/proc".$proc."s_".$lane."_filter.log";
+		if( file_exists($targetfile)){	    
+		    echo "<H3>Filtering log for ".$basecaller." basecalls, processing ".$proc.", lane = ".$lane." </H3><BR>";
+		    openAndPrint($targetfile);	
+		}else{
+		    break;
+		}
+
 	    }
 	}
     }

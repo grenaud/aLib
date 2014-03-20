@@ -399,8 +399,23 @@ function displayStep2() {
 	echo "<br>Which lanes were used exclusively for phiX    ? <br>\n";
 	echo "1:<input type=\"checkbox\" value=\"1\" name=\"lanesdedicated1\" ><br/>\n";
     }
+
     echo "</p>";
-    echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
+
+    /* echo "<b>Number of separate processings</b><br/>\n"; */
+    /* echo "Select number of different processings you wish to have:<br/>\n"; */
+    /* echo "Use this option if different types of libraries were pooled on one lane<BR>e.g. ancient plus modern DNA on a single lane:<br/>\n"; */
+
+    /* echo "<select name=\"numprocessing\">\n"; */
+    /* for ($procnu = 1; $procnu <= 4; $procnu++) { */
+    /* 	//echo "PROT ".var_dump($protocol)."<BR>\n"; */
+    /* 	echo "<option value=".$procnu.">". $procnu ."</option>\n"; */
+    /* } */
+    /* echo "</select>\n"; */
+
+
+
+    echo "<br><br><br><br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
 
     echo "</form>\n";
 
@@ -409,6 +424,8 @@ function displayStep2() {
 
 function displayStep3() {
     global $protocol2chimera;
+    global $illuminawritedir;
+
     //var_dump($_POST);
     //////////////////////////////////
     //BEGIN checking step 2 variables
@@ -426,10 +443,35 @@ function displayStep3() {
     if(isset($_POST["lanesdedicated8"]) && $_POST["spikedin"] == "True" ){ 	echo "Do not specify lane if the control was spiked in"; exit; }
 
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
-    $runinformation["freeibis"]   = isset($_POST["freeibis"]);
-    $runinformation["bustard"]    = isset($_POST["bustard"]);
-    $runinformation["spikedin"]   = ($_POST["spikedin"] == "True");
-    $runinformation["ctrlindex"]  = $_POST["ctrlindex"];
+    $runinformation["freeibis"]       = isset($_POST["freeibis"]);
+    $runinformation["bustard"]        = isset($_POST["bustard"]);
+    $runinformation["spikedin"]       = ($_POST["spikedin"] == "True");
+    $runinformation["ctrlindex"]      = $_POST["ctrlindex"];
+    /* $runinformation["numprocessing"]  = $_POST["numprocessing"]; */
+
+
+    //Detecting # of processing
+    for ($procnu = 1; $procnu <= 100 ; $procnu++) {
+	//$targetfile=$illuminawritedir."/".$runinformation["runid"]."_".implode(",",$runinformation["lanes"])."-".$procnu.".json";    
+	$targetfile=$illuminawritedir."/".$runinformation["runid"]."/build/".$runinformation["runid"]."_".implode(",",$runinformation["lanes"])."-".$procnu.".json";
+	/* print $targetfile; */
+	/* if(file_exists($targetfile)){ */
+	/*     print "yes"; */
+	/* }else{ */
+	/*     print "no"; */
+	/* } */
+
+
+	//	exit;
+	if(!file_exists ( $targetfile )){
+	    $runinformation["numprocessingcurrent"] = $procnu;
+	    break;
+	}else{
+	    /* print $procnu; */
+	    /* exit; */
+	}
+    }
+
 
     $lanesdedicated=array();
 
@@ -454,15 +496,19 @@ function displayStep3() {
     ////////////////////////////////
 
     echo "<h3>Step 3: Merging/trimming adapters (run id: ".$runinformation["runid"].") </h3><br>\n";   
+    
+    
 
+    // for ($procnu = 1; $procnu <= $runinformation["numprocessing"]; $procnu++) {
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
+    echo "<BR><b>Please note, you are filling the form for processing #".$runinformation["numprocessingcurrent"].":</b><BR><BR>";
     echo "<input type=\"hidden\" name=\"step\" value=\"4\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
     /* echo "#"; */
     /* echo var_dump($runinformation); */
     /* echo var_dump($protocol2chimera); */
     echo "<b>Select the protocol used</b>:<br/>\n";
-    echo "<select name=\"protocol\">\n";
+    echo "<select name=\"protocol".$runinformation["numprocessingcurrent"]."\">\n";
     foreach(array_keys($protocol2chimera) as $protocol){
 	//echo "PROT ".var_dump($protocol)."<BR>\n";
 	echo "<option value=".$protocol.">". $protocol2chimera[$protocol][0] ."</option>\n";
@@ -473,14 +519,15 @@ function displayStep3() {
 
     echo "<BR><img src=\"images/diagramOverlapseq.gif\" alt=\"merge diagram\"  height=\"500\" width=\"600\">\n";
     echo "<BR>Merge paired reads if<BR>\n";
-    echo "<input type=\"radio\" name=\"mergeoverlap\" value=\"False\" checked>after adapter trimming, if they overlap completely<br>\n";
-    echo "<input type=\"radio\" name=\"mergeoverlap\" value=\"True\" >The above plus if they show partial overlap (recommended for ancient DNA)<br>\n";
+    echo "<input type=\"radio\" name=\"mergeoverlap".$runinformation["numprocessingcurrent"]."\" value=\"False\" checked>after adapter trimming, if they overlap completely<br>\n";
+    echo "<input type=\"radio\" name=\"mergeoverlap".$runinformation["numprocessingcurrent"]."\" value=\"True\" >The above plus if they show partial overlap (recommended for ancient DNA)<br>\n";
+
 
     /* missing key */
     /* echo "<BR><BR>If a key is used, do you allow 1 mismatch in the key ?<BR>\n"; */
     /* echo "<input type=\"radio\" name=\"allowMissing\" value=\"True\" checked>Yes allow a mismatch  <input type=\"text\" name=\"ctrlindex\" value=\"$ctrlindex\" size=\"7\"><BR><BR>\n"; */
     /* echo "<input type=\"radio\" name=\"allowMissing\" value=\"False\"><br>\n"; */
-
+    //    }
 
     echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
 
@@ -498,56 +545,47 @@ function displayStep4() {
     ///////////////////////////////////
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
 
-    //var_dump($_POST);
-    //protocol
-    $runinformation["adapter1"]     = $protocol2chimera[ $_POST["protocol"] ][1];
-    $runinformation["adapter2"]     = $protocol2chimera[ $_POST["protocol"] ][2];
-    $runinformation["chimeras"]     = $protocol2chimera[ $_POST["protocol"] ][3];
-    $runinformation["protocol"]     = $_POST["protocol"];
-    $runinformation["mergeoverlap"] = ($_POST["mergeoverlap"]=="True");
 
-    //merging
+    //    var_dump($_POST);
+    //protocol
+    $printkey=False;
+
+    //    for ($procnu = 1; $procnu <= $runinformation["numprocessing"]; $procnu++) {
+	
+    if($_POST["protocol".$runinformation["numprocessingcurrent"] ]      == "IllMultiplexCR1"){
+	$printkey=True;
+    }elseif($_POST["protocol".$runinformation["numprocessingcurrent"]]  == "IllMultiplexCR2"){
+	$printkey=True;
+    }
+
+	//}
+
+    if($printkey){
+	echo "<h3>Step 4: Key and Quality flagging  (run id: ".$runinformation["runid"].")</h3><br>\n";   
+    }else{
+	echo "<h3>Step 4: Quality flagging (run id: ".$runinformation["runid"].")</h3><br>\n";   
+    }
+
+
+    /* echo     $runinformation["numprocessing"]; */
+    /* exit; */
+
+
+    //    for ($procnu = 1; $procnu <= $runinformation["numprocessing"]; $procnu++) {
+	///echo "<BR><b>Processing #".$procnu.":</b><BR><BR>";
+    //$runinformation["numprocessingcurrent"]
+    $runinformation["adapter1".$runinformation["numprocessingcurrent"]]     = $protocol2chimera[ $_POST["protocol".$runinformation["numprocessingcurrent"]] ][1];
+    $runinformation["adapter2".$runinformation["numprocessingcurrent"]]     = $protocol2chimera[ $_POST["protocol".$runinformation["numprocessingcurrent"]] ][2];
+    $runinformation["chimeras".$runinformation["numprocessingcurrent"]]     = $protocol2chimera[ $_POST["protocol".$runinformation["numprocessingcurrent"]] ][3];
+    $runinformation["protocol".$runinformation["numprocessingcurrent"]]     = $_POST["protocol".$runinformation["numprocessingcurrent"]];
+    $runinformation["mergeoverlap".$runinformation["numprocessingcurrent"]] = ($_POST["mergeoverlap".$runinformation["numprocessingcurrent"]]=="True");
+    /* } */
+
     
     //////////////////////////////////
     //END checking step 3 variables //
     //////////////////////////////////
-    $keypossible=False;
-    $key="";
-    if($runinformation["protocol"] == "IllMultiplexCR1"){
-	$key="ACTC";
-	$keypossible=True;
-    }elseif($runinformation["protocol"] == "IllMultiplexCR2"){
-	$key="GTCT";
-	$keypossible=True;
-    }
-
-
-
-    if($keypossible){
-	echo "<h3>Step 4: Key and Quality flagging  (run id: ".$runinformation["runid"].")</h3><br>\n";   
-	echo "<form action=\"runprocess.php\" method=\"post\">\n";   
-	echo "The library protocol allows for reading a key in the beginning of a read, specify the key:<BR>\n";
-	if($runinformation["cyclesread2"] == 0 ){ //single-end
-	    echo "<input type=\"text\" name=\"key1\" value=\"".$key."\" size=\"5\"> <BR>\n";
-	    echo "<input type=\"hidden\" name=\"key2\" value=\"\" />\n";
-	}else{
-	    echo "<input type=\"text\" name=\"key1\" value=\"\"         size=\"5\"> <BR>\n";
-	    echo "<input type=\"text\" name=\"key2\" value=\"".$key."\" size=\"5\"> <BR>\n";
-	}
-	echo "<BR><BR>";
-    }else{
-	echo "<h3>Step 4: Quality flagging (run id: ".$runinformation["runid"].")</h3><br>\n";   
-	echo "<form action=\"runprocess.php\" method=\"post\">\n";
-	echo "<input type=\"hidden\" name=\"key1\" value=\"\" />\n";
-	echo "<input type=\"hidden\" name=\"key2\" value=\"\" />\n";
-    }
-
-
-
-
-
-    echo "<input type=\"hidden\" name=\"step\" value=\"5\" />\n";
-    echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
+    
 
     echo "This section defines quality filters that can be applied on resulting sequences. Please note that the sequences will <b>not</b> be removed, they will simply be marked as QC fail in the BAM file (more information about BAM flags: http://samtools.sourceforge.net/samtools.shtml#5)<BR> We define two types of filtering  procedures:<BR>
 <UL>
@@ -555,22 +593,65 @@ function displayStep4() {
 <LI> Additional filtering based on the complexity of the sequence per se
 </UL>
 If you plan to genotype, the first one might improve calls for low-coverage data at the cost of a lesser amount of sequences<BR> If you plan to do <i>de novo</i> genome assembly, the second might help by removing low complexity sequences<BR>";
-
+	
     echo "This step flags reads with an unusually high number of expected mismatches as failing the QC controls. (more verbose description <a href=\"#expmism\">below</a>)<BR><BR>";
+    echo "<form action=\"runprocess.php\" method=\"post\">\n";       
+    echo "<input type=\"hidden\" name=\"step\" value=\"5\" />\n";
+    echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
+
+    //for ($procnu = 1; $procnu <= $runinformation["numprocessing"]; $procnu++) {
+    echo "<BR><b>Processing #".$runinformation["numprocessingcurrent"].":</b><BR><BR>";
+
+
+    $keypossible=False;
+    $key="";
+    if($runinformation["protocol".$runinformation["numprocessingcurrent"]] == "IllMultiplexCR1"){
+	$key="ACTC";
+	$keypossible=True;
+    }elseif($runinformation["protocol".$runinformation["numprocessingcurrent"]] == "IllMultiplexCR2"){
+	$key="GTCT";
+	$keypossible=True;
+    }
+
+
+
+    if($keypossible){
+
+	echo "The library protocol allows for reading a key in the beginning of a read, specify the key:<BR>\n";
+	if($runinformation["cyclesread2"] == 0 ){ //single-end
+	    echo "<input type=\"text\" name=\"key1".$runinformation["numprocessingcurrent"]."\" value=\"".$key."\" size=\"5\"> <BR>\n";
+	    echo "<input type=\"hidden\" name=\"key2".$runinformation["numprocessingcurrent"]."\" value=\"\" />\n";
+	}else{
+	    echo "<input type=\"text\" name=\"key1".$runinformation["numprocessingcurrent"]."\" value=\"\"         size=\"5\"> <BR>\n";
+	    echo "<input type=\"text\" name=\"key2".$runinformation["numprocessingcurrent"]."\" value=\"".$key."\" size=\"5\"> <BR>\n";
+	}
+	echo "<BR><BR>";
+    }else{
+	echo "<form action=\"runprocess.php\" method=\"post\">\n";
+	echo "<input type=\"hidden\" name=\"key1".$runinformation["numprocessingcurrent"]."\" value=\"\" />\n";
+	echo "<input type=\"hidden\" name=\"key2".$runinformation["numprocessingcurrent"]."\" value=\"\" />\n";
+    }
+
+
+
+
+
     echo "Basic filtering:<BR>\n";
-    echo "<input type=\"radio\" name=\"filterseqexp\" value=\"False\" checked>Do not flag reads<BR>\n";
-    echo "<input type=\"radio\" name=\"filterseqexp\" value=\"True\">Flag reads with a high number of expected mismatches<br>\n";
+    echo "<input type=\"radio\" name=\"filterseqexp".$runinformation["numprocessingcurrent"]."\" value=\"False\" checked>Do not flag reads<BR>\n";
+    echo "<input type=\"radio\" name=\"filterseqexp".$runinformation["numprocessingcurrent"]."\" value=\"True\">Flag reads with a high number of expected mismatches<br>\n";
 
 
-    echo "Threshold for normalized number of expected mismatches  : <input type=\"text\" name=\"seqNormExpcutoff\" value=\"0.01\" size=\"5\"><BR><BR>\n";
+    echo "Threshold for normalized number of expected mismatches  : <input type=\"text\" name=\"seqNormExpcutoff".$runinformation["numprocessingcurrent"]."\" value=\"0.01\" size=\"5\"><BR><BR>\n";
     echo "Additional flagging:<BR>\n";
-    echo "<input type=\"radio\" name=\"addfilters\" value=\"False\" checked>Do not use additional flagging<br>\n";
-    echo "<input type=\"radio\" name=\"addfilters\" value=\"entropy\">Apply sequence entropy [0.0-2.0]  flag at:  <input type=\"text\" name=\"entropycutoff\" value=\"0.85\" size=\"5\"> <BR>\n";
-    echo "<input type=\"radio\" name=\"addfilters\" value=\"frequency\">Apply base frequency [0.0-1.0] flag at: <input type=\"text\" name=\"frequencycutoff\" value=\"0.1\" size=\"5\"> <BR>\n";    
-
+    echo "<input type=\"radio\" name=\"addfilters".$runinformation["numprocessingcurrent"]."\" value=\"False\" checked>Do not use additional flagging<br>\n";
+    echo "<input type=\"radio\" name=\"addfilters".$runinformation["numprocessingcurrent"]."\" value=\"entropy\">Apply sequence entropy [0.0-2.0]  flag at:  <input type=\"text\" name=\"entropycutoff".$runinformation["numprocessingcurrent"]."\" value=\"0.85\" size=\"5\"> <BR>\n";
+    echo "<input type=\"radio\" name=\"addfilters".$runinformation["numprocessingcurrent"]."\" value=\"frequency\">Apply base frequency [0.0-1.0] flag at: <input type=\"text\" name=\"frequencycutoff".$runinformation["numprocessingcurrent"]."\" value=\"0.1\" size=\"5\"> <BR>\n";    
+    
+    //}
     echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n<BR><BR><hline>";
-    echo "<a name=\"expmism\">
-<b>Explanation of the expected mismatches filter:</b><BR>
+    echo "<a name=\"expmism\">";
+
+    echo "<b>Explanation of the expected mismatches filter:</b><BR>
 Every base that is sequenced has a quality score. This quality score indicates the probability that the sequenced base is different from the one on the flowcell. For example, if the quality score is 0.001, the probability of error is 1/1000 and the probability of correctness is 999/1000. For this given base, the average expectation of mismatches is also 0.001. When summing up the average expected mismatches over the sequence, we can compute the expected number of mismatches for this given sequence. If you want to filter sequences that have an expected number of mismatches greater than 1 mismatch over 100 bases, use the first filter and use the 0.01 threshold.</a>\n";
 
     echo "</form>\n";
@@ -579,55 +660,85 @@ Every base that is sequenced has a quality score. This quality score indicates t
 
 
 function displayStep5() {
- 
+     global $illuminawritedir;
+
 						     
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
-
+    /* echo  var_dump($runinformation); */
+    /* exit; */
     ///////////////////////////////////
     //BEGIN checking step 4 variables//
     ///////////////////////////////////
-    if((int)$_POST["seqNormExpcutoff"]<0 || (int)$_POST["seqNormExpcutoff"]>1){
+    //    for ($procnu = 1; $procnu <= $runinformation["numprocessing"]; $procnu++) {
+
+    if((int)$_POST["seqNormExpcutoff".$runinformation["numprocessingcurrent"]]<0 || (int)$_POST["seqNormExpcutoff".$runinformation["numprocessingcurrent"]]>1){
 	echo "Sequence likelihood cannot be less than 0 or more than 1";
 	exit;
     }
 
-    if($_POST["addfilters"] == "entropy"){
+    if($_POST["addfilters".$runinformation["numprocessingcurrent"]] == "entropy"){
 	if((int)$_POST["entropycutoff"]<0 || (int)$_POST["entropycutoff"]>2){
 	    echo "Sequence entropy cutoff cannot be less than 0 or more than 2";
 	    exit;
 	}
     }
 
-    if($_POST["addfilters"] == "frequency"){
+    if($_POST["addfilters".$runinformation["numprocessingcurrent"]] == "frequency"){
 	if((int)$_POST["frequencycutoff"]<0 || (int)$_POST["frequencycutoff"]>1){
 	    echo "Sequence base frequency cutoff cannot be less than 0 or more than 1";
 	    exit;
 	}
     }
 
-    $runinformation["key1"]    = $_POST["key1"];
-    $runinformation["key2"]    = $_POST["key2"];
+    $runinformation["key1".$runinformation["numprocessingcurrent"]]               = $_POST["key1".$runinformation["numprocessingcurrent"]];
+    $runinformation["key2".$runinformation["numprocessingcurrent"]]               = $_POST["key2".$runinformation["numprocessingcurrent"]];
 
-    $runinformation["filterseqexp"]    = ($_POST["filterseqexp"] == "True");
-    $runinformation["seqNormExpcutoff"]   = $_POST["seqNormExpcutoff"];
-    $runinformation["filterentropy"]   = ($_POST["addfilters"] == "entropy");
-    $runinformation["filterfrequency"] = ($_POST["addfilters"] == "frequency");		    
-    $runinformation["entropycutoff"]   = $_POST["entropycutoff"];
-    $runinformation["frequencycutoff"] = $_POST["frequencycutoff"];
+    $runinformation["filterseqexp".$runinformation["numprocessingcurrent"]]       = ($_POST["filterseqexp".$runinformation["numprocessingcurrent"]] == "True");
+    $runinformation["seqNormExpcutoff".$runinformation["numprocessingcurrent"]]   = $_POST["seqNormExpcutoff".$runinformation["numprocessingcurrent"]];
+    $runinformation["filterentropy".$runinformation["numprocessingcurrent"]]      = ($_POST["addfilters".$runinformation["numprocessingcurrent"]] == "entropy");
+    $runinformation["filterfrequency".$runinformation["numprocessingcurrent"]]    = ($_POST["addfilters".$runinformation["numprocessingcurrent"]] == "frequency");		    
+    $runinformation["entropycutoff".$runinformation["numprocessingcurrent"]]      = $_POST["entropycutoff".$runinformation["numprocessingcurrent"]];
+    $runinformation["frequencycutoff".$runinformation["numprocessingcurrent"]]    = $_POST["frequencycutoff".$runinformation["numprocessingcurrent"]];
 
-    if( !$runinformation["filterseqexp"] &&
-	($runinformation["filterentropy"] || $runinformation["filterfrequency"]) ){
+    if( !$runinformation["filterseqexp".$runinformation["numprocessingcurrent"]] &&
+	($runinformation["filterentropy".$runinformation["numprocessingcurrent"]] || $runinformation["filterfrequency".$runinformation["numprocessingcurrent"]]) ){
 	echo "Cannot filter on additional without using basic filtering";
 	exit;
     }
+    //    }
 
-
+    /* var_dump($runinformation); */
+    /* exit; */
     //////////////////////////////////
     //END checking step 4 variables //
     //////////////////////////////////
 
-
     echo "<h3>Step 5: Read group assignment (run id: ".$runinformation["runid"].") </h3><br>\n";   
+
+    //if($runinformation["numprocessingcurrent"]==1){
+    //$runinformation["foundIndices"]="False";
+    foreach($runinformation["lanes"] as $lanetouse){	    
+	if(!file_exists($illuminawritedir."/".$runinformation["runid"]."/build/lane".$lanetouse."/indices.raw.txt")){
+	    /* echo "The file ".$illuminawritedir."/".$runinformation["runid"]."/build/lane".$lanetouse."/indices.txt does not exist<BR>The first processing for this lane should have created this file"; */
+	    /* exit; */
+	}else{
+	    //$runinformation["foundIndices"]="True";
+	    $stringToPrint="";
+	    $fh = fopen($illuminawritedir."/".$runinformation["runid"]."/build/lane".$lanetouse."/indices.raw.txt", 'r') or die("can't open ".$illuminawritedir."/".$runinformation["runid"]."/build/lane".$lanetouse."/indices.raw.txt");
+	    while( !feof($fh) ){
+		$stringToPrint.=fgets($fh);
+	    }
+	    fclose($fh);
+
+	    echo "Warning: for lane #".$lanetouse.", the following information has been found already, if it is accuracy, simply copy-paste it into the form <BR>"
+		."<pre>\n".$stringToPrint."</pre>\n";
+	}
+
+	break;
+    }
+
+
+
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
 
     
@@ -647,10 +758,17 @@ function displayStep5() {
 	/* 					    <option value="1">1</option> */
 	/* 					    <option value="0">0</option> */
 	/* 					    </select> */
+
 	/* 					    <BR> */
-		    
+
+    /* if($runinformation["numprocessing"] > 1){ */
+    /* 	echo "<BR>For runs with multiple processings: please make sure that you have entered all the possible read groups on the flowcell<BR><BR>"; */
+    /* } */
+
+
     ?>
-	Put your indices here : (see format below)<br />
+    Put your indices here: (see format below)<br />
+please enter the indices for everyone on the lane<br />
 	<B>NOTE:</B> For TruSeq, enter a t before the number (e.g. : t4)<br />
 
 	<br />
@@ -686,6 +804,15 @@ function displayStep5() {
 
     echo "</form>\n";
 
+	
+    /* }else{ */
+    /* 	/\* displayStep6(); *\/ */
+	
+
+    /* } */
+
+
+
 }
 
 
@@ -694,9 +821,11 @@ function displayStep6() {
     //var_dump($_POST);
     global $ctrlindex;
     global $ctrlindex2;
-
+    global $emailAddrToSend;
     global $p7Indices;
     global $p5Indices;
+
+    global $illuminawritedir;
 
     // echo "test6";
     
@@ -705,130 +834,152 @@ function displayStep6() {
     //BEGIN checking step 5 variables//
     ///////////////////////////////////
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
-    $indextext      = $_POST["indextext"];
-    //    $runinformation["mmrgassign"] = (int)$_POST["mmrgassign"];
+    $stringToPrint="";
 
-    if($runinformation["cyclesindx2"] != 0 ){
-	$stringToPrint="#Index1\tIndex2\tName\n";
-    }else{
-	$stringToPrint="#Index1\tName\n";
-    }
+    /* if($runinformation["numprocessingcurrent"]!=1){ */
+    /* 	//build/lane1/indices.txt */
+    /* 	foreach($runinformation["lanes"] as $lanetouse){	     */
+    /* 	    if(!file_exists($illuminawritedir."/".$runinformation["runid"]."/build/lane".$lanetouse."/indices.txt")){ */
+    /* 		echo "The file ".$illuminawritedir."/".$runinformation["runid"]."/build/lane".$lanetouse."/indices.txt does not exist<BR>The first processing for this lane should have created this file"; */
+    /* 		exit; */
+    /* 	    } */
 
-    $indexOfLines=0;
-    $foundControl=0;
+    /* 	    $fh = fopen($illuminawritedir."/".$runinformation["runid"]."/build/lane".$lanetouse."/indices.txt", 'r') or die("can't open ".$illuminawritedir."/".$runinformation["runid"]."/build/lane".$lanetouse."/indices.txt"); */
+    /* 	    while( !feof($fh) ){ */
+    /* 		$stringToPrint.=fgets($fh); */
+    /* 	    } */
+    /* 	    fclose($fh); */
 
-    if(!$indextext ){
-	echo "ERROR: please enter your indices in the text field or enter an empty header if you do not want demultiplexing";
-	exit;	 
-    }
+
+    /* 	    break; */
+    /* 	} */
+
+    /* }else{ */
+    
+	$indextext      = $_POST["indextext"];
+	//    $runinformation["mmrgassign"] = (int)$_POST["mmrgassign"];
+
+	if($runinformation["cyclesindx2"] != 0 ){
+	    $stringToPrint.="#Index1\tIndex2\tName\n";
+	}else{
+	    $stringToPrint.="#Index1\tName\n";
+	}
+
+	$indexOfLines=0;
+	$foundControl=0;
+
+	if(!$indextext ){
+	    echo "ERROR: please enter your indices in the text field or enter an empty header if you do not want demultiplexing";
+	    exit;	 
+	}
 
     
-    //CHECKING EACH LINE
-    foreach(explode("\n",$indextext) as $line){
+	//CHECKING EACH LINE
+	foreach(explode("\n",$indextext) as $line){
 	
-	$line=trim($line);
-	//skip empty lines
-	if(strlen($line) == 0){
-	    continue 1;
-	}
-
-	//$arrayfield=explode("\t",$line);
-	$arrayfield=preg_split('/\s+/', $line);
-
-
-
-	if($runinformation["cyclesindx2"] == 0 ){
-	    if(count($arrayfield) != 2){
-		echo "ERROR: For single index (you entered a value of 0 for the second index at step 1), lines must have 2 fields check line \"".$line."\"";
-		exit;
-	    }
-	}else{
-	    if(count($arrayfield) != 3){
-		echo "ERROR: For double index (you entered a positive value for the second index at step 1), lines must have 3 fields check line \"".$line."\"";
-		exit;
-	    }
-	}
-
-
-	if($indexOfLines == 0){
-	    //CHECKING HEADER
-	    if($arrayfield[0] != "#index"){
-		echo "ERROR: the first field of the header must be #index (case sensitive)";
-		exit;
+	    $line=trim($line);
+	    //skip empty lines
+	    if(strlen($line) == 0){
+		continue 1;
 	    }
 
-	    if($arrayfield[1] != "p7"){
-		echo "ERROR: the second field of the header must be p7 (case sensitive)";
-		exit;
-	    }
+	    //$arrayfield=explode("\t",$line);
+	    $arrayfield=preg_split('/\s+/', $line);
 
-	    //if($indextype  == "double"){
-	    if($runinformation["cyclesindx2"] != 0 ){
 
-		if($arrayfield[2] != "p5"){
-		    echo "ERROR: the first field of the header must be p5 (case sensitive)";
+
+	    if($runinformation["cyclesindx2"] == 0 ){
+		if(count($arrayfield) != 2){
+		    echo "ERROR: For single index (you entered a value of 0 for the second index at step 1), lines must have 2 fields check line \"".$line."\"";
+		    exit;
+		}
+	    }else{
+		if(count($arrayfield) != 3){
+		    echo "ERROR: For double index (you entered a positive value for the second index at step 1), lines must have 3 fields check line \"".$line."\"";
 		    exit;
 		}
 	    }
 
-	}else{
-	    //CHECKING REMAINING FIELDS
 
-	    if(strstr($arrayfield[0],"\"") ||
-	       strstr($arrayfield[0],"'")  || 
-	       strstr($arrayfield[0],"\\")  || 
-	       strstr($arrayfield[0],"/")   ){	       
-		echo "ERROR: The first field cannot have quotes or (back)slashes characters for line ".$line;
-		exit;
-	    }
+	    if($indexOfLines == 0){
+		//CHECKING HEADER
+		if($arrayfield[0] != "#index"){
+		    echo "ERROR: the first field of the header must be #index (case sensitive)";
+		    exit;
+		}
 
-	    if($runinformation["cyclesindx2"] == 0 ){
+		if($arrayfield[1] != "p7"){
+		    echo "ERROR: the second field of the header must be p7 (case sensitive)";
+		    exit;
+		}
 
-		
-		if(!array_key_exists($arrayfield[1],$p7Indices)){
-		    echo "ERROR: index for p7 ".(string)$arrayfield[1]." is not within the expected range ".$line . "";
-		    exit;	    
-                }
-		$stringToPrint.=$p7Indices[ (string)$arrayfield[1] ] ."\t".$arrayfield[0]."\n";
+		//if($indextype  == "double"){
+		if($runinformation["cyclesindx2"] != 0 ){
+
+		    if($arrayfield[2] != "p5"){
+			echo "ERROR: the first field of the header must be p5 (case sensitive)";
+			exit;
+		    }
+		}
 
 	    }else{
+		//CHECKING REMAINING FIELDS
+
+		if(strstr($arrayfield[0],"\"") ||
+		   strstr($arrayfield[0],"'")  || 
+		   strstr($arrayfield[0],"\\")  || 
+		   strstr($arrayfield[0],"/")   ){	       
+		    echo "ERROR: The first field cannot have quotes or (back)slashes characters for line ".$line;
+		    exit;
+		}
+
+		if($runinformation["cyclesindx2"] == 0 ){
+		    
+		
+		    if(!array_key_exists($arrayfield[1],$p7Indices)){
+			echo "ERROR: index for p7 ".(string)$arrayfield[1]." is not within the expected range ".$line . "";
+			exit;	    
+		    }
+		    $stringToPrint.=$p7Indices[ (string)$arrayfield[1] ] ."\t".$arrayfield[0]."\n";
+
+		}else{
 
 
 
-		if(!array_key_exists((string)$arrayfield[1],$p7Indices)){
-		    echo "ERROR: index for p7 ".(string)$arrayfield[1]." is not within the expected range ".$line . "";
-                    var_dump($p7Indices);
-		    exit;	    
-                }
+		    if(!array_key_exists((string)$arrayfield[1],$p7Indices)){
+			echo "ERROR: index for p7 ".(string)$arrayfield[1]." is not within the expected range ".$line . "";
+			var_dump($p7Indices);
+			exit;	    
+		    }
 
-		if(!array_key_exists((string)$arrayfield[2],$p5Indices)){
-		    echo "ERROR: index for p5 ".(string)$arrayfield[2]." is not within the expected range ".$line . "";
-		    exit;	    
-                }
+		    if(!array_key_exists((string)$arrayfield[2],$p5Indices)){
+			echo "ERROR: index for p5 ".(string)$arrayfield[2]." is not within the expected range ".$line . "";
+			exit;	    
+		    }
 
 
 
-	        $stringToPrint.=$p7Indices[ (string)$arrayfield[1] ] ."\t".$p5Indices[ (string)$arrayfield[2] ]."\t".$arrayfield[0]."\n";
+		    $stringToPrint.=$p7Indices[ (string)$arrayfield[1] ] ."\t".$p5Indices[ (string)$arrayfield[2] ]."\t".$arrayfield[0]."\n";
 																     
-	    }
+		}
 
-	    if($arrayfield[0] == "control"){
-		$foundControl=1;
+		if($arrayfield[0] == "control"){
+		    $foundControl=1;
+		}
+	    }
+	    $indexOfLines++;
+	} //for each field explode
+
+	if($foundControl == 0){
+	    //if($indextype       == "single"){
+	    if($runinformation["cyclesindx2"] == 0 ){
+		$stringToPrint.=$ctrlindex."\tcontrol\n";
+	    }else{
+		$stringToPrint.=$ctrlindex."\t".$ctrlindex2."\tcontrol\n";
 	    }
 	}
-	$indexOfLines++;
-    } //for each field explode
 
-    if($foundControl == 0){
-	//if($indextype       == "single"){
-	if($runinformation["cyclesindx2"] == 0 ){
-	    $stringToPrint.=$ctrlindex."\tcontrol\n";
-	}else{
-	    $stringToPrint.=$ctrlindex."\t".$ctrlindex2."\tcontrol\n";
-	}
-    }
-
-
+	//}
     //////////////////////////////////
     //END checking step 5 variables //
     //////////////////////////////////
@@ -841,7 +992,11 @@ function displayStep6() {
 
     echo "<input type=\"hidden\" name=\"step\" value=\"7\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
+    /* if($runinformation["numprocessingcurrent"]==1){     */
     echo "<input type=\"hidden\" name=\"testindexorig\"   value=\"$indextext\" />\n";
+    /* }else{ */
+    /* 	echo "A previous set of indices has been found, please verify that they are correct. If not, please email ".$emailAddrToSend."<BR><BR>\n"; */
+    /* } */
     echo "The following indices will be used:<BR>\n";
     echo "<textarea readonly rows=\"20\" cols=\"100\" name=\"textindex\" wrap=\"physical\">".$stringToPrint."</textarea><br />\n";
     echo "<input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
@@ -862,7 +1017,11 @@ function displayStep7() {
 
 
     $runinformation["indicesseq"]= $_POST["textindex"];
+    //if($runinformation["numprocessingcurrent"]==1){    
     $runinformation["indicesraw"]= $_POST["testindexorig"];
+	/* }else{ */
+    /* 	$runinformation["indicesraw"]= ""; */
+    /* } */
 
     //var_dump($runinformation);
 
@@ -873,32 +1032,40 @@ function displayStep7() {
     echo "<h3>Step 7: Mapping (run id: ".$runinformation["runid"].")</h3><br>\n"; 
 
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
+
+    echo "Notes:<BR>\n";
+    echo "<b>hg19_evan</b>: Is the 1000 genomes hg19 plus some decoy sequences (phix,herpes and unmapped potentially human sequences) .<BR><BR>\n";
+    echo "<b>Please note</b>: If you have previous data aligned under a different version of a genome and pretend on merging the bam files for say genotyping, we strongly recommend to consistently use the same version of the genome.<BR><BR>\n";
+    echo "Selecting the parameters for BWA:<BR><BR>\n";
+    echo "Normally, the following are used:<BR> for modern DNA: \"-n 0.04 -o 1\"<BR>for ancient DNA: \"-n 0.01 -o 2 -l 16500\"<BR><BR>\n";
     echo "<input type=\"hidden\" name=\"step\" value=\"8\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
+
+    //    for ($procnu = 1; $procnu <= $runinformation["numprocessing"]; $procnu++) {
+
+    echo "<BR><b>Processing #".$runinformation["numprocessingcurrent"].":</b><BR><BR>";
+
     //echo "Mapping using BWA<BR>\n";
-    echo "Mapping using BWA:  <input type=\"checkbox\" value=\"True\" name=\"usebwa\" checked ><br/>\n";
+    echo "Mapping using BWA:  <input type=\"checkbox\" value=\"True\" name=\"usebwa".$runinformation["numprocessingcurrent"]."\" checked ><br/>\n";
     $arrayofGenomes=getGenomes();
     natcasesort($arrayofGenomes);
     echo "Selecting the target genome:<BR><BR>\n";
-    echo "<select name=\"genomebwa\" size=\"1\">\n";
+    echo "<select name=\"genomebwa".$runinformation["numprocessingcurrent"]."\" size=\"1\">\n";
     foreach($arrayofGenomes as $agenome){
 	if($agenome == "hg19_evan"){
 	    echo "<option value=\"".$agenome."\" selected=\"selected\">".$agenome."</option>\n";
 	}else{
 	    echo "<option value=\"".$agenome."\" >".$agenome."</option>\n";
 	}
-    }    
+    }
     echo "</select><BR><BR>\n";
 
-    echo "<b>hg19_evan</b>: Is the 1000 genomes hg19 plus some decoy sequences (phix,herpes and unmapped potentially human sequences) .<BR><BR>\n";
-    echo "<b>Please note</b>: If you have previous data aligned under a different version of a genome and pretend on merging the bam files for say genotyping, we strongly recommend to consistently use the same version of the genome.<BR><BR>\n";
-    echo "Selecting the parameters for BWA:<BR><BR>\n";
-    echo "Normally, the following are used:<BR> for modern DNA: \"-n 0.04 -o 1\"<BR>for ancient DNA: \"-n 0.01 -o 2 -l 16500\"<BR><BR>\n";
     
-    echo "<select name=\"parambwa\" size=\"1\">\n";
+    echo "<select name=\"parambwa".$runinformation["numprocessingcurrent"]."\" size=\"1\">\n";
     echo "<option value=\"default\" >Default parameters (modern DNA)</option>\n";
     echo "<option value=\"ancient\" >Ancient parameters (ancient DNA)</option>\n";
     echo "</select><BR><BR>\n";
+    //    }
     echo "<input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n";
 
     echo "</form>\n";
@@ -915,18 +1082,19 @@ function displayStep8() {
 
 
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
-    $runinformation["usebwa"]     = isset($_POST["usebwa"]);
-    $runinformation["genomebwa"]  = $_POST["genomebwa"];
-    $runinformation["parambwa"]   = $_POST["parambwa"];
-
+    //    for ($procnu = 1; $procnu <= $runinformation["numprocessing"]; $procnu++) {
+    $runinformation["usebwa".$runinformation["numprocessingcurrent"]]     = isset($_POST["usebwa".$runinformation["numprocessingcurrent"]]);
+    $runinformation["genomebwa".$runinformation["numprocessingcurrent"]]  = $_POST["genomebwa".$runinformation["numprocessingcurrent"]];
+    $runinformation["parambwa".$runinformation["numprocessingcurrent"]]   = $_POST["parambwa".$runinformation["numprocessingcurrent"]];
+    //}
 
     //////////////////////////////////
     //END checking step 7 variables //
     //////////////////////////////////
 
     echo "<h3>Step 8: Summary</h3>";
-    //    echo "".var_dump($runinformation);
-
+    /* echo "".var_dump($runinformation); */
+    /* exit; */
     $indicesrawtext=$runinformation["indicesraw"];
     $indicesseqtext=$runinformation["indicesseq"];
 
@@ -1039,43 +1207,58 @@ function displayStep8() {
     $htmltable.="<TR><TD nowrap>Basecalling using freeIbis     :</TD><TD> ".($runinformation["freeibis"]?"yes":"no")."</TD></TR>\n";
     $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
     $htmltable.="<TR><TD nowrap>      </TD><TD></TD></TR>\n";
+    /* $htmltable.="<TR><TD nowrap>Number of independent processing     :</TD><TD> ".($runinformation["numprocessing"])."</TD></TR>\n"; */
+
+
+    //    for ($procnu = 1; $procnu <= $runinformation["numprocessing"]; $procnu++) {
+    //echo "<BR><b>Processing #".$procnu.":</b><BR><BR>";
+    $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
+    $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
+
+    $htmltable.="<TR><TD nowrap><B>Processing #  ".$runinformation["numprocessingcurrent"]." </B> :      </TD></TR>\n";
     $htmltable.="<TR><TD nowrap>Merging/trimming:      </TD></TR>\n";
-    $htmltable.="<TR><TD nowrap>Merge partially overlapping sequencing     :</TD><TD> ".($runinformation["mergeoverlap"]?"yes":"no")."</TD></TR>\n";
-    $htmltable.="<TR><TD nowrap>Adapter 1     :</TD><TD> ".($runinformation["adapter1"])."</TD></TR>\n";
-    $htmltable.="<TR><TD nowrap>Adapter 2     :</TD><TD> ".($runinformation["adapter2"])."</TD></TR>\n";
-    $htmltable.="<TR><TD nowrap>Potential chimeras     :</TD><TD> ".($runinformation["chimeras"])."</TD></TR>\n";
-    $htmltable.="<TR><TD nowrap>Protocol       :</TD><TD> ".($runinformation["protocol"])."</TD></TR>\n";
-    $htmltable.="<TR><TD nowrap>Key read#1     :</TD><TD> ".(strlen($runinformation["key1"])==0?"none":$runinformation["key1"])."</TD></TR>\n";
-    $htmltable.="<TR><TD nowrap>Key read#2     :</TD><TD> ".(strlen($runinformation["key2"])==0?"none":$runinformation["key2"])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Merge partially overlapping sequencing     :</TD><TD> ".($runinformation["mergeoverlap".$runinformation["numprocessingcurrent"]]?"yes":"no")."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Adapter 1     :</TD><TD> ".($runinformation["adapter1".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Adapter 2     :</TD><TD> ".($runinformation["adapter2".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Potential chimeras     :</TD><TD> ".($runinformation["chimeras".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Protocol       :</TD><TD> ".($runinformation["protocol".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Key read#1     :</TD><TD> ".(strlen($runinformation["key1".$runinformation["numprocessingcurrent"]])==0?"none":$runinformation["key1".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Key read#2     :</TD><TD> ".(strlen($runinformation["key2".$runinformation["numprocessingcurrent"]])==0?"none":$runinformation["key2".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
     $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
     $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
     //$htmltable.="<TR><TD nowrap>Maximum number of mismatches for lookup in RG :</TD><TD> ".($runinformation["mmrgassign"])."</TD></TR>\n";
     $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
     $htmltable.="<TR><TD nowrap>Quality filtering:      </TD><TD></TD></TR>\n";
-    $htmltable.="<TR><TD nowrap>Flag sequences with high exp. of mismatch  :</TD><TD> ".(($runinformation["filterseqexp"]=="1")?"yes":"no")."</TD></TR>\n";
-    if( ($runinformation["filterseqexp"]=="1") ){
-	$htmltable.="<TR><TD nowrap>Normalized expectency of mismatch cutoff    :</TD><TD> ".($runinformation["seqNormExpcutoff"])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Flag sequences with high exp. of mismatch  :</TD><TD> ".(($runinformation["filterseqexp".$runinformation["numprocessingcurrent"]]=="1")?"yes":"no")."</TD></TR>\n";
+    if( ($runinformation["filterseqexp".$runinformation["numprocessingcurrent"]]=="1") ){
+	$htmltable.="<TR><TD nowrap>Normalized expectency of mismatch cutoff    :</TD><TD> ".($runinformation["seqNormExpcutoff".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
     }
     
-    $htmltable.="<TR><TD nowrap>Flag sequences based on  entropy  :</TD><TD> ".(($runinformation["filterentropy"])?"yes":"no")."</TD></TR>\n";
-    if( ($runinformation["filterentropy"]=="1") ){
-	$htmltable.="<TR><TD nowrap>Entropy cutoff  :</TD><TD> ".($runinformation["entropycutoff"])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Flag sequences based on  entropy  :</TD><TD> ".(($runinformation["filterentropy".$runinformation["numprocessingcurrent"]])?"yes":"no")."</TD></TR>\n";
+    if( ($runinformation["filterentropy".$runinformation["numprocessingcurrent"]]=="1") ){
+	$htmltable.="<TR><TD nowrap>Entropy cutoff  :</TD><TD> ".($runinformation["entropycutoff".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
     }
-    $htmltable.="<TR><TD nowrap>Flag sequences using frequency  :</TD><TD> ".(($runinformation["filterfrequency"])?"yes":"no")."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Flag sequences using frequency  :</TD><TD> ".(($runinformation["filterfrequency".$runinformation["numprocessingcurrent"]])?"yes":"no")."</TD></TR>\n";
 
-    if( ($runinformation["filterfrequency"]=="1") ){
-	$htmltable.="<TR><TD nowrap>Frequency cutoff  :</TD><TD> ".($runinformation["frequencycutoff"])."</TD></TR>\n";
+    if( ($runinformation["filterfrequency".$runinformation["numprocessingcurrent"]]=="1") ){
+	$htmltable.="<TR><TD nowrap>Frequency cutoff  :</TD><TD> ".($runinformation["frequencycutoff".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
     }
     $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
     $htmltable.="<TR><TD nowrap>      </TD><TD></TD></TR>\n";
     $htmltable.="<TR><TD nowrap>BWA mapping:     </TD><TD></TD></TR>\n";
-    $htmltable.="<TR><TD nowrap>Map using BWA  :</TD><TD> ".(($runinformation["usebwa"])?"yes":"no")."</TD></TR>\n";
-    $htmltable.="<TR><TD nowrap>Genome to use  :</TD><TD> ".($runinformation["genomebwa"])."</TD></TR>\n";
-    $htmltable.="<TR><TD nowrap>BWA parameters  :</TD><TD> ".($runinformation["parambwa"])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Map using BWA  :</TD><TD> ".(($runinformation["usebwa".$runinformation["numprocessingcurrent"]])?"yes":"no")."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Genome to use  :</TD><TD> ".($runinformation["genomebwa".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>BWA parameters  :</TD><TD> ".($runinformation["parambwa".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
     // $htmltable.="<TR><TD nowrap>Indices:     </TD><TD></TD></TR>\n";
+    //    }
+
     $htmltable.="</table>\n";
 
+
+    /* if($runinformation["numprocessingcurrent"] == 1){ */
     $htmltable.="<BR>Indices to use  :<BR><PRE>\n".($indicesrawtext)."</PRE><BR>\n";
+    /* } */
     $htmltable.="<BR>Indices raw     :<BR><PRE>\n".($indicesseqtext)."</PRE><BR>\n";
 
     echo $htmltable;
@@ -1083,11 +1266,12 @@ function displayStep8() {
     echo "<input type=\"hidden\" name=\"htmltable\" value=\"".$htmltable."\" />\n";
 
     //echo json_encode($runinformation);
-    $runid=$runinformation["runid"];
-    $targetfile=$illuminawritedir."/".$runid."_".implode(",",$runinformation["lanes"]).".json";
-    if(file_exists ( $targetfile )){
-       echo "<font color=red size=+2>Warning:</font> file:<BR>".$targetfile." <BR>already exists, pressing submit will overwrite the data <br><br>";
-    }
+
+    /* $runid=$runinformation["runid"]; */
+    /* $targetfile=$illuminawritedir."/".$runid."_".implode(",",$runinformation["lanes"]).".json"; */
+    /* if(file_exists ( $targetfile )){ */
+    /*    echo "<font color=red size=+2>Warning:</font> file:<BR>".$targetfile." <BR>already exists, pressing submit will overwrite the data <br><br>"; */
+    /* } */
     echo "<input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Submit\" />\n";
 
     echo "</form>\n";
@@ -1142,7 +1326,7 @@ function displayStep9() {
     $htmltable = str_replace(array("</TR>",) ,"" , $htmltable);
     /* echo $htmltable; */
 
-    $targetfile=$illuminawritedir."/".$runid."/build/".$runid."_".implode(",",$runinformation["lanes"]).".json";
+    $targetfile=$illuminawritedir."/".$runid."/build/".$runid."_".implode(",",$runinformation["lanes"])."-".$runinformation["numprocessingcurrent"].".json";
     echo "printing to ".$targetfile."<BR>\n";
     
     //encode as json text fields

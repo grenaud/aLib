@@ -1,7 +1,5 @@
 
-CXX      = g++ 
-BAMTOOLS= /mnt/solexa/bin/bamtools-2.2.2/
-LIBGAB   = /home/gabriel_renaud/lib/
+include ../makefile.defs
 
 CXXFLAGS  = -lm -O3 -Wall -I${LIBGAB} -I${LIBGAB}/VCFparser/ -I${LIBGAB}/VCFparser/gzstream/  -I/home/gabriel_renaud/Software/tabix-0.2.6/ -I${BAMTOOLS}/include/ -c
 
@@ -16,7 +14,7 @@ all: insertSizeRG
 
 
 
-insertSizeRG: insertSizeRG.o  ${LIBGAB}utils.o
+insertSizeRG: insertSizeRG.o  ${LIBGAB}/utils.o
 	${CXX} -o $@ $^ $(LDLIBS) 
 
 

@@ -14,3 +14,12 @@
 [submodule "SimpleJSON"]
 	path = SimpleJSON
 	url = https://github.com/MJPA/SimpleJSON.git
+[submodule "deML"]
+	path = deML
+	url = https://github.com/grenaud/deML.git
+[submodule "leehom"]
+	path = leehom
+	url = https://github.com/grenaud/leehom.git
+[submodule "BCL2BAM2FASTQ"]
+	path = BCL2BAM2FASTQ
+	url = https://github.com/grenaud/BCL2BAM2FASTQ.git

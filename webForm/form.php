@@ -2,12 +2,8 @@
 ini_set('display_errors', 'On');
 error_reporting(E_ALL);
 
-if( ! file_exists(getcwd()."/config.xml")  ){
-    echo "Configuration file not found ".getcwd()."/config.xml";
-    exit(1);
- }
 
-//$xmlconf = simplexml_load_file( getcwd()."/config.xml" );
+
 $jsonconf = json_decode(file_get_contents( getcwd()."/config.json" ),true);
 
 //CONFIG DATA
@@ -189,24 +185,107 @@ function checkAnalysisRequest($runid,$numberLanes) {
 	    /* print $illuminawritedir."/".$runid."/build/"; */
 	    //exit;
 	    $myDirectory = opendir($illuminawritedir."/".$runid."/build/");
-	    
+
+	    $arrayLane2proc=array();
+
 	    while($entryName = readdir($myDirectory)) {
 		if($entryName != "." and $entryName != ".."){		    
 
 		    if(substr($entryName,-5) == ".json"){ 
+			
+			$tempArEntryName  = explode("_",substr($entryName,0,-5));
+			$lastelemEnt      = $tempArEntryName[count($tempArEntryName)-1];
+			$tempArEntryName2 = explode("-",$lastelemEnt);
+			
+
+
+			if(count($tempArEntryName2)==2){
+			    if(!is_numeric($tempArEntryName2[0]) || !is_numeric($tempArEntryName2[1]) ){
+				continue;
+			    }
+			    $currentlanes=explode(",",$tempArEntryName2[0]);
+			    $currentProc =$tempArEntryName2[1];
+			}else{			    
+			    if(count($tempArEntryName2)==1){
+				if(!is_numeric($tempArEntryName2[0])  ){
+				    continue;
+				}
+
+				$currentlanes=explode(",",$tempArEntryName2[0]);
+				$currentProc="1";
+			    }else{
+				echo "Wrong file pattern ".$entryName;
+				exit;
+			    }
+			}
+			
 			/* print $entryName; */
+			/* print var_dump($tempArEntryName); */
+			/* print var_dump($tempArEntryName2); */
+			/* print var_dump($currentlanes); */
+
 			/* exit; */
-			$lanesSent=array_merge($lanesSent,explode(",",substr($entryName,strlen($runid)+1,-5)));
+
+			
+			foreach($currentlanes as $currentlanesit) {
+			    /* print "currentlanesit ".$currentlanesit; */
+			    //exit;
+			    if(!isset($arrayLane2proc[$currentlanesit])){
+				$arrayLane2proc[$currentlanesit] = array($currentProc);
+			    }else{
+				$arrayLane2proc[$currentlanesit] = array_merge($arrayLane2proc[$currentlanesit],array($currentProc));
+			    }
+			}
+
+			/* print implode(":",$tempArEntryName); */
+			/* exit; */
+			//$lanesSent=array_merge($lanesSent,explode(",",substr($entryName,strlen($runid)+1,-5)));
 		    }
 		}
 	    }
+	    
+	    if(count($arrayLane2proc) != 0){
+		$arrayLane2prockeys = array_keys( $arrayLane2proc );
+		sort($arrayLane2prockeys, SORT_NUMERIC);
+		$stringLanes=array();
+		
+		foreach($arrayLane2prockeys as $arrayLane2prockeysit) {		    
+		    $procsubmitted =  array_unique($arrayLane2proc[$arrayLane2prockeysit]);		   		    
+		    
+		    if(count($procsubmitted)>1){
+			print "procsubmitted\n"; 
+		        var_dump($procsubmitted);
+			exit;
+		    }
+		    sort($procsubmitted, SORT_NUMERIC);
+		    $stringToAddLanes = $arrayLane2prockeysit.":".implode(",",$procsubmitted );
+		    
 
-	    if(count($lanesSent) != 0){
-		sort($lanesSent, SORT_NUMERIC);
-		return "Submitted: ".implode(",",$lanesSent );
+		    /* print "stringLanes1\n"; */
+		    /* var_dump($stringLanes);	        */
+
+		    /* print "stringToAddLanes $stringToAddLanes\n"; */
+		    $stringLanes=array_merge($stringLanes,array($stringToAddLanes));
+
+		    /* print "stringLanes2\n"; */
+		    /* var_dump($stringLanes); */	       
+		}
+		/* print "stringLanes\n"; */
+		/* var_dump($stringLanes); */
+		/* exit; */
+
+		return "Submitted: ".implode(",",$stringLanes);
+	    	//return "Submitted: ".implode(",",$lanesSent );
 	    }else{
-		return "none";
+	    	return "none";
 	    }
+
+	    /* if(count($lanesSent) != 0){ */
+	    /* 	sort($lanesSent, SORT_NUMERIC); */
+	    /* 	return "Submitted: ".implode(",",$lanesSent ); */
+	    /* }else{ */
+	    /* 	return "none"; */
+	    /* } */
 
 
 	}
