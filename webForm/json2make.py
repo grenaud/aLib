@@ -503,7 +503,7 @@ for lanetopredict in lanesToUse:
   indicesWrite.close();
 
   fileWithIndicesRaw=options.outdir+"/lane"+str(lanetopredict)+"/indices.raw.txt";
-  if(os.path.exists(fileWithIndices)):
+  if(os.path.exists(fileWithIndicesRaw)):
     #move
     #os.rename(fileWithIndicesRaw,  fileWithIndicesRaw+"_"+timeNow);
     if not options.mock:
