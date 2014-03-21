@@ -717,6 +717,9 @@ function displayStep5() {
 
     //if($runinformation["numprocessingcurrent"]==1){
     //$runinformation["foundIndices"]="False";
+    $indicesAlreadyThere="";
+    $indicesAlreadyThereAgree=True;
+   
     foreach($runinformation["lanes"] as $lanetouse){	    
 	if(!file_exists($illuminawritedir."/".$runinformation["runid"]."/build/lane".$lanetouse."/indices.raw.txt")){
 	    /* echo "The file ".$illuminawritedir."/".$runinformation["runid"]."/build/lane".$lanetouse."/indices.txt does not exist<BR>The first processing for this lane should have created this file"; */
@@ -730,13 +733,22 @@ function displayStep5() {
 	    }
 	    fclose($fh);
 
-	    echo "Warning: for lane #".$lanetouse.", the following information has been found already, if it is accuracy, simply copy-paste it into the form <BR>"
-		."<pre>\n".$stringToPrint."</pre>\n";
+	    if(strlen($indicesAlreadyThere)==0){
+		$indicesAlreadyThere = $stringToPrint;
+	    }else{
+		if( $indicesAlreadyThere != $stringToPrint){
+		    $indicesAlreadyThereAgree=False;
+		}
+	    }
 	}
 
 	break;
     }
 
+    if($indicesAlreadyThereAgree == False){
+	echo "<b>Warning</b>: There are already index files for the lanes you selected and they seem to not be equal<BR>";
+	
+    }
 
 
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
@@ -765,7 +777,9 @@ function displayStep5() {
     /* 	echo "<BR>For runs with multiple processings: please make sure that you have entered all the possible read groups on the flowcell<BR><BR>"; */
     /* } */
 
-
+    if($indicesAlreadyThereAgree ){
+	echo "<b>Warning</b>: There are already index files, they were copy-pasted in the text field below<BR>please review them, any modifications you make will overwrite the current content<BR>";       
+    }
     ?>
     Put your indices here: (see format below)<br />
 please enter the indices for everyone on the lane<br />
@@ -774,7 +788,11 @@ please enter the indices for everyone on the lane<br />
 	<br />
 	<br />
 
-	<textarea rows="20" cols="100" name="indextext" wrap="physical" placeholder="Paste your indices here, if a particular RG has only an index for the first adapter and is mixed with a multiplexed paired-end run, use is4 as the second index"></textarea>
+	<textarea rows="20" cols="100" name="indextext" wrap="physical" placeholder="Paste your indices here, if a particular RG has only an index for the first adapter and is mixed with a multiplexed paired-end run, use is4 as the second index"><?php
+					  if($indicesAlreadyThereAgree ){
+					      echo $indicesAlreadyThere;
+					  }
+					  ?></textarea>
 	<br>
 	<input type="submit" name="submitButton" id="nextButton" value="Next &gt;" />
         <br>
@@ -1373,7 +1391,7 @@ function displayStep9() {
 
     $mailu->Subject = "Analysis submitted for run ".$runid;
     $mailu->Message = "This is an automated message so please do not reply.\n------------------\nThe following user(s): ".$emailuser."\n".
-	"Submitted a request for analysis for run ".$runid.".\nPlease keep this email for your own personnal record\n\n\n------------------\nThe following parameters will be used: ".$targetfile."\n------------------\n\n".$htmltable."\n\n\n------------------\njson file\n------------------\n".json_encode($runinformation);
+	"Submitted a request for analysis for run ".$runid." processing #".$runinformation["numprocessingcurrent"]."\nPlease keep this email for your own personnal record\n\n\n------------------\nThe following parameters will be used: ".$targetfile."\n------------------\n\n".$htmltable."\n\n\n------------------\njson file\n------------------\n".json_encode($runinformation);
     $mailu->ConnectTimeout = 30;  // Socket connect timeout (sec)
     $mailu->ResponseTimeout = 8;  // CMD response timeout (sec)
     $success = $mailu->Send();
@@ -1399,6 +1417,7 @@ function displayStep9() {
 
     $mail->Subject = "User submitted request for run ".$runid;
     $mail->Message = "User email ".$emailuser."\n".
+	"Processing #".$runinformation["numprocessingcurrent"]."\n".
 	 "Created the following file : ".$targetfile."\n".
 	 "with the following contents:\n------------------\n".json_encode($runinformation);
     $mail->ConnectTimeout = 30;  // Socket connect timeout (sec)

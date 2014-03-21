@@ -514,11 +514,11 @@ for lanetopredict in lanesToUse:
   indicesWriteRaw = open (fileWithIndicesRaw , 'w' ) ;
 
   for jsonrow in jsondata["indicesraw"]:
-    indicesWriteRaw.write( jsonrow["name"] ); 
+    indicesWriteRaw.write( jsonrow["name"]+"\t" ); 
 
-    indicesWriteRaw.write( jsonrow["p7"]+"\t" );
+    indicesWriteRaw.write( jsonrow["p7"] );
     if("p5" in jsonrow):
-      indicesWriteRaw.write( jsonrow["p5"] );
+      indicesWriteRaw.write( "\t"+jsonrow["p5"] );
 
     indicesWriteRaw.write( "\n" );
 
