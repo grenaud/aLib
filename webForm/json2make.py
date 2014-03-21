@@ -355,7 +355,7 @@ numprocessingcurrent=jsondata["numprocessingcurrent"];
 
 for lanetopredict in lanesToUse:
   #allsubdir.append("QC/insertsize/lane"+str(lanetopredict) );
-  targetdirbuild=options.outdir+"/build/lane"+str(lanetopredict)+"/proc"+str(numprocessingcurrent)+"/";    
+  targetdirbuild=options.outdir+"/lane"+str(lanetopredict)+"/proc"+str(numprocessingcurrent)+"/";    
   makedirs(targetdirbuild);
 
 
@@ -1152,11 +1152,6 @@ makeGeneralWrite= open (makefilePath , 'w' ) ;
 lanelist=[];
 for lanepred in range(1,int(jsondata["LaneCount"])+1):
   lanelist.append("lane"+str(lanepred));
-  for procnum in range(1,100):
-    if( os.path.exists("lane"+str(lanepred)+"/proc"+str(procnum)) ):
-      lanelist.append( "lane"+str(lanepred)+"/proc"+str(procnum) );
-    else:
-      break;
 
 makeGeneralWrite.write("SUBDIRS = "+(" ".join(lanelist))+"\n\n");
 
@@ -1185,3 +1180,22 @@ for cleantarg in typesofclean:
 #
 
 makeGeneralWrite.close();
+
+
+
+#for procnum in range(1,100):
+#  if( os.path.exists(options.outdir+"lane"+str(lanepred)+"/proc"+str(procnum)) ):
+#    lanelist.append( "lane"+str(lanepred)+"/proc"+str(procnum) );
+#  else:
+#    break;
+
+#
+for lanetopredict in lanesToUse:
+  makefilePath=options.outdir+"/lane"+str(lanetopredict)+"/Makefile";
+  makeWriteLane = open (makefilePath , 'w' ) ;
+  makeWriteLane.write("all:\n");
+  for proctoprocess in range(1,numprocessingcurrent+1):
+    makeWriteLane.write("\t/lane"+str(lanetopredict)+"/proc"+str(proctoprocess)+"\n");
+  
+
+
