@@ -398,6 +398,7 @@ allsubdir.append("Final_Sequences/proc"+str(numprocessingcurrent)+"/");
 allsubdir.append("BWA/proc"+str(numprocessingcurrent)+"/");
 allsubdir.append("QC/insertsize/proc"+str(numprocessingcurrent)+"/");
 allsubdir.append("QC/filter/proc"+str(numprocessingcurrent)+"/");
+allsubdir.append("QC/proc"+str(numprocessingcurrent)+"/");
 
 
 if(jsondata["bustard"]):  
@@ -924,7 +925,7 @@ for baseCaller in BasecallersUsed:
     if(jsondata["usebwa"+str(numprocessingcurrent)]  and str(jsondata["sequencer"]) == "miseq"):
       targetbaminsert=outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam";
 
-    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/QC/insertsize/proc"+str(numprocessingcurrent)+"/lane"+str(lanetopredict)+"/insert_"+str(lanetopredict)+".dat:\t"+outBaseDirectory+"/"+baseCaller+"/QC/clusterTally_"+str(lanetopredict)+".OK"+"\n");
+    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/QC/insertsize/proc"+str(numprocessingcurrent)+"/lane"+str(lanetopredict)+"/insert_"+str(lanetopredict)+".dat:\t"+outBaseDirectory+"/"+baseCaller+"/QC/proc"+str(numprocessingcurrent)+"/clusterTally_"+str(lanetopredict)+".OK"+"\n");
     listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/insertsize/proc"+str(numprocessingcurrent)+"/lane"+str(lanetopredict)+"/insert_"+str(lanetopredict)+".dat");
 
 
@@ -941,16 +942,16 @@ for baseCaller in BasecallersUsed:
 
     
 #CLUSTER COUNT
-    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/QC/clusterTally_"+str(lanetopredict)+".OK:\t"+" ".join(listOfBAMfilesToCheck[lanetopredict])+" "+" ".join(listOfFLGfilesToCheck[lanetopredict])+"\n");
-    listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/clusterTally_"+str(lanetopredict)+".OK");
+    makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/QC/proc"+str(numprocessingcurrent)+"/clusterTally_"+str(lanetopredict)+".OK:\t"+" ".join(listOfBAMfilesToCheck[lanetopredict])+" "+" ".join(listOfFLGfilesToCheck[lanetopredict])+"\n");
+    listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/proc"+str(numprocessingcurrent)+"/clusterTally_"+str(lanetopredict)+".OK");
 
     cmdTileCounter =  Tilecounter;
-    cmdTileCounter += " -o "+str(outBaseDirectory+"/"+baseCaller+"/QC/");
+    cmdTileCounter += " -o "+str(outBaseDirectory+"/"+baseCaller+"/QC/proc"+str(numprocessingcurrent)+"/");
     cmdTileCounter += " -b "+str(",".join(listOfBAMfilesToCheck[lanetopredict])).replace(".finished","");
     cmdTileCounter += " -r "+str(illuminareaddir+"/"+str(jsondata["runid"])+"/Data/Intensities/")
     cmdTileCounter += " -l "+str(lanetopredict);
     makeWrite[int(lanetopredict)].write("\t"+cmdTileCounter+"\n");
-    listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/clusterTally_"+str(lanetopredict)+".OK");
+    listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/proc"+str(numprocessingcurrent)+"/clusterTally_"+str(lanetopredict)+".OK");
 
 #QC SCORE PLOT
     makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/s_"+str(lanetopredict)+"_sequenceA.pdf:\t"+outBaseDirectory+"/"+baseCaller+"/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished\n");  
@@ -1130,7 +1131,7 @@ for lanetopredict in lanesToUse:
                                       (" ".join(listOfFilesQC[lanetopredict]))+"\n\n");
 
   
-  makeWrite[int(lanetopredict)].write("\n"+"sendemail:\t"+outBaseDirectory+"/"+baseCaller+"/QC/clusterTally_"+str(lanetopredict)+".OK\n");
+  makeWrite[int(lanetopredict)].write("\n"+"sendemail:\t"+outBaseDirectory+"/"+baseCaller+"/QC/proc"+str(numprocessingcurrent)+"/clusterTally_"+str(lanetopredict)+".OK\n");
   makeWrite[int(lanetopredict)].write("\tphp "+alibdir+"/"+sendemail+" "+jsondata["email"]+" "+jsondata["runid"]+" "+illuminawritedir+"/"+jsondata["runid"]+" "+str(lanetopredict)+"\n");
 
   makeWrite[int(lanetopredict)].close();
@@ -1195,7 +1196,7 @@ for lanetopredict in lanesToUse:
   makeWriteLane = open (makefilePath , 'w' ) ;
   makeWriteLane.write("all:\n");
   for proctoprocess in range(1,numprocessingcurrent+1):
-    makeWriteLane.write("\t/lane"+str(lanetopredict)+"/proc"+str(proctoprocess)+"\n");
+    makeWriteLane.write("\t/proc"+str(proctoprocess)+"\n");
   
 
 
