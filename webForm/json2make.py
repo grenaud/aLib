@@ -1196,7 +1196,7 @@ for lanetopredict in lanesToUse:
   makeWriteLane = open (makefilePath , 'w' ) ;
   makeWriteLane.write("all:\n");
   for proctoprocess in range(1,numprocessingcurrent+1):
-    makeWriteLane.write("\t/proc"+str(proctoprocess)+"\n");
+    makeWriteLane.write("\t$(MAKE) -C proc"+str(proctoprocess)+"\n");
   
 
 
