@@ -303,6 +303,37 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	    }
 
 
+	    //$targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/proc".$proc."/";
+	    for($proc=1;$proc<=100;$proc++){
+		$targetfileok=$illuminawritedir."/".$runid."/".$basecaller."/QC/proc".$proc."/clusterTally_".$lane.".OK";
+		$targetfileer=$illuminawritedir."/".$runid."/".$basecaller."/QC/proc".$proc."/clusterTally_".$lane.".ERROR";
+	    
+		if( file_exists($targetfileok) || file_exists($targetfileer)){		
+		    echo "<H3>Tally for ".$basecaller." basecalls, lane = ".$lane." processing = ".$proc." </H3><BR>";
+		if( file_exists($targetfileok) && file_exists($targetfileer)){
+		    echo "\n<font color=red size=+2>Warning</font>: two files seem to exists, check which is more recent.<BR>";
+		    openAndPrint($targetfileok);	
+		}else{
+
+		    if( file_exists($targetfileok) && !file_exists($targetfileer)){
+			echo "Tally OK<BR>\n";
+			openAndPrint($targetfileok);	
+		    }else{
+			if( !file_exists($targetfileok) && file_exists($targetfileer)){
+			    echo "\n<font color=red size=+2>ERROR:there was an error in the processing for this lane.</font><BR>";
+			    openAndPrint($targetfileer);	
+			}else{
+			    echo "Tally unavailable<BR>\n";
+			}
+
+		    }
+		}
+		}else{
+		    break;		    
+		}
+
+	    }
+
 	}
      }
 
@@ -414,7 +445,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 
 	    for($proc=1;$proc<=100;$proc++){
 		
-		$targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/insertsize/proc".$proc."lane".$lane."/";
+		$targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/insertsize/lane".$lane."/proc".$proc."/";
 		
 		if( file_exists($targetfile)){
 		    $pdflist = array(); 
@@ -496,7 +527,7 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	    }
 
 	    for($proc=1;$proc<=100;$proc++){
-		$targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/filter/proc".$proc."s_".$lane."_filter.log";
+		$targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/filter/proc".$proc."/s_".$lane."_filter.log";
 		if( file_exists($targetfile)){	    
 		    echo "<H3>Filtering log for ".$basecaller." basecalls, processing ".$proc.", lane = ".$lane." </H3><BR>";
 		    openAndPrint($targetfile);	
@@ -541,6 +572,27 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	    }
 	    closedir($myBWADirectory);
 	}
+
+	for($proc=1;$proc<=100;$proc++){
+	    $myBWADirectoryName = $illuminawritedir."/".$runid."/".$basecaller."/BWA/proc".$proc."/";
+
+	    if( file_exists($myBWADirectoryName)){
+		$myBWADirectory = opendir($myBWADirectoryName);
+		while($entryName = readdir($myBWADirectory)) {
+		    if(endsWith($entryName,"flgstx")){
+			$targetfile=$myBWADirectoryName.$entryName."";
+			//if( file_exists($targetfile)){
+			
+			echo "<H3>Flagstatx for file".$targetfile." proc ".$proc."</H3><BR>";
+			openAndPrint($targetfile);
+			//}
+		    }
+		}
+		closedir($myBWADirectory);
+	    }
+	    
+	}
+
     }
     /* 	} */
     /* } */

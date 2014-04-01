@@ -125,6 +125,24 @@ function checkAnalysisStatus($runid,$numberLanes) {
 
 	    for($lane=1;$lane<=$numberLanes;$lane++){
 		$stringtoReturn.=" ".$lane.":";
+
+		$doneCluster=array();
+		for($proc=1;$proc<=100;$proc++){
+		    
+		    if( file_exists($illuminawritedir."/".$runid."/Bustard/QC/proc".$proc."/clusterTally_".$lane.".OK" ) ){			
+			$doneCluster = array_merge($doneCluster,array($proc));		       
+		    }else{
+			break;
+		    }
+
+		}
+		
+		if(count($doneCluster) != 0){
+		    $stringtoReturn.="done;".implode(",",$doneCluster);
+		    continue;
+		}
+		//echo $runid."\t".$illuminawritedir."/".$runid."/Bustard/QC/proc".$proc."/clusterTally_".$lane.".OK\t".count($doneCluster)."\n";
+
 		if( file_exists($illuminawritedir."/".$runid."/Bustard/QC/clusterTally_".$lane.".OK" ) ){
 		    #array_push($bustardFinished,$lane);
 		    $stringtoReturn.="done";
@@ -140,12 +158,32 @@ function checkAnalysisStatus($runid,$numberLanes) {
 		    $stringtoReturn.="basecall";
 		    continue;
 		}		
+		
+		
 	    }   
 
 	}elseif( file_exists($illuminawritedir."/".$runid."/Ibis/QC/") ){
 
 	    for($lane=1;$lane<=$numberLanes;$lane++){
 		$stringtoReturn.=" ".$lane.":";
+
+		$doneCluster=array();
+		for($proc=1;$proc<=100;$proc++){
+		    
+		    if( file_exists($illuminawritedir."/".$runid."/Ibis/QC/proc".$proc."/clusterTally_".$lane.".OK" ) ){
+			$doneCluster = array_merge($doneCluster,array($proc));		       
+		    }else{
+			break;
+		    }
+
+		}
+		
+		if(count($doneCluster) != 0){
+		    $stringtoReturn.="done;".implode(",",$doneCluster);
+		    continue;
+		}
+
+
 		if( file_exists($illuminawritedir."/".$runid."/Ibis/QC/clusterTally_".$lane.".OK" ) ){
 		    #array_push($bustardFinished,$lane);
 		    $stringtoReturn.="done";
@@ -427,7 +465,7 @@ foreach($runlist as $one_file) {
     // echo $numberFound."<BR>";
     // echo sizeof($runlist)."<BR>";
     // echo $numberFound/sizeof($runlist)."<BR>";
-
+    
     echo '<script language="javascript">
     document.getElementById("progress").innerHTML="<div style=\"width:'.$percent.';background-color:#ddd;\">&nbsp;</div>";
     document.getElementById("information").innerHTML="'.$numberFound.' runs(s) found.";

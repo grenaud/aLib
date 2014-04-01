@@ -91,7 +91,37 @@ if ( isset( $_POST["step"] ) and $_POST["step"] >= 1 and $_POST["step"]<= 9 ) {
 } else {
     $runid=array_keys($_POST);
     $runid=$runid[0];
-    displayStep1($runid);
+    if(date('jF') == "1April"){
+
+?>
+<!-- Progress bar holder -->
+<div id="progress" style="width:500px;border:1px solid #ccc;"></div>
+<!-- Progress information -->
+<div id="information" style="width"></div>
+<?
+	    
+	for($percent=1;$percent<=100;$percent++){
+	    $numberFound=100;
+	    $percentval = $percent."%";
+
+	    echo '<script language="javascript">
+    document.getElementById("progress").innerHTML="<div style=\"width:'.$percentval.';background-color:#ddd;\">&nbsp;</div>";
+    document.getElementById("information").innerHTML="Deleting raw data from '.$runid.' to save space,  deleted '.($percent*10).' files so far";
+    </script>';
+	    echo str_repeat(' ',1024*64);
+	    flush();
+	    usleep(100000);
+	    //sleep(0.1);
+	}
+	usleep(100000);
+	echo "April fool's :-), here is the form:<BR>";
+	usleep(200000);
+	displayStep1($runid);
+    }else{
+	//exit;
+	displayStep1($runid);
+    }
+    
 }
 
 
