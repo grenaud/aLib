@@ -405,6 +405,18 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		echo "<H3>Merger Log ".$basecaller." basecalls, lane = ".$lane." </H3><BR>";
 		openAndPrint($targetfile);	
 	    }
+
+
+	    for($proc=1;$proc<=100;$proc++){
+		$targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/proc".$proc."/s_".$lane."_merge.log";
+		if( file_exists($targetfile)){
+		    echo "<H3>Merger Log ".$basecaller." basecalls, processing ".$proc.", lane = ".$lane." </H3><BR>";
+		    openAndPrint($targetfile);	
+		}else{
+		    break;
+		}
+	    }
+
 	}
     }
 
@@ -419,8 +431,21 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		echo "<H3>RG assignment summary ".$basecaller." basecalls, lane = ".$lane." </H3><BR>";
 		openAndPrint($targetfile);	
 	    }
+	    
+	    for($proc=1;$proc<=100;$proc++){
+		$targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/rg/proc".$proc."/s_".$lane."_rg_summary.txt";
+		if( file_exists($targetfile)){	    
+		    echo "<H3>RG assignment summary ".$basecaller." basecalls, processing ".$proc.", lane = ".$lane." </H3><BR>";
+		    openAndPrint($targetfile);	
+		}else{
+		    break;
+		}    
+	    }		
+
 	}
     }
+
+
 
     //insert size
     for($lane=1;$lane<=8;$lane++){//
@@ -483,8 +508,23 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		echo "<H3>Unassigned indices ".$basecaller." basecalls, lane = ".$lane." </H3><BR>";
 		openAndPrint($targetfile);	
 	    }
+
+
+	    for($proc=1;$proc<=100;$proc++){
+
+		$targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/rg/proc".$proc."/s_".$lane."_unassigned.txt";
+		if( file_exists($targetfile)){	    
+		    echo "<H3>Unassigned indices ".$basecaller." basecalls, processing ".$proc.", lane = ".$lane." </H3><BR>";
+		    openAndPrint($targetfile);	
+		}else{
+		    break;
+		}    
+
+	    }
 	}
     }
+
+
 
 
 
@@ -496,6 +536,19 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		echo "<H3>RG quality score for ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";		
 		convertToPng($targetfile,$basedirScript,$percentScale);
 	    }	
+
+
+	    for($proc=1;$proc<=100;$proc++){
+		$targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/rg/proc".$proc."/s_".$lane."_rgqual.pdf";
+		if( file_exists($targetfile)){
+		    echo "<H3>RG quality score for ".$basecaller." basecalls, processing ".$proc.", lane = ".$lane."</H3><BR>";		
+		    convertToPng($targetfile,$basedirScript,$percentScale);
+		}else{
+		    break;
+		}   	
+	    }
+
+
 	}
     }
 
@@ -510,6 +563,19 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		echo "<H3>RG ratio ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";		
 		convertToPng($targetfile,$basedirScript,$percentScale);
 	    }	
+
+	    for($proc=1;$proc<=100;$proc++){
+
+		$targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/rg/proc".$proc."/s_".$lane."_ratio.pdf";
+		if( file_exists($targetfile)){
+		    echo "<H3>RG ratio ".$basecaller." basecalls, processing ".$proc.", lane = ".$lane."</H3><BR>";		
+		    convertToPng($targetfile,$basedirScript,$percentScale);
+		}else{
+		    break;
+		}
+
+	    }
+
 	}
     }
 
@@ -547,6 +613,18 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	    if( file_exists($targetfile)){
 		echo "<H3>Sequence correctness likelihood ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";		
 		convertToPng($targetfile,$basedirScript,$percentScale);
+	    }
+
+	    for($proc=1;$proc<=100;$proc++){
+
+		$targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/filter/proc".$proc."/s_".$lane."_likelihood.pdf";
+		if( file_exists($targetfile)){
+		    echo "<H3>Sequence correctness likelihood ".$basecaller." basecalls, lane = ".$lane."</H3><BR>";		
+		    convertToPng($targetfile,$basedirScript,$percentScale);
+		}else{
+		    break;
+		}
+
 	    }	
 	}
     }

@@ -398,6 +398,7 @@ for lanetopredict in lanesToUse:
 allsubdir.append("Final_Sequences/proc"+str(numprocessingcurrent)+"/");
 allsubdir.append("BWA/proc"+str(numprocessingcurrent)+"/");
 allsubdir.append("QC/filter/proc"+str(numprocessingcurrent)+"/");
+allsubdir.append("QC/rg/proc"+str(numprocessingcurrent)+"/");
 allsubdir.append("QC/proc"+str(numprocessingcurrent)+"/");
 
 
@@ -760,16 +761,24 @@ for baseCaller in BasecallersUsed:
     conversion_str = MergeReads + " ";
 
     if(int(jsondata["cyclesread2"]) > 0):
-      conversion_str += " -k '%s,%s' -f %s -s %s -c %s "%( jsondata["key1"+str(numprocessingcurrent)] ,jsondata["key2"+str(numprocessingcurrent)],jsondata["adapter1"+str(numprocessingcurrent)] ,jsondata["adapter2"+str(numprocessingcurrent)],jsondata["chimeras"+str(numprocessingcurrent)])
+      conversion_str += " -k '%s,%s' -f %s -s %s  "%( jsondata["key1"+str(numprocessingcurrent)] ,jsondata["key2"+str(numprocessingcurrent)],jsondata["adapter1"+str(numprocessingcurrent)] ,jsondata["adapter2"+str(numprocessingcurrent)]);
+
+      if( len(jsondata["chimeras"+str(numprocessingcurrent)] ) > 2):
+        conversion_str += " -c "+jsondata["chimeras"+str(numprocessingcurrent)]+" ";
+
       if jsondata["mergeoverlap"+str(numprocessingcurrent)] :
         conversion_str += "--ancientdna "
     else:
 
-      conversion_str += " -k '%s' -f '%s'  -c '%s' "%( jsondata["key1"+str(numprocessingcurrent)] ,jsondata["adapter1"+str(numprocessingcurrent)] ,jsondata["chimeras"+str(numprocessingcurrent)])
+      conversion_str += " -k '%s' -f '%s'   "%( jsondata["key1"+str(numprocessingcurrent)] ,jsondata["adapter1"+str(numprocessingcurrent)] );
+
+      if( len(jsondata["chimeras"+str(numprocessingcurrent)] ) > 2):
+        conversion_str += " -c "+jsondata["chimeras"+str(numprocessingcurrent)]+" ";
+
     #    if lane in oneErrorKey: conversion_str += "--allowMissing "
 
-    conversion_str += " --log  "+outBaseDirectory+"/"+baseCaller+"/QC/s_"+str(lanetopredict)+"_merge.log";
-    listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/s_"+str(lanetopredict)+"_merge.log");
+    conversion_str += " --log  "+outBaseDirectory+"/"+baseCaller+"/QC/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_merge.log";
+    listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_merge.log");
 
     #conversion_str += " -t %d "%(adapterTrim[lane]);
     conversion_str += " -u  -o /dev/stdout "; #to send to pipe
@@ -780,13 +789,13 @@ for baseCaller in BasecallersUsed:
     
        if( jsondata["filterfrequency"+str(numprocessingcurrent)]):
           conversion_str += "--frequency --comp_cutoff=%.4f "%(jsondata["frequencycutoff"+str(numprocessingcurrent)])
-          conversion_str += "--freq  "+outBaseDirectory+"/"+baseCaller+"/QC/filter/s_"+str(lanetopredict)+"_freq.dat"            
-          listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/filter/s_"+str(lanetopredict)+"_freq.dat");
+          conversion_str += "--freq  "+outBaseDirectory+"/"+baseCaller+"/QC/filter/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_freq.dat"            
+          listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/filter/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_freq.dat");
 
        if( jsondata["filterentropy"+str(numprocessingcurrent)]):
           conversion_str += "--entropy --comp_cutoff=%.4f "%(jsondata["entropycutoff"+str(numprocessingcurrent)])
-          conversion_str += "--ent  "+outBaseDirectory+"/"+baseCaller+"/QC/filter/s_"+str(lanetopredict)+"_ent.dat";     
-          listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/filter/s_"+str(lanetopredict)+"_ent.dat");
+          conversion_str += "--ent  "+outBaseDirectory+"/"+baseCaller+"/QC/filter/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_ent.dat";     
+          listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/filter/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_ent.dat");
 
        conversion_str += " --like "+outBaseDirectory+"/"+baseCaller+"/QC/filter/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_likelihood.dat ";
        conversion_str += " --log "+outBaseDirectory+"/"+baseCaller+"/QC/filter/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_filter.log "; 
@@ -794,19 +803,19 @@ for baseCaller in BasecallersUsed:
        listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/filter/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_filter.log ");
 
        conversion_str += " /dev/stdin ";
-    conversion_str += "| "+IndexReassign+" --summary "+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_rg_summary.txt" 
-    listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_rg_summary.txt"); 
+    conversion_str += "| "+IndexReassign+" --summary "+outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_rg_summary.txt" 
+    listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_rg_summary.txt"); 
 
 
     conversion_str +=  " -i "+listOfFilesWithIndices[lanetopredict]+ " ";
     #conversion_str +=  " --mm "+str(jsondata["mmrgassign"])+ " ";
 
-    conversion_str += " --error "+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_unassigned.txt";
-    listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_unassigned.txt");
-    conversion_str += " --rgval "+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_rgqual.dat";
-    listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_rgqual.dat");
-    conversion_str += " --ratio "+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_ratio.dat";
-    listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_ratio.dat");
+    conversion_str += " --error "+outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_unassigned.txt";
+    listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_unassigned.txt");
+    conversion_str += " --rgval "+outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_rgqual.dat";
+    listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_rgqual.dat");
+    conversion_str += " --ratio "+outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_ratio.dat";
+    listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_ratio.dat");
     conversion_str += " -o "+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam"
 
 
@@ -849,52 +858,66 @@ for baseCaller in BasecallersUsed:
 #################################################
 
   max_threads=3;
-  if(jsondata["usebwa"+str(numprocessingcurrent) ]  and str(jsondata["sequencer"]) == "miseq"):
+  if(jsondata["usebwa"+str(numprocessingcurrent) ] ): # and str(jsondata["sequencer"]) == "miseq"):
 
     for lanetopredict in lanesToUse:
       listOfBAMfilesToCheck[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam");
       listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam");
-      listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam");
+      #listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam");
 
 
-      makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished:\t"+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam\n");
+      makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished:\t"+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam.finished\n");
 
       listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished");
       listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished");
       #listOfFLGfilesToCheck[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished");
       listOfFinishedfilesToCheck[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished");
 
-      conversion_str = "\tmv "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".temp.bam\n"+"\t"+"sam sort -m 16G -o "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".temp.bam -i "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam.bai -x "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".flgstx -c "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".covstat "+str(tempdir)+" > "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam\n"+"\t"+"rm -f "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".temp.bam\n"+"\t"+"touch "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished\n";
       
-
+#/mnt/solexa/bin/mappr-cli -g /mnt/solexa/Genomes//hg19_evan/bwa-0.4.9 -f /tmp/test.bam /mnt/ngs_data/140328_M00518_0227_000000000-A78LH_MG_B9983/Bustard/Final_Sequences/proc1/s_1_sequence.bam   -n 0.01 -o 2 -l 16500
+      conversion_str = "\t/mnt/solexa/bin/mappr-cli -g "+BWAGENOMES+"/"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+"/bwa-0.4.9"+" -f "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam "+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam";
+      if(str(jsondata["parambwa"+str(numprocessingcurrent)]) == "default"):
+        conversion_str+="";
+      elif(str(jsondata["parambwa"+str(numprocessingcurrent)]) == "ancient") :
+        conversion_str+=" -n 0.01 -o 2 -l 16500 ";
+      conversion_str+="\n";
+      conversion_str+="\t"+"touch "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished\n";
+  
 
       makeWrite[int(lanetopredict)].write(""+conversion_str+"\n\n");
 
+      if(0):
+        conversion_str = "\tmv "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".temp.bam\n"+"\t"+"sam sort -m 16G -o "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".temp.bam -i "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam.bai -x "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".flgstx -c "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".covstat "+str(tempdir)+" > "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam\n"+"\t"+"rm -f "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".temp.bam\n"+"\t"+"touch "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished\n";
 
-      makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam:\t"+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam.finished\n");
-      bwaparameter="";
-      if(str(jsondata["parambwa"+str(numprocessingcurrent)]) == "default"):
+
+
+        makeWrite[int(lanetopredict)].write(""+conversion_str+"\n\n");
+
+
+        makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam:\t"+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam.finished\n");
         bwaparameter="";
-      elif(str(jsondata["parambwa"+str(numprocessingcurrent)]) == "ancient") :
-        bwaparameter=" -n 0.01 -o 2 -l 16500 ";
-      else:
-        print "unexpected bwa param";
-        sys.exit(1);
+        if(str(jsondata["parambwa"+str(numprocessingcurrent)]) == "default"):
+          bwaparameter="";
+        elif(str(jsondata["parambwa"+str(numprocessingcurrent)]) == "ancient") :
+          bwaparameter=" -n 0.01 -o 2 -l 16500 ";
+        else:
+          print "unexpected bwa param";
+          sys.exit(1);
 
 
 
-      conversion_str = "bwa bam2bam -p 52690 -t %d -f %s -g  %s %s %s "%(max_threads,
-                                                                outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam_",
-                                                                BWAGENOMES+"/"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+"/bwa-0.4.9",
-                                                                bwaparameter,
-                                                                outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam");
-      
-      #conversion_str +=  ("\n\n"+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".flgstx: "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam"+"\n\tsam flagstatx "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam  > "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".flgstx\n");
+        conversion_str = "bwa bam2bam -p 52690 -t %d -f %s -g  %s %s %s "%(max_threads,
+                                                                           outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam_",
+                                                                           BWAGENOMES+"/"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+"/bwa-0.4.9",
+                                                                  bwaparameter,
+                                                                  outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam");
 
-      #listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".flgstx");
+        #conversion_str +=  ("\n\n"+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".flgstx: "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam"+"\n\tsam flagstatx "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam  > "+outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".flgstx\n");
+
+        #listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/BWA/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".flgstx");
 
 
-      makeWrite[int(lanetopredict)].write("\t"+conversion_str+"\n\n");
+        makeWrite[int(lanetopredict)].write("\t"+conversion_str+"\n\n");
 
 
 
@@ -973,25 +996,25 @@ for baseCaller in BasecallersUsed:
     listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/s_"+str(lanetopredict)+"_sequenceT.pdf");
 
 #RG QUAL PLOT
-    makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_rgqual.pdf:\t"+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam.finished\n");  
-    listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_rgqual.pdf");
+    makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_rgqual.pdf:\t"+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam.finished\n");  
+    listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_rgqual.pdf");
 
     cmdRGQual  = "\t"+IndexReassignRGR;
-    cmdRGQual += " "+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_rgqual.dat";
-    cmdRGQual += " "+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_rgqual.pdf";
+    cmdRGQual += " "+outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_rgqual.dat";
+    cmdRGQual += " "+outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_rgqual.pdf";
     makeWrite[int(lanetopredict)].write(cmdRGQual+"\n");
-    listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_rgqual.pdf");
+    listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_rgqual.pdf");
 
 
 #RG QUAL PLOT (2)
-    makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_ratio.pdf: "+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam.finished\n\t");  
-    listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_ratio.pdf");
+    makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_ratio.pdf: "+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam.finished\n\t");  
+    listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_ratio.pdf");
 
     cmdRatioPlot  = IndexReassignRATIOR;
-    cmdRatioPlot += " "+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_ratio.dat";
-    cmdRatioPlot += " "+outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_ratio.pdf";
+    cmdRatioPlot += " "+outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_ratio.dat";
+    cmdRatioPlot += " "+outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_ratio.pdf";
     makeWrite[int(lanetopredict)].write(cmdRatioPlot+"\n");
-    listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/s_"+str(lanetopredict)+"_ratio.pdf");
+    listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_ratio.pdf");
 
 #SEQ LIKELIHOOD
     if(jsondata["filterseqexp"+str(numprocessingcurrent)]):
@@ -1200,7 +1223,7 @@ for lanetopredict in lanesToUse:
   makeWriteLane = open (makefilePath , 'w' ) ;
   makeWriteLane.write("all:\n");
   for proctoprocess in range(1,numprocessingcurrent+1):
-    makeWriteLane.write("\t$(MAKE) -C proc"+str(proctoprocess)+"\n");
+    makeWriteLane.write("\t$(MAKE) -j 3 -C proc"+str(proctoprocess)+"\n");
   
 
 

@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <sstream>
 
+#include "utils.h"
+
 using namespace std;
 
 typedef struct { 
@@ -56,10 +58,15 @@ int main (int argc, char *argv[]) {
 	ss.str(std::string());
 	ss<<cycle;
 	string bclFile=directory+"/L00"+lane+"/C"+ ss.str()+".1/s_"+lane+"_"+tile+".bcl";
-
+	//cerr<<bclFile<<endl;
+	if(!isFile(bclFile)){
+	    cerr<<"Unable to find file "<<bclFile<<endl;
+	    return 1;
+	}
 	mybclfile[cycle-firstCycleIDX].open(bclFile.c_str(),ios::in|ios::binary);
 	if (!mybclfile[cycle-firstCycleIDX]) {
-	    cout<<"Unable to read file "<<bclFile<<endl;
+	    cerr<<"Unable to read file "<<bclFile<<endl;
+	    return 1;
 	}
 	unsigned int numberOfClusters ;
 	mybclfile[cycle-firstCycleIDX].read((char*)&numberOfClusters, sizeof (int));

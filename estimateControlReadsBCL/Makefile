@@ -5,7 +5,7 @@ include ../makefile.defs
 CXXFLAGS+= -O3 -Wall -I${BAMTOOLS}/include/ -I${LIBGAB}
 LDLIBS+= -lm
 
-all:	estimateControlReadsBCL	#printIndicesBCL
+all:	estimateControlReadsBCL	printIndicesBCL
 
 %.o: %.cpp
 	${CXX} -c ${CXXFLAGS} $^ 
@@ -18,4 +18,4 @@ printIndicesBCL:	printIndicesBCL.o
 
 
 clean:
-	rm -f estimateControlReadsBCL  *.o #printIndicesBCL
+	rm -f estimateControlReadsBCL printIndicesBCL *.o 

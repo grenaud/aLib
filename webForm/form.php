@@ -230,20 +230,26 @@ function checkAnalysisRequest($runid,$numberLanes) {
 		if($entryName != "." and $entryName != ".."){		    
 
 		    if(substr($entryName,-5) == ".json"){ 
-			
-			$tempArEntryName  = explode("_",substr($entryName,0,-5));
+
+			$tempArEntryName  = explode("_",substr($entryName,0,-5)); //remove .json
 			$lastelemEnt      = $tempArEntryName[count($tempArEntryName)-1];
 			$tempArEntryName2 = explode("-",$lastelemEnt);
 			
 
 
-			if(count($tempArEntryName2)==2){
-			    if(!is_numeric($tempArEntryName2[0]) || !is_numeric($tempArEntryName2[1]) ){
+			if(count($tempArEntryName2)==2){//new form
+			    if( !is_numeric($tempArEntryName2[1]) ){
 				continue;
 			    }
-			    $currentlanes=explode(",",$tempArEntryName2[0]);
+			    $currentlanesTemp=explode(",",$tempArEntryName2[0]);
+			    foreach($currentlanesTemp as $tocheck) {
+				if( !is_numeric($tocheck) ){
+				    continue;
+				}				
+			    }
+			    $currentlanes=$currentlanesTemp;
 			    $currentProc =$tempArEntryName2[1];
-			}else{			    
+			}else{//old format			    
 			    if(count($tempArEntryName2)==1){
 				if(!is_numeric($tempArEntryName2[0])  ){
 				    continue;
@@ -257,12 +263,6 @@ function checkAnalysisRequest($runid,$numberLanes) {
 			    }
 			}
 			
-			/* print $entryName; */
-			/* print var_dump($tempArEntryName); */
-			/* print var_dump($tempArEntryName2); */
-			/* print var_dump($currentlanes); */
-
-			/* exit; */
 
 			
 			foreach($currentlanes as $currentlanesit) {
@@ -275,9 +275,6 @@ function checkAnalysisRequest($runid,$numberLanes) {
 			    }
 			}
 
-			/* print implode(":",$tempArEntryName); */
-			/* exit; */
-			//$lanesSent=array_merge($lanesSent,explode(",",substr($entryName,strlen($runid)+1,-5)));
 		    }
 		}
 	    }

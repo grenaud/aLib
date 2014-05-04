@@ -53,7 +53,6 @@ int main (int argc, char *argv[]) {
     //open files
     for(int cycle=firstCycleIDX;cycle<=(firstCycleIDX+ctrlSeqINDEXlength-1);cycle++){
 	ss.str(std::string());
-	ss<<cycle;
 	string bclFile=directory+"/L00"+lane+"/C"+ ss.str()+".1/s_"+lane+"_"+tile+".bcl";
 
 	mybclfile[cycle-firstCycleIDX].open(bclFile.c_str(),ios::in|ios::binary);
