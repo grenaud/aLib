@@ -33,7 +33,7 @@ if(len(sys.argv) == 0):
 
 (options, args) = parser.parse_args();
 
-arrayOfJobs=[]; #array of 3-upple (cmd string,Popen object,runid)
+arrayOfJobs=[]; #array of 3-upple  (cmd string,Popen object,runid) of jobs currently running
 
 
 def chomp(s):
@@ -60,7 +60,7 @@ def getMakefilesstack():
 def handle_jobs(cjob):
   global options
   #  global jobs
-  print "launching "+str(cjob);
+  #print "launching "+str(cjob);
   if options.mock:
     return None
 
@@ -73,10 +73,13 @@ def checkFinishedJobs():
   #checking for finished jobs
   arrayOfJobsCopy=[];#arrayOfJobs[]#[:];
   for toverify in arrayOfJobs:
-    if(toverify[1].poll() != None): #has finished
-      arrayOfJobsCopy.append(toverify);
-      if(toverify[1].returncode != 0): #wrong code
+    if(toverify[1].poll() != None): #has finished      
+
+      if(toverify[1].returncode != 0): #has finished but wrong code
         print "WARNING: process "+str(toverify[0])+" failed, relaunch it manually";
+
+    else: #is finished
+      arrayOfJobsCopy.append(toverify);
 
   arrayOfJobs=arrayOfJobsCopy;
 
@@ -91,11 +94,16 @@ def handleListOfjobs(alljobs):
 
     for jobToAdd in unresolved:
       if(len(arrayOfJobs) < 2):
+        print "launching "+str(jobToAdd[0]);
         arrayOfJobs.append([jobToAdd[0],handle_jobs(jobToAdd[0]),jobToAdd[1]]); #the cmd, the object, runid
         alljobs.remove(jobToAdd);
 
     if(len(alljobs) != 0):
-      print "Could not launch all jobs, sleeping for 15 mins\n"
+      runidtoprint=[];
+      for toverify in arrayOfJobs:
+        runidtoprint.append(toverify[2]);
+      
+      print "Could not launch all jobs, sleeping for 15 mins, currently the following runs are running: "+(','.join(runidtoprint))+"\n";
       time.sleep(900);
 
 
@@ -184,22 +192,24 @@ while True:
     runidpath='/'.join(arrayfields);
     
     if(not boolFound):
-      print "New run found "+runid;
-      print "Found .completed file "+str(illuminareaddir)+"/"+str(runid)+"/Run.completed";
+      print "New makefile found "+makef;
+      print "Checking for .completed file: "+str(illuminareaddir)+"/"+str(runid)+"/Run.completed";
       if(isfile(illuminareaddir+"/"+runid+"/Run.completed")):
         runalreadyrunning=False;
         for toverify in arrayOfJobs:
           if toverify[2] == runid:
             runalreadyrunning=True;
-
-        if runalreadyrunning:
+            
+        if not(runalreadyrunning):
           runsToProcess[runid]=True;
           print "Ready to process";
           listNextIteration.append(makef); #append to next iteration because it will be processed
 
           if(runid in runid2makefiles):
+            print "This makefile belongs to a previously discovered run : "+str(runid);
             runid2makefiles[runid].append(makef);
           else:
+            print "This makefile is for a newly discovered run : "+str(runid);
             runid2makefiles[runid]= [makef];
         else:
           print "Another instance of run "+str(runid)+" is already running";
@@ -220,6 +230,10 @@ while True:
 
   timeNowRaw = time.time()
   timeNow    = datetime.datetime.fromtimestamp(timeNowRaw).strftime('%Y-%m-%d_%H:%M:%S');
+  runidtoprint=[];
+  for toverify in arrayOfJobs:
+    runidtoprint.append(toverify[2]);
 
-  print "Sleeping for 1 hour "+str(timeNow);
+  print "Sleeping for 1 hour "+str(timeNow)+" currently the following runs are running: "+(','.join(runidtoprint))+"\n";
   time.sleep(3600);
+  checkFinishedJobs();

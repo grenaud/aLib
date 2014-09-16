@@ -1421,7 +1421,7 @@ function displayStep9() {
 
     $mailu->Subject = "Analysis submitted for run ".$runid;
     $mailu->Message = "This is an automated message so please do not reply.\n------------------\nThe following user(s): ".$emailuser."\n".
-	"Submitted a request for analysis for run ".$runid." processing #".$runinformation["numprocessingcurrent"]."\nPlease keep this email for your own personnal record\n\n\n------------------\nThe following parameters will be used: ".$targetfile."\n------------------\n\n".$htmltable."\n\n\n------------------\njson file\n------------------\n".json_encode($runinformation);
+	"Submitted a request for analysis for run ".$runid." processing #".$runinformation["numprocessingcurrent"]."\nPlease keep this email for your own personal record\n\n\n------------------\nThe following parameters will be used: ".$targetfile."\n------------------\n\n".$htmltable."\n\n\n------------------\njson file\n------------------\n".json_encode($runinformation);
     $mailu->ConnectTimeout = 30;  // Socket connect timeout (sec)
     $mailu->ResponseTimeout = 8;  // CMD response timeout (sec)
     $success = $mailu->Send();

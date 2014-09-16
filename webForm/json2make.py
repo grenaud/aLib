@@ -875,7 +875,7 @@ for baseCaller in BasecallersUsed:
 
       
 #/mnt/solexa/bin/mappr-cli -g /mnt/solexa/Genomes//hg19_evan/bwa-0.4.9 -f /tmp/test.bam /mnt/ngs_data/140328_M00518_0227_000000000-A78LH_MG_B9983/Bustard/Final_Sequences/proc1/s_1_sequence.bam   -n 0.01 -o 2 -l 16500
-      conversion_str = "\t/mnt/solexa/bin/mappr-cli -g "+BWAGENOMES+"/"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+"/bwa-0.4.9"+" -f "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam "+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam";
+      conversion_str = "\t/mnt/solexa/bin/mappr-cli -z "+str(jsondata["runid"])+"l"+str(lanetopredict)+"p"+str(numprocessingcurrent)+" -g "+BWAGENOMES+"/"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+"/bwa-0.4.9"+" -f "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam "+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam";
       if(str(jsondata["parambwa"+str(numprocessingcurrent)]) == "default"):
         conversion_str+="";
       elif(str(jsondata["parambwa"+str(numprocessingcurrent)]) == "ancient") :
@@ -949,7 +949,7 @@ for baseCaller in BasecallersUsed:
   for lanetopredict in lanesToUse:
 #INSERT SIZE
     targetbaminsert=outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam";
-    if(jsondata["usebwa"+str(numprocessingcurrent)]  and str(jsondata["sequencer"]) == "miseq"):
+    if(jsondata["usebwa"+str(numprocessingcurrent)]):
       targetbaminsert=outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam";
 
     makeWrite[int(lanetopredict)].write(outBaseDirectory+"/"+baseCaller+"/QC/insertsize/lane"+str(lanetopredict)+"/proc"+str(numprocessingcurrent)+"/insert_"+str(lanetopredict)+".dat:\t"+outBaseDirectory+"/"+baseCaller+"/QC/proc"+str(numprocessingcurrent)+"/clusterTally_"+str(lanetopredict)+".OK"+"\n");
@@ -1188,7 +1188,7 @@ makeGeneralWrite.write(".PHONY: subdirs $(SUBDIRS)\n\n");
 makeGeneralWrite.write("subdirs: $(SUBDIRS)\n\n");
 
 makeGeneralWrite.write("$(SUBDIRS):\n");
-makeGeneralWrite.write("\t$(MAKE) -j 1 -C $@ all\n\n");
+makeGeneralWrite.write("\tif [ -d $@ ]; then $(MAKE) -j 1 -C $@ all; fi\n\n");
 
 makeGeneralWrite.write("sendemail:\n");
 makeGeneralWrite.write("\tfor dir in $(SUBDIRS); do ");

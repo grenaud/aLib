@@ -641,12 +641,20 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	    while($entryName = readdir($myBWADirectory)) {
 		if(endsWith($entryName,"flgstx")){
 		    $targetfile=$illuminawritedir."/".$runid."/".$basecaller."/BWA/".$entryName."";
-		    //if( file_exists($targetfile)){
-	    
+		    //if( file_exists($targetfile)){	    
 		    echo "<H3>Flagstatx for file".$targetfile." </H3><BR>";
 		    openAndPrint($targetfile);
 		    //}
 		}
+
+		if(endsWith($entryName,"flagstatx")){
+		    $targetfile=$illuminawritedir."/".$runid."/".$basecaller."/BWA/".$entryName."";
+		    //if( file_exists($targetfile)){	    
+		    echo "<H3>Flagstatx for file".$targetfile." </H3><BR>";
+		    openAndPrint($targetfile);
+		    //}
+		}
+
 	    }
 	    closedir($myBWADirectory);
 	}
@@ -659,12 +667,21 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 		while($entryName = readdir($myBWADirectory)) {
 		    if(endsWith($entryName,"flgstx")){
 			$targetfile=$myBWADirectoryName.$entryName."";
-			//if( file_exists($targetfile)){
-			
+			//if( file_exists($targetfile)){			
 			echo "<H3>Flagstatx for file".$targetfile." proc ".$proc."</H3><BR>";
 			openAndPrint($targetfile);
 			//}
 		    }
+
+		    if(endsWith($entryName,"flagstatx")){
+			$targetfile=$myBWADirectoryName.$entryName."";
+			//if( file_exists($targetfile)){			
+			echo "<H3>Flagstatx for file".$targetfile." proc ".$proc."</H3><BR>";
+			openAndPrint($targetfile);
+			//}
+		    }
+
+
 		}
 		closedir($myBWADirectory);
 	    }
