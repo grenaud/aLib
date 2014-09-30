@@ -43,6 +43,13 @@
           "adapter2": "'AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT'",
           "chimera": "'ACACTCTTTCCCTACACGTCTGAACTCCAG,ACACTCTTTCCCACACGTCTGAACTCCAGT,ACACTCTTTCCCTACACACGTCTGAACTCC,CTCTTTCCCTACACGTCTGAACTCCAGTCA,GAAGAGCACACGTCTGAACTCCAGTCACII,GAGCACACGTCTGAACTCCAGTCACIIIII,GATCGGAAGAGCACACGTCTGAACTCCAGT,AGATCGGAAGAGCACACGTCTGAACTCCAG,AGAGCACACGTCTGAACTCCAGTCACIIII,ACACGTCTGAACTCCAGTCACIIIIIIIAT,GTGCACACGTCTGAACTCCAGTCACIIIII,AGCACACGTCTGAACTCCAGTCACIIIIII,CGTATGCCGTCTTCTGCTTGAAAAAAAAAA'"
         },
+	{	
+          "protocol": "Nextera",
+          "name": "Illumina Nextera double-indexed",
+          "adapter1": "'CTGTCTCTTATACACATCTCCGAGCCCACGAGACIIIIIIIIATCTCGTATGCCGTCTTCTGCTTG'",
+          "adapter2": "'CTGTCTCTTATACACATCTGACGCTGCCGACGAIIIIIIIIGTGTAGATCTCGGTGGTCGCCGTATCATT'",
+          "chimera": "''"
+        },
         {
           "protocol": "IllPE",
           "name": "Illumina Paired End library",
@@ -114,6 +121,54 @@
     "indices": {
       "p7indices": {
         "p7index": [
+          {	
+          "id": "701",
+          "seq": "TAAGGCGA"
+          },
+          {
+          "id": "702",
+          "seq": "CGTACTAG"
+          },
+          {
+          "id": "703",
+          "seq": "AGGCAGAA"
+          },
+          {
+          "id": "704",
+           "seq": "TCCTGAGC"
+          },
+          {
+          "id": "705",
+           "seq": "GGACTCCT"
+          },
+          {
+          "id": "706",
+           "seq": "TAGGCATG"
+          },
+          {
+          "id": "707",
+           "seq": "CTCTCTAC"
+          },
+          {
+          "id": "708",
+           "seq": "CAGAGAGG"
+          },
+          {
+          "id": "709",
+           "seq": "GCTACGCT"
+          },
+          {
+          "id": "710",
+           "seq": "CGAGGCTG"
+          },
+          {
+          "id": "711",
+           "seq": "AAGAGGCA"
+          },
+          {
+          "id": "712",
+          "seq": "GTAGAGGA"
+          },
           {
             "id": "397",
             "seq": "GAGAGGC"
@@ -1506,6 +1561,38 @@
       },
       "p5indices": {
         "p5index": [
+          {
+          "id": "502",
+           "seq": "ATAGAGAG"
+          },
+          {
+          "id": "503",
+           "seq": "AGAGGATA"
+          },
+          {
+          "id": "504",
+           "seq": "TCTACTCT"
+          },
+          {
+          "id": "505",
+           "seq": "CTCCTTAC"
+          },
+          {
+          "id": "506",
+           "seq": "TATGCAGT"
+          },
+          {
+          "id": "507",
+           "seq": "TACTCCTT"
+          },
+          {
+          "id": "508",
+           "seq": "AGGCTTAG"
+          },
+          {
+          "id": "517",
+           "seq": "TCTTACGC"
+          },
           {
             "id": "1",
             "seq": "TCGCAGG"

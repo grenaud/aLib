@@ -308,6 +308,8 @@ function displayStep1($runid) {
 
 function displayStep2() {
     global $ctrlindex;
+    global $ctrlindex2;
+
     global $sequencers;
 
     echo "<form action=\"runprocess.php\" method=\"post\">\n";
@@ -376,6 +378,16 @@ function displayStep2() {
 			  "lanes"        => $lanestoanalyze,
 			  );
 
+    //padding $ctrlindex and $ctrlindex2 for indices with 8 bp
+    if($_POST["cyclesindx1"]==8){
+	$ctrlindex .= "A";
+    }
+    if($_POST["cyclesindx2"]==8){
+	$ctrlindex2 .= "A";
+    }
+
+
+
     $runinformation["email"] = str_replace(' ','',$runinformation["email"]);
 
     /* echo "\nvar"; */
@@ -414,7 +426,7 @@ function displayStep2() {
 
     echo "Most runs spike-in PhiX DNA (for which we know the sequence in advance) used a control sequences to determine how successful a run was. freeIbis works by training on those control sequences<BR>"; 
     echo "<BR>If you picked freeIbis, how were control sequence (phiX) specified ?<BR>";
-    echo "<input type=\"radio\" name=\"spikedin\" value=\"True\" checked>Spiked-in controls using P7 index:   <input type=\"text\" name=\"ctrlindex\" value=\"$ctrlindex\" size=\"7\"><BR>\n";
+    echo "<input type=\"radio\" name=\"spikedin\" value=\"True\" checked>Spiked-in controls using P7 index:   <input type=\"text\" name=\"ctrlindex\" value=\"$ctrlindex\" size=\"".$_POST["cyclesindx1"]."\"> and P5 index:   <input type=\"text\" name=\"ctrlindex2\" value=\"$ctrlindex2\" size=\"".$_POST["cyclesindx2"]."\">  <BR>\n";
     echo "<input type=\"radio\" name=\"spikedin\" value=\"False\">Dedicated lane (specify which below)\n";
 
     echo "<p style=\"padding-left:5em;\">";
@@ -477,6 +489,8 @@ function displayStep3() {
     $runinformation["bustard"]        = isset($_POST["bustard"]);
     $runinformation["spikedin"]       = ($_POST["spikedin"] == "True");
     $runinformation["ctrlindex"]      = $_POST["ctrlindex"];
+    $runinformation["ctrlindex2"]     = $_POST["ctrlindex2"];
+
     /* $runinformation["numprocessing"]  = $_POST["numprocessing"]; */
 
 

@@ -1224,6 +1224,9 @@ for lanetopredict in lanesToUse:
   makeWriteLane.write("all:\n");
   for proctoprocess in range(1,numprocessingcurrent+1):
     makeWriteLane.write("\t$(MAKE) -j 3 -C proc"+str(proctoprocess)+"\n");
+  makeWriteLane.write("\nsendemail:\n");
+  for proctoprocess in range(1,numprocessingcurrent+1):
+    makeWriteLane.write("\t$(MAKE) -j 3 -C proc"+str(proctoprocess)+" sendemail;\n");
   
 
 
