@@ -983,13 +983,19 @@ for baseCaller in BasecallersUsed:
     if(jsondata["usebwa"+str(numprocessingcurrent)]):#we need deamination
       targetbamsumsample=outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/sumsampleRG/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished";
       listOfTargetFiles[lanetopredict].append(targetbamsumsample);
-      makeWrite[int(lanetopredict)].write(targetbamsumsample+":\t"+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam"+"\n");
+      makeWrite[int(lanetopredict)].write(targetbamsumsample+":\t"+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished"+"\n");
 
       cmdSplitRG   =  splitRGSubsample;
       cmdSplitRG  +=  " "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam"+" ";
       cmdSplitRG  +=  " "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".flagstatx"+" ";
-      cmdSplitRG  +=  "QC/deamCont/"+baseCaller+"_proc"+str(numprocessingcurrent)+"_s_"+str(lanetopredict)+"_"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)]);
-      makeWrite[int(lanetopredict)].write("\t"+cmdSplitRG+"\n");
+      cmdSplitRG  +=  " "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/"+baseCaller+"_proc"+str(numprocessingcurrent)+"_s_"+str(lanetopredict)+"_"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)]);
+      cmdSplitRG  +=  "\n\ttouch "+targetbamsumsample;
+
+      makeWrite[int(lanetopredict)].write("\t"+cmdSplitRG+"\n\n");
+      listOfTargetFiles[lanetopredict].append(targetbamsumsample);
+
+
+
 
 #INSERT SIZE
     targetbaminsert=outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam";

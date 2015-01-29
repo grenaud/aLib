@@ -46,20 +46,21 @@ int main (int argc, char *argv[]) {
      }
 
 
-     cout<<target<<endl;
-     cout<<maxTarget<<endl;
+     cerr<<"minimum fragments:\t"<<target<<endl;
+     cerr<<"target  fragments:\t"<<maxTarget<<endl;
 
      string line;
      ifstream myFileTally;
      map<string,double> rg2Fraction;
 
      myFileTally.open(rgTally.c_str(), ios::in);
-
+     cerr<<"Retained groups:\n"<<endl;
+     cerr<<"RG\t#mapped\tfraction retained"<<endl;
      if (myFileTally.is_open()){
 	 while ( getline (myFileTally,line)){
 	     vector<string> tokens = allTokens(line,'\t');
 	     if(tokens.size() > 6)
-		 if(tokens[1] == "pass" && 
+		 if( tokens[1] == "pass" && 
 		    (tokens[0] != "\"\""    && 
 		     tokens[0] != "control" && 
 		     tokens[0] != "TOTAL") ){
@@ -70,9 +71,9 @@ int main (int argc, char *argv[]) {
 
 			 if(count>=maxTarget){
 			     rg2Fraction[  tokens[0] ] = double(maxTarget)/double(count);
-			     cout<<tokens[0]<<"\t"<<count<<"\t"<<double(maxTarget)/double(count)<<endl;
+			     cerr<<tokens[0]<<"\t"<<count<<"\t"<<double(maxTarget)/double(count)<<endl;
 			 }else{
-			     cout<<tokens[0]<<"\t"<<count<<"\t"<<1.0<<endl;
+			     cerr<<tokens[0]<<"\t"<<count<<"\t"<<1.0<<endl;
 			     rg2Fraction[  tokens[0] ] = 1.0;
 			 }
 		     }
