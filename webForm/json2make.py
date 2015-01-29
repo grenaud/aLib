@@ -69,21 +69,21 @@ illuminawritedir=""
 timeNowRaw = time.time()
 timeNow    = datetime.datetime.fromtimestamp(timeNowRaw).strftime('%Y-%m-%d_%H:%M:%S');
 
-BCL2BAM              = "BCL2BAM2FASTQ/BCL2BAM/bcl2bam"
-FREEIBIS             = ""
+BCL2BAM              = "BCL2BAM2FASTQ/BCL2BAM/bcl2bam";
+FREEIBIS             = "";
 
-rtaReportHask        = "pipeline/generate_report"
+rtaReportHask        = "pipeline/generate_report";
 #rtaReportPython      = "pipeline/generate_report.py"
 
-MergeReads           = "leehom/src/leeHom"
-IndexReassign        = "deML/src/deML"
-IndexReassignRGR     = "pipeline/rg.R"
-IndexReassignRATIOR  = "pipeline/ratio.R"
+MergeReads           = "leehom/src/leeHom";
+IndexReassign        = "deML/src/deML";
+IndexReassignRGR     = "pipeline/rg.R";
+IndexReassignRATIOR  = "pipeline/ratio.R";
 
-BAMFilter            = "pipeline/filterReads"
-BAMFilterLIKER       = "pipeline/likeli.R"
-ERRORPERCYCLE        = "pipeline/errorRatePerCycle"
-ERRORPERCYCLER       = "pipeline/errorRatePerCycle.R"
+BAMFilter            = "pipeline/filterReads";
+BAMFilterLIKER       = "pipeline/likeli.R";
+ERRORPERCYCLE        = "pipeline/errorRatePerCycle";
+ERRORPERCYCLER       = "pipeline/errorRatePerCycle.R";
 
 Tilecounter          = "tileCount/tileCount.py";
 Qualplotter          = "plotQualScores/plotQualScores.py";
@@ -91,14 +91,18 @@ Qualplotter          = "plotQualScores/plotQualScores.py";
 Ctrlextract          = "extractControlReadsBam/getCtrlReadsBAM";
 Predvsobs            = "qualScoreC++/qualScoresObsVsPred";
 PredvsobsR           = "qualScoreC++/generateplot.R";
-FastQCreport         = "fastqc"
+FastQCreport         = "fastqc";
 
-insertsizebi         = "insertSize/insertSizeRG"
-insertsizeR          = "insertSize/insertSizeRG.R"
+insertsizebi         = "insertSize/insertSizeRG";
+insertsizeR          = "insertSize/insertSizeRG.R";
 
-sendemail            = "webForm/sendemail.php"
+sendemail            = "webForm/sendemail.php";
 
 
+splitRGSubsample     = "splitRGSubsample/splitByRG";
+bam2prof             = "bam2prof";
+deamProf2pdfR        = "deamProf2pdf.R";
+contDeampl           = "contDeam.pl";
 
 def chomp(s):
   return s.rstrip('\n');
@@ -149,6 +153,8 @@ illuminawritedir = jsondataConf["illuminawritedir"];
 illuminareaddir  = jsondataConf["illuminareaddir"];
 tempdir          = jsondataConf["tempdirectory"];
 alibdir          = jsondataConf["alibdir"];
+schmutzidir      = jsondataConf["schmutzidir"];
+
 #alibdir          = "/home/gabriel_renaud/projects/aLib/aLib/";
 
 FREEIBIS         = jsondataConf["freeibispath"];
@@ -307,6 +313,31 @@ if not os.path.exists(insertsizeR):
   print "Required executable file not found "+insertsizeR;
   sys.exit(1);
 
+#bam2prof             = "bam2prof";
+#deamProf2pdfR        = "deamProf2pdf.R";
+#contDeampl           = "contDeam.pl";
+
+splitRGSubsample = alibdir+splitRGSubsample;
+if not os.path.exists(splitRGSubsample):
+  print "Required executable file not found "+splitRGSubsample; 
+  sys.exit(1);
+
+bam2prof         = schmutzidir+bam2prof;
+if not os.path.exists(bam2prof):
+  print "Required executable file not found "+bam2prof; 
+  sys.exit(1);
+
+deamProf2pdfR    = schmutzidir+deamProf2pdfR;
+if not os.path.exists(deamProf2pdfR):
+  print "Required executable file not found "+deamProf2pdfR; 
+  sys.exit(1);
+
+contDeampl       = schmutzidir+contDeampl;
+if not os.path.exists(contDeampl):
+  print "Required executable file not found "+contDeampl; 
+  sys.exit(1);
+
+
 
 FastQCreport = FastQCreport;
 if not os.path.exists(FastQCreport):
@@ -383,6 +414,7 @@ makedirs(outBaseDirectory+"/Report/");
 allsubdir=["FastQC/",
            "QC/",
            "QC/qscores/",
+           "QC/deamCont/",
            "QC/rg/",
            "QC/filter/",
            "QC/insertsize/",
@@ -947,6 +979,18 @@ for baseCaller in BasecallersUsed:
   #listOfFilesQC[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/*");
 
   for lanetopredict in lanesToUse:
+#DEAMINATION PARAMETERS
+    if(jsondata["usebwa"+str(numprocessingcurrent)]):#we need deamination
+      targetbamsumsample=outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/sumsampleRG/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished";
+      listOfTargetFiles[lanetopredict].append(targetbamsumsample);
+      makeWrite[int(lanetopredict)].write(targetbamsumsample+":\t"+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam"+"\n");
+
+      cmdSplitRG   =  splitRGSubsample;
+      cmdSplitRG  +=  " "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam"+" ";
+      cmdSplitRG  +=  " "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".flagstatx"+" ";
+      cmdSplitRG  +=  "QC/deamCont/"+baseCaller+"_proc"+str(numprocessingcurrent)+"_s_"+str(lanetopredict)+"_"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)]);
+      makeWrite[int(lanetopredict)].write("\t"+cmdSplitRG+"\n");
+
 #INSERT SIZE
     targetbaminsert=outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam";
     if(jsondata["usebwa"+str(numprocessingcurrent)]):

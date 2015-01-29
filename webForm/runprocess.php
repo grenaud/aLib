@@ -382,6 +382,7 @@ function displayStep2() {
     if($_POST["cyclesindx1"]==8){
 	$ctrlindex .= "A";
     }
+
     if($_POST["cyclesindx2"]==8){
 	$ctrlindex2 .= "A";
     }
@@ -426,7 +427,14 @@ function displayStep2() {
 
     echo "Most runs spike-in PhiX DNA (for which we know the sequence in advance) used a control sequences to determine how successful a run was. freeIbis works by training on those control sequences<BR>"; 
     echo "<BR>If you picked freeIbis, how were control sequence (phiX) specified ?<BR>";
+
+
+
+    /* echo "<input type=\"checkbox\" value=\"bustard\" name=\"bustard\"\"><br/>\n"; */
+    /* echo "<input type=\"checkbox\" value=\"freeibis\" name=\"freeibis\"\" checked><br/>\n"; */
+    
     echo "<input type=\"radio\" name=\"spikedin\" value=\"True\" checked>Spiked-in controls using P7 index:   <input type=\"text\" name=\"ctrlindex\" value=\"$ctrlindex\" size=\"".$_POST["cyclesindx1"]."\"> and P5 index:   <input type=\"text\" name=\"ctrlindex2\" value=\"$ctrlindex2\" size=\"".$_POST["cyclesindx2"]."\">  <BR>\n";
+    echo "<input type=\"radio\" name=\"spikedin\" value=\"Mult\" >Spiked-in controls using the multiple spiked-in option<BR>\n";
     echo "<input type=\"radio\" name=\"spikedin\" value=\"False\">Dedicated lane (specify which below)\n";
 
     echo "<p style=\"padding-left:5em;\">";
@@ -488,9 +496,16 @@ function displayStep3() {
     $runinformation["freeibis"]       = isset($_POST["freeibis"]);
     $runinformation["bustard"]        = isset($_POST["bustard"]);
     $runinformation["spikedin"]       = ($_POST["spikedin"] == "True");
-    $runinformation["ctrlindex"]      = $_POST["ctrlindex"];
-    $runinformation["ctrlindex2"]     = $_POST["ctrlindex2"];
 
+    if($runinformation["spikedin"]){ //if spiked-in
+	$runinformation["ctrlindex"]      = $_POST["ctrlindex"];
+	$runinformation["ctrlindex2"]     = $_POST["ctrlindex2"];
+    }else{
+	if($_POST["spikedin"] == "Mult"){
+	    $runinformation["spikedinmult"]  = True;
+	}
+
+    }
     /* $runinformation["numprocessing"]  = $_POST["numprocessing"]; */
 
 
@@ -504,8 +519,6 @@ function displayStep3() {
 	/* }else{ */
 	/*     print "no"; */
 	/* } */
-
-
 	//	exit;
 	if(!file_exists ( $targetfile )){
 	    $runinformation["numprocessingcurrent"] = $procnu;
@@ -529,7 +542,9 @@ function displayStep3() {
     if(isset($_POST["lanesdedicated8"]) ){ array_push($lanesdedicated,8); }
 
     $runinformation["lanesdedicated"]  = $lanesdedicated;
-    if(!$runinformation["spikedin"]  &&
+
+    if(!$runinformation["spikedin"]     &&
+       !$runinformation["spikedinmult"] &&
        count($lanesdedicated) == 0 ){
 	echo "Error, you must specify which lanes were used for controls";
         exit(1);
@@ -763,6 +778,7 @@ function displayStep5() {
     //$runinformation["foundIndices"]="False";
     $indicesAlreadyThere="";
     $indicesAlreadyThereAgree=True;
+    $indicesFileAlreadyThere=False;
    
     foreach($runinformation["lanes"] as $lanetouse){	    
 	if(!file_exists($illuminawritedir."/".$runinformation["runid"]."/build/lane".$lanetouse."/indices.raw.txt")){
@@ -770,6 +786,7 @@ function displayStep5() {
 	    /* exit; */
 	}else{
 	    //$runinformation["foundIndices"]="True";
+	    $indicesFileAlreadyThere=True;
 	    $stringToPrint="";
 	    $fh = fopen($illuminawritedir."/".$runinformation["runid"]."/build/lane".$lanetouse."/indices.raw.txt", 'r') or die("can't open ".$illuminawritedir."/".$runinformation["runid"]."/build/lane".$lanetouse."/indices.raw.txt");
 	    while( !feof($fh) ){
@@ -807,21 +824,20 @@ function displayStep5() {
     echo "<input type=\"hidden\" name=\"step\" value=\"6\" />\n";
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
 
-	/* reactivate if  */
-	/* Maximum number of mismatches for lookup among the indices:   */
-	/* 					    <select name="mmrgassign"> */
-	/* 					    <option value="2">2</option> */
-	/* 					    <option value="1">1</option> */
-	/* 					    <option value="0">0</option> */
-	/* 					    </select> */
-
-	/* 					    <BR> */
+    /* reactivate if  */
+    /* Maximum number of mismatches for lookup among the indices:   */
+    /* 					    <select name="mmrgassign"> */
+    /* 					    <option value="2">2</option> */
+    /* 					    <option value="1">1</option> */
+    /* 					    <option value="0">0</option> */
+    /* 					    </select> */   
+    /* 					    <BR> */
 
     /* if($runinformation["numprocessing"] > 1){ */
     /* 	echo "<BR>For runs with multiple processings: please make sure that you have entered all the possible read groups on the flowcell<BR><BR>"; */
     /* } */
 
-    if($indicesAlreadyThereAgree ){
+    if($indicesFileAlreadyThere ){
 	echo "<b>Warning</b>: There are already index files, they were copy-pasted in the text field below<BR>please review them, any modifications you make will overwrite the current content<BR>";       
     }
     ?>
@@ -1034,10 +1050,34 @@ function displayStep6() {
 
 	if($foundControl == 0){
 	    //if($indextype       == "single"){
-	    if($runinformation["cyclesindx2"] == 0 ){
-		$stringToPrint.=$ctrlindex."\tcontrol\n";
+	    
+	    if($runinformation["cyclesindx2"] == 0 ){ //single
+		/* if($runinformation["cyclesindx1"] == 8 ){//pad with A ? */
+		/*     $stringToPrint.=$ctrlindex."A"."\tcontrol\n"; */
+		/* }else{ */
+		if($runinformation["spikedinmult"] ){
+		    $stringToPrint.= 
+			( str_repeat("A", $runinformation["cyclesindx1"]) )."\tcontrolA\n".
+			( str_repeat("C", $runinformation["cyclesindx1"]) )."\tcontrolC\n".
+			( str_repeat("G", $runinformation["cyclesindx1"]) )."\tcontrolG\n".
+			( str_repeat("T", $runinformation["cyclesindx1"]) )."\tcontrolT\n";
+
+		}else{
+		    $stringToPrint.=$ctrlindex."\tcontrol\n";
+		}
+		/* } */
 	    }else{
-		$stringToPrint.=$ctrlindex."\t".$ctrlindex2."\tcontrol\n";
+		//first index
+		/* if($runinformation["cyclesindx1"] == 8 ){//pad with A ? */
+		if($runinformation["spikedinmult"] ){
+		    $stringToPrint.= 
+			( str_repeat("A", $runinformation["cyclesindx1"]) )."\t".( str_repeat("A", $runinformation["cyclesindx2"]) )."\tcontrolA\n".
+			( str_repeat("C", $runinformation["cyclesindx1"]) )."\t".( str_repeat("C", $runinformation["cyclesindx2"]) )."\tcontrolC\n".
+			( str_repeat("G", $runinformation["cyclesindx1"]) )."\t".( str_repeat("G", $runinformation["cyclesindx2"]) )."\tcontrolG\n".
+			( str_repeat("T", $runinformation["cyclesindx1"]) )."\t".( str_repeat("T", $runinformation["cyclesindx2"]) )."\tcontrolT\n";
+		}else{
+		    $stringToPrint.=$ctrlindex."\t".$ctrlindex2."\tcontrol\n";
+		}
 	    }
 	}
 

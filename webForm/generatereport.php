@@ -135,7 +135,7 @@ if( !file_exists($basedirScript ) ){
 }
 
 if( !is_writable($basedirScript ) ){
-    print "The directory to store the images ".$basedirScript." ist not writable";
+    print "The directory to store the images ".$basedirScript." is not writable";
     exit(1);
 }
 

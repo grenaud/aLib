@@ -1,5 +1,6 @@
 {
     "alibdir": "/mnt/solexa/bin/aLib/",
+    "schmutzidir": "/mnt/solexa/bin/schmutzi/",
     "fastqcdir": "/mnt/solexa/bin/FastQC/",
     "illuminareaddir": "/mnt/solexa/",
     "illuminawritedir": "/mnt/ngs_data/",
@@ -7,6 +8,10 @@
       "sequencer": [
         {
           "id": "M00518",
+          "type": "miseq"
+        },
+        {
+          "id": "M02279",
           "type": "miseq"
         },
         {
@@ -1556,11 +1561,43 @@
           {
             "id": "t27",
             "seq": "ATTCCT"
+          },
+          {
+            "id": "t28",
+            "seq": "CAAAAG"
+          },
+          {
+            "id": "t29",
+            "seq": "CAACTA"
+          },
+          {
+            "id": "t30",
+            "seq": "CACCGG"
+          },
+          {
+            "id": "t31",
+            "seq": "CACGAT"
+          },
+          {
+            "id": "t32",
+            "seq": "CACTCA"
+          },
+          {
+            "id": "t33",
+            "seq": "CAGGCG"
+          },
+          {
+            "id": "t34",
+            "seq": "CGGAAT"
           }
         ]
       },
       "p5indices": {
         "p5index": [
+          {
+          "id": "501",
+           "seq": "GCGATCTA"
+          },
           {
           "id": "502",
            "seq": "ATAGAGAG"
