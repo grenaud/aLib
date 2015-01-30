@@ -988,7 +988,9 @@ for baseCaller in BasecallersUsed:
 #DEAMINATION PARAMETERS
     if(jsondata["usebwa"+str(numprocessingcurrent)] and str(jsondata["parambwa"+str(numprocessingcurrent)]) == "ancient") :
       #subsample split
-      targetbamsumsample=outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/sumsampleRG/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished";
+      targetbamsumsample=outBaseDirectory+"/"+baseCaller+"/QC/deamCont/"+baseCaller+"_proc"+str(numprocessingcurrent)+"_s_"+str(lanetopredict)+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished";
+
+#+"/BWA/proc"+str(numprocessingcurrent)+"/sumsampleRG/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished";
       listOfTargetFiles[lanetopredict].append(targetbamsumsample);
       makeWrite[int(lanetopredict)].write(targetbamsumsample+":\t"+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished"+"\n");
 
@@ -1002,14 +1004,20 @@ for baseCaller in BasecallersUsed:
 
 
       #deamination, make submakefile
-      cmdDir2Make = dir2make+ " ";
-      if(str(jsondata["genomebwa"+str(numprocessingcurrent)])[:2] == "hg"): #do cont for humans only
-        cmdDir2Make += " -c --schmutzi "+contDeampl+" --ref "+str(jsondata["genomebwa"+str(numprocessingcurrent)])+"/whole_genome.fa ";
+      targetbamsumsampleDeam=outBaseDirectory+"/"+baseCaller+"/QC/deamCont/finished";
+      listOfTargetFiles[lanetopredict].append(targetbamsumsampleDeam);
 
-      cmdDir2Make += "  -d  "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/ --bam2prof "+bam2prof+" --deamProf2pdf  "+deamProf2pdf+" ";
+      cmdDir2Make = dir2make+ " ";
+      if(str(jsondata["genomebwa"+str(numprocessingcurrent)])[:2] == "hg" or 
+         str(jsondata["genomebwa"+str(numprocessingcurrent)])[:5] == "human" ): #do cont for humans only
+        cmdDir2Make += " -c --schmutzi "+contDeampl+" --ref "+ BWAGENOMES+"/"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+"/whole_genome.fa ";
+
+      cmdDir2Make += "  -d  "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/ --bam2prof "+bam2prof+" --deamProf2pdf  "+deamProf2pdfR+" ";
       cmdDir2Make += outBaseDirectory+"/"+baseCaller+"/QC/deamCont/ > "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/Makefile";
       #targetbamdeampat=outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/sumsampleRG/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished";
-      makeWrite[int(lanetopredict)].write("\t"+cmdDir2Make+"\n\n");
+      makeWrite[int(lanetopredict)].write(targetbamsumsampleDeam+":\t"+targetbamsumsample+"\n\t"+cmdDir2Make+"\n\t"+"make -k -f "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/Makefile\n\n");
+      
+
 
       #cmdSplitRG   =  bam2prof;
 #listOfTargetFiles[lanetopredict].append(targetbamsumsample);      

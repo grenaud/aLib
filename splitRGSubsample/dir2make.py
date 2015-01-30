@@ -68,8 +68,8 @@ for filefound in os.listdir(options.dir):
     print "\n"+options.dir+filefound+".3p.prof.pdf: "+options.dir+filefound+".5p.prof"+"\n\t"+options.deamProf2pdf+"  "+options.dir+filefound+".3p.prof "+options.dir+filefound+".3p.prof.pdf \"3p deamination patterns for "+str(sampleid)+"\" ";
 
     if ( options.cont  ):
-      listOfTargetFiles.append(options.dir+options.dir+filefound[:-4]+".cont.est");
-      print "\n"+options.dir+options.dir+filefound[:-4]+".cont.est:\n\t"+options.schmutzi+"  --library single "+" --out "+options.dir+options.dir+filefound[:-4]+"  --ref "+options.reference+"  --title \"Posterior on contamination using deamination for "+sampleid+"\" "+options.dir+options.dir+filefound;
+      listOfTargetFiles.append(options.dir+filefound[:-4]+".cont.est");
+      print "\n"+options.dir+filefound[:-4]+".cont.est:\n\t"+options.schmutzi+"  --library single "+" --out "+options.dir+filefound[:-4]+"  --ref "+options.reference+"  --title \"Posterior on contamination using deamination for "+sampleid+"\" "+options.dir+filefound;
 
 
 print "\n\n"+"all:\t"+(" ".join(listOfTargetFiles))+"\n\t"+"touch "+options.dir+"finished\n\n";

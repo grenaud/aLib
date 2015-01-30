@@ -689,6 +689,10 @@ if( file_exists($illuminawritedir."/".$runid ) ){
 	}
 
     }
+
+    //DEAMINATION
+    //echo "<H2> Mapping results  </H2>\n<BR><BR>\n";
+
     /* 	} */
     /* } */
 
