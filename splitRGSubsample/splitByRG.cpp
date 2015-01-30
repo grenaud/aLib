@@ -56,6 +56,8 @@ int main (int argc, char *argv[]) {
      myFileTally.open(rgTally.c_str(), ios::in);
      cerr<<"Retained groups:\n"<<endl;
      cerr<<"RG\t#mapped\tfraction retained"<<endl;
+     cerr<<"-----------------------------------"<<endl;
+
      if (myFileTally.is_open()){
 	 while ( getline (myFileTally,line)){
 	     vector<string> tokens = allTokens(line,'\t');
@@ -71,9 +73,9 @@ int main (int argc, char *argv[]) {
 
 			 if(count>=maxTarget){
 			     rg2Fraction[  tokens[0] ] = double(maxTarget)/double(count);
-			     cerr<<tokens[0]<<"\t"<<count<<"\t"<<double(maxTarget)/double(count)<<endl;
+			     cout<<tokens[0]<<"\t"<<count<<"\t"<<double(maxTarget)/double(count)<<endl;
 			 }else{
-			     cerr<<tokens[0]<<"\t"<<count<<"\t"<<1.0<<endl;
+			     cout<<tokens[0]<<"\t"<<count<<"\t"<<1.0<<endl;
 			     rg2Fraction[  tokens[0] ] = 1.0;
 			 }
 		     }
@@ -111,8 +113,10 @@ int main (int argc, char *argv[]) {
 	//cout<<*srgci<<endl;
 	const SamReadGroup rg = (*srgci);
 	//cout<<rg.ID<<endl;
-	rg2BamWriter[rg.ID] = new  BamWriter();
-	rg2BamWriter[rg.ID]->Open(bamDirOutPrefix+"."+rg.ID+".bam",header,references); 
+	if( rg2Fraction.find(rg.ID) != rg2Fraction.end() ){
+	    rg2BamWriter[rg.ID] = new  BamWriter();
+	    rg2BamWriter[rg.ID]->Open(bamDirOutPrefix+"."+rg.ID+".bam",header,references); 
+	}
 	//cout<<bamDirOutPrefix+"."+rg.ID+".bam"<<endl;
     }
     //    return 1;
@@ -139,16 +143,9 @@ int main (int argc, char *argv[]) {
 	    string rgTag;
 	    al.GetTag("RG",rgTag);
 	    //cout<<rgTag<<endl;
-	    if(rg2BamWriter.find(rgTag) == rg2BamWriter.end()){ //new
-		cerr<<"Found new RG "<<rgTag<<endl;
-		rg2BamWriter[rgTag] = new  BamWriter();
-	 	if ( !rg2BamWriter[rgTag]->Open(bamDirOutPrefix+"."+rgTag+".bam",header,references) ) {
-	 	    cerr     << "Could not open output BAM file "<< bamDirOutPrefix<<"."<<rgTag<<".bam" << endl;
-	 	    return 1;
-	 	}
-		//write one at least
-		//cout<<"wrote first "<<rgTag<<endl;
-		rg2BamWriter[rgTag]->SaveAlignment(al);	    	   
+	    if(rg2BamWriter.find(rgTag) == rg2BamWriter.end()){ //new: ignore completely
+	
+		
 	    }else{
 		if( randomProb() <= rg2Fraction[  rgTag ] ){
 		    rg2BamWriter[rgTag]->SaveAlignment(al);	 

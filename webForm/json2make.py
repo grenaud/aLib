@@ -98,8 +98,9 @@ insertsizeR          = "insertSize/insertSizeRG.R";
 
 sendemail            = "webForm/sendemail.php";
 
-
+dir2make             = "splitRGSubsample/dir2make.py";
 splitRGSubsample     = "splitRGSubsample/splitByRG";
+
 bam2prof             = "bam2prof";
 deamProf2pdfR        = "deamProf2pdf.R";
 contDeampl           = "contDeam.pl";
@@ -320,6 +321,11 @@ if not os.path.exists(insertsizeR):
 splitRGSubsample = alibdir+splitRGSubsample;
 if not os.path.exists(splitRGSubsample):
   print "Required executable file not found "+splitRGSubsample; 
+  sys.exit(1);
+
+dir2make = alibdir+dir2make;
+if not os.path.exists(dir2make):
+  print "Required executable file not found "+dir2make; 
   sys.exit(1);
 
 bam2prof         = schmutzidir+bam2prof;
@@ -980,7 +986,8 @@ for baseCaller in BasecallersUsed:
 
   for lanetopredict in lanesToUse:
 #DEAMINATION PARAMETERS
-    if(jsondata["usebwa"+str(numprocessingcurrent)]):#we need deamination
+    if(jsondata["usebwa"+str(numprocessingcurrent)] and str(jsondata["parambwa"+str(numprocessingcurrent)]) == "ancient") :
+      #subsample split
       targetbamsumsample=outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/sumsampleRG/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished";
       listOfTargetFiles[lanetopredict].append(targetbamsumsample);
       makeWrite[int(lanetopredict)].write(targetbamsumsample+":\t"+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished"+"\n");
@@ -988,11 +995,24 @@ for baseCaller in BasecallersUsed:
       cmdSplitRG   =  splitRGSubsample;
       cmdSplitRG  +=  " "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam"+" ";
       cmdSplitRG  +=  " "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".flagstatx"+" ";
-      cmdSplitRG  +=  " "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/"+baseCaller+"_proc"+str(numprocessingcurrent)+"_s_"+str(lanetopredict)+"_"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)]);
+      cmdSplitRG  +=  " "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/"+baseCaller+"_proc"+str(numprocessingcurrent)+"_s_"+str(lanetopredict)+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)]);
       cmdSplitRG  +=  "\n\ttouch "+targetbamsumsample;
 
       makeWrite[int(lanetopredict)].write("\t"+cmdSplitRG+"\n\n");
-      listOfTargetFiles[lanetopredict].append(targetbamsumsample);
+
+
+      #deamination, make submakefile
+      cmdDir2Make = dir2make+ " ";
+      if(str(jsondata["genomebwa"+str(numprocessingcurrent)])[:2] == "hg"): #do cont for humans only
+        cmdDir2Make += " -c --schmutzi "+contDeampl+" --ref "+str(jsondata["genomebwa"+str(numprocessingcurrent)])+"/whole_genome.fa ";
+
+      cmdDir2Make += "  -d  "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/ --bam2prof "+bam2prof+" --deamProf2pdf  "+deamProf2pdf+" ";
+      cmdDir2Make += outBaseDirectory+"/"+baseCaller+"/QC/deamCont/ > "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/Makefile";
+      #targetbamdeampat=outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/sumsampleRG/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished";
+      makeWrite[int(lanetopredict)].write("\t"+cmdDir2Make+"\n\n");
+
+      #cmdSplitRG   =  bam2prof;
+#listOfTargetFiles[lanetopredict].append(targetbamsumsample);      
 
 
 
