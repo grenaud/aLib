@@ -432,11 +432,16 @@ allsubdir=["FastQC/",
 for lanetopredict in lanesToUse:
   allsubdir.append("QC/insertsize/lane"+str(lanetopredict) );
   allsubdir.append("QC/insertsize/lane"+str(lanetopredict)+"/proc"+str(numprocessingcurrent)+"/");
+  allsubdir.append("QC/deamCont/lane"+str(lanetopredict) );
+  allsubdir.append("QC/deamCont/lane"+str(lanetopredict)+"/proc"+str(numprocessingcurrent)+"/" );
+
+
 
 allsubdir.append("Final_Sequences/proc"+str(numprocessingcurrent)+"/");
 allsubdir.append("BWA/proc"+str(numprocessingcurrent)+"/");
 allsubdir.append("QC/filter/proc"+str(numprocessingcurrent)+"/");
 allsubdir.append("QC/rg/proc"+str(numprocessingcurrent)+"/");
+
 allsubdir.append("QC/proc"+str(numprocessingcurrent)+"/");
 
 
@@ -664,9 +669,19 @@ if(jsondata["freeibis"]):
       if(options.trainlanes):
         lanesToUseTrain = parse_rangestr(options.trainlanes);
       else:
-        lanesToUseTrain=",".join( range(1,jsondata["LaneCount"]) );
+        #lanesToUseTrain=",".join(str(i) for i in  range(1,int(str( jsondata["LaneCount"]) )+1 ) );
+        lanesToUseTrain= (str(i) for i in  range(1,int(str( jsondata["LaneCount"]) )+1 ) );
+        lanesToUseTrain = [ str(x) for x in lanesToUseTrain ];
+
     else:
-      lanesToUseTrain = jsondata["lanesdedicated"]
+      if(jsondata["spikedinmult"]): #this is the case where we had a single read group and 4 phix(es) were used, we use all lanes for training
+        #lanesToUseTrain= ",".join(str(i) for i in  range(1,int(str( jsondata["LaneCount"]) )+1 ) );
+        lanesToUseTrain= range(1,int(str( jsondata["LaneCount"]) )+1 );
+        lanesToUseTrain = [ str(x) for x in lanesToUseTrain ];
+        #print lanesToUseTrain;
+        #print "found "+(",".join(lanesToUseTrain))+"#";
+      else:
+        lanesToUseTrain = jsondata["lanesdedicated"];
 
     if(len(lanesToUseTrain) == 0):
       print "Error: no lanes selected for training";
@@ -807,7 +822,6 @@ for baseCaller in BasecallersUsed:
       if jsondata["mergeoverlap"+str(numprocessingcurrent)] :
         conversion_str += "--ancientdna "
     else:
-
       conversion_str += " -k '%s' -f '%s'   "%( jsondata["key1"+str(numprocessingcurrent)] ,jsondata["adapter1"+str(numprocessingcurrent)] );
 
       if( len(jsondata["chimeras"+str(numprocessingcurrent)] ) > 2):
@@ -987,24 +1001,24 @@ for baseCaller in BasecallersUsed:
   for lanetopredict in lanesToUse:
 #DEAMINATION PARAMETERS
     if(jsondata["usebwa"+str(numprocessingcurrent)] and str(jsondata["parambwa"+str(numprocessingcurrent)]) == "ancient") :
-      #subsample split
-      targetbamsumsample=outBaseDirectory+"/"+baseCaller+"/QC/deamCont/"+baseCaller+"_proc"+str(numprocessingcurrent)+"_s_"+str(lanetopredict)+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished";
 
-#+"/BWA/proc"+str(numprocessingcurrent)+"/sumsampleRG/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished";
+      #subsample split
+      targetbamsumsample=outBaseDirectory+"/"+baseCaller+"/QC/deamCont"+"/lane"+str(lanetopredict)+"/proc"+str(numprocessingcurrent)+"/"+baseCaller+"_proc"+str(numprocessingcurrent)+"_s_"+str(lanetopredict)+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished";
       listOfTargetFiles[lanetopredict].append(targetbamsumsample);
+
       makeWrite[int(lanetopredict)].write(targetbamsumsample+":\t"+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished"+"\n");
 
       cmdSplitRG   =  splitRGSubsample;
       cmdSplitRG  +=  " "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam"+" ";
       cmdSplitRG  +=  " "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".flagstatx"+" ";
-      cmdSplitRG  +=  " "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/"+baseCaller+"_proc"+str(numprocessingcurrent)+"_s_"+str(lanetopredict)+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)]);
+      cmdSplitRG  +=  " "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/lane"+str(lanetopredict)+"/proc"+str(numprocessingcurrent)+"/"+baseCaller+"_proc"+str(numprocessingcurrent)+"_s_"+str(lanetopredict)+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)]);
       cmdSplitRG  +=  "\n\ttouch "+targetbamsumsample;
 
       makeWrite[int(lanetopredict)].write("\t"+cmdSplitRG+"\n\n");
 
 
       #deamination, make submakefile
-      targetbamsumsampleDeam=outBaseDirectory+"/"+baseCaller+"/QC/deamCont/finished";
+      targetbamsumsampleDeam=outBaseDirectory+"/"+baseCaller+"/QC/deamCont/lane"+str(lanetopredict)+"/proc"+str(numprocessingcurrent)+"/"+"finished";
       listOfTargetFiles[lanetopredict].append(targetbamsumsampleDeam);
 
       cmdDir2Make = dir2make+ " ";
@@ -1012,15 +1026,12 @@ for baseCaller in BasecallersUsed:
          str(jsondata["genomebwa"+str(numprocessingcurrent)])[:5] == "human" ): #do cont for humans only
         cmdDir2Make += " -c --schmutzi "+contDeampl+" --ref "+ BWAGENOMES+"/"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+"/whole_genome.fa ";
 
-      cmdDir2Make += "  -d  "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/ --bam2prof "+bam2prof+" --deamProf2pdf  "+deamProf2pdfR+" ";
-      cmdDir2Make += outBaseDirectory+"/"+baseCaller+"/QC/deamCont/ > "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/Makefile";
-      #targetbamdeampat=outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/sumsampleRG/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished";
-      makeWrite[int(lanetopredict)].write(targetbamsumsampleDeam+":\t"+targetbamsumsample+"\n\t"+cmdDir2Make+"\n\t"+"make -k -f "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/Makefile\n\n");
+      cmdDir2Make += "  -d  "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/lane"+str(lanetopredict)+"/proc"+str(numprocessingcurrent)+"/ --bam2prof "+bam2prof+" --deamProf2pdf  "+deamProf2pdfR+" ";
+      cmdDir2Make += outBaseDirectory+"/"+baseCaller+"/QC/deamCont/lane"+str(lanetopredict)+"/proc"+str(numprocessingcurrent)+"/ > "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/lane"+str(lanetopredict)+"/proc"+str(numprocessingcurrent)+"/Makefile";
+      makeWrite[int(lanetopredict)].write(targetbamsumsampleDeam+":\t"+targetbamsumsample+"\n\t"+cmdDir2Make+"\n\t"+"make -k -f "+outBaseDirectory+"/"+baseCaller+"/QC/deamCont/lane"+str(lanetopredict)+"/proc"+str(numprocessingcurrent)+"/Makefile\n\n");
       
 
 
-      #cmdSplitRG   =  bam2prof;
-#listOfTargetFiles[lanetopredict].append(targetbamsumsample);      
 
 
 
@@ -1111,13 +1122,19 @@ for baseCaller in BasecallersUsed:
 #################################
 #EXTRACTING AND MAPPING CONTROLS#
 #################################
-    if(jsondata["spikedin"]):
+    if(jsondata["spikedin"] or jsondata["spikedinmult"]): #this is the case where we had a single read group and 4 phix(es) were used, we use all lanes for training
+
 #EXTRACTING
       makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_ctrl.bam:\t"+outBaseDirectory+"/"+baseCaller+"/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished\n"); 
 
       listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_ctrl.bam");
       cmdCtrlExt = Ctrlextract;
-      cmdCtrlExt += " "+jsondata["ctrlindex"]+" ";
+
+      if(jsondata["spikedinmult"]): #multiple phix
+        cmdCtrlExt += " "+jsondataConf["controlindexMult"]+" ";
+      else:
+        cmdCtrlExt += " "+jsondata["ctrlindex"]+" ";
+
       cmdCtrlExt += " "+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_ctrl.bam";
       cmdCtrlExt += " "+outBaseDirectory+"/"+baseCaller+"/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam";
       makeWrite[int(lanetopredict)].write("\t"+cmdCtrlExt+"\n");

@@ -30,6 +30,7 @@
     "tempdirectory": "/mnt/solexa/tmp/",
     "freeibispath": "/mnt/solexa/bin/freeIbis/",
     "controlindex": "CGATTCG",
+    "controlindexMult": "AAAAAAA,CCCCCCC,GGGGGGG,TTTTTTT",
     "controlindex2": "CGATTCG",
     "phixref": "/mnt/solexa/Genomes/phiX/control/whole_genome.fa",
     "chimeras": {

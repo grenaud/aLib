@@ -6,22 +6,26 @@
 #include "api/BamWriter.h"
 #include "api/BamAux.h"
 
+#include "utils.h"
+
 using namespace std;
 using namespace BamTools;
 
 int main (int argc, char *argv[]) {
+
     if( (argc== 1) ||
 	(argc== 2 && string(argv[1]) == "-h") ||
 	(argc== 2 && string(argv[1]) == "-help") ||
 	(argc== 2 && string(argv[1]) == "--help") ){
-	cout<<"This program reads a series of BAM files (or a single one)"<<endl;
-	cout<<"and produces an BAM file as output with only the reads "<<endl;
-	cout<<"whose XI field is the sequence specified in [CONTROL INDEX]"<<endl;
-	cout<<"This program is used normally to extract phiX reads for QC"<<endl;
-	cout<<"Usage:"<<endl;
-	cout<<""<<endl;
-	//	cout<<"getendposition [READ GROUP] [CONTROL INDEX] s_sequence.bam out.bam"<<endl;
-	cout<<argv[0]<<" [CONTROL INDEX] out.bam in1.bam in2.bam ..."<<endl;
+	cerr<<"This program reads a series of BAM files (or a single one)"<<endl;
+	cerr<<"and produces an BAM file as output with only the reads "<<endl;
+	cerr<<"whose XI field is the sequence specified in [CONTROL INDEX]"<<endl;
+	cerr<<"This program is used normally to extract phiX reads for QC"<<endl;
+	cerr<<"Usage:"<<endl;
+	cerr<<""<<endl;
+	//	cerr<<"getendposition [READ GROUP] [CONTROL INDEX] s_sequence.bam out.bam"<<endl;
+	cerr<<argv[0]<<" [CONTROL INDEX(es)] out.bam in1.bam in2.bam ..."<<endl;
+	cerr<<"if multiple indices are used, use commas to separate them"<<endl;
 	return 1;
     }
 
@@ -29,6 +33,7 @@ int main (int argc, char *argv[]) {
     string ctrlindex      = string(argv[1]);
     string outputFilename = string(argv[2]);
     BamWriter writer;
+    vector<string> ctrlindexVec = allTokens(ctrlindex,',');
 
     for(int argument=3;argument<argc;argument++){
 	string bamfiletopen = string(argv[argument]);
@@ -37,11 +42,6 @@ int main (int argc, char *argv[]) {
 	    cerr << "Could not open input BAM files." << endl;
 	    return 1;
 	}
-
-	// if ( !reader.LocateIndex() ){
-	// 	cerr << "warning: cannot locate index for file " << bamfiletopen<<endl;
-	// 	//return 1;
-	// }
 
 
 	vector<RefData>  testRefData=reader.GetReferenceData();
@@ -66,13 +66,21 @@ int main (int argc, char *argv[]) {
 		return 1;
 	    }
 
-	    if(//rgTag      == readgroup &&
-	       firstIndex == ctrlindex ){
-		writer.SaveAlignment(al);
-		// cout<<rgTag<<endl;
-		// cout<<firstIndex<<endl;
-	   
+	    bool matchedIndex=false;
+	    //probably not optimal if there are a lot of possibilities but for less than 10 we should be ok
+	    for(unsigned int i=0;i<ctrlindexVec.size();i++){
+
+		if(firstIndex    == ctrlindexVec[i] ){
+		    matchedIndex =  true;
+		    break;
+		}
+
 	    }
+
+	    if( matchedIndex ){
+		writer.SaveAlignment(al);	   
+	    }
+
 	}
 	reader.Close();
     }

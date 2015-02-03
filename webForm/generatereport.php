@@ -691,10 +691,100 @@ if( file_exists($illuminawritedir."/".$runid ) ){
     }
 
     //DEAMINATION
-    //echo "<H2> Mapping results  </H2>\n<BR><BR>\n";
+    //detect pdf files
+    $deaminationDir = false;
 
-    /* 	} */
-    /* } */
+    for($lane=1;$lane<=8;$lane++){//
+	foreach(array("Bustard","Ibis") as $basecaller){
+	    for($proc=1;$proc<=100;$proc++){
+
+		$targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/deamCont/lane".$lane."/proc".$proc."/";
+		if( file_exists($targetfile)){
+
+		    $myDirectory = opendir($targetfile);
+		
+		    while($entryName = readdir($myDirectory)) {
+			if($entryName != "." and $entryName != ".." ){
+			    if(substr($entryName,-3) == "pdf"){ 
+				$deaminationDir=true;
+			    }
+			}
+
+			if($deaminationDir){ break;  }
+		    }
+
+		}
+		if($deaminationDir){ break;  }
+	    }
+	    if($deaminationDir){ break;  }
+	}
+	if($deaminationDir){ break;  }
+    }
+
+
+
+    if($deaminationDir){ 
+	echo "<H2> Deamination  </H2>\n<BR><BR>\n";
+	
+	for($lane=1;$lane<=8;$lane++){//
+	    foreach(array("Bustard","Ibis") as $basecaller){
+		for($proc=1;$proc<=100;$proc++){
+
+		    $targetfile=$illuminawritedir."/".$runid."/".$basecaller."/QC/deamCont/lane".$lane."/proc".$proc."/";
+		    if( file_exists($targetfile)){
+			$myDirectory = opendir($targetfile);
+		
+			while($entryName = readdir($myDirectory)) {
+			    if($entryName != "." and $entryName != ".." ){
+
+				/* echo $entryName."<br>\n"; */
+				/* echo substr($entryName,-12)."<br>\n"; */
+				if(substr($entryName,-12) == ".5p.prof.pdf"){ 
+				    /* echo "FOUND ".$entryName."<br>\n"; */
+				    /* echo "FOUND ".substr($entryName,-12)."<br>\n"; */
+				    /* echo "TEST ".$targetfile."/".substr($entryName,0,-12).".3p.prof.pdf<br>\n"; */
+				    if( file_exists($targetfile."/".substr($entryName,0,-12).".3p.prof.pdf")){
+					//echo "FOUND2 ".$targetfile."/".substr($entryName,0,-12)."<br>\n"; 
+					//echo "<div>\n"; 
+					echo "<table>\n"; 
+					echo "<tr>\n"; 
+					echo "<td>\n"; 
+					convertToPng( $targetfile."/".substr($entryName,0,-12).".5p.prof.pdf" ,$basedirScript,90);
+					echo "</td>\n"; 
+					echo "<td>\n"; 
+					convertToPng( $targetfile."/".substr($entryName,0,-12).".3p.prof.pdf" ,$basedirScript,90);
+					echo "</td>\n"; 
+					echo "</tr>\n"; 
+					echo "</table>\n"; 
+					
+					//echo "</div>\n";
+					//echo "FOUND3 ".$targetfile."/".substr($entryName,0,-16)."<br>\n"; 
+					if( file_exists($targetfile."/".substr($entryName,0,-16).".cont.pdf")){
+					    convertToPng( $targetfile."/".substr($entryName,0,-16).".cont.pdf" ,$basedirScript,$percentScale);
+					    $contestFile   = $targetfile."/".substr($entryName,0,-16).".cont.est";
+					    $indexFirstDot = strstr( $contestFile  , "." );
+					    /* echo "1 ".$contestFile."<BR>"; */
+					    /* echo "2 ".$indexFirstDot."<BR>"; */
+
+					    echo "Contamination estimate for: ".substr($indexFirstDot,1,-9)." (val,val min,val max)<BR>";
+					    openAndPrint($contestFile);	
+
+					}
+
+				    }
+				    
+
+				}
+			    }
+
+			}
+
+		    }
+		}
+	    }
+	}
+
+    }
 
 }else{
     print "<BR>The analysis of the run was not started<BR>";
