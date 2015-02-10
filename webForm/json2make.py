@@ -666,6 +666,7 @@ if(jsondata["freeibis"]):
         
     if(jsondata["spikedin"]):
       makeWrite[int(lanetopredict)].write(" --control_index="+jsondata["ctrlindex"] +" ");
+
       if(options.trainlanes):
         lanesToUseTrain = parse_rangestr(options.trainlanes);
       else:
@@ -676,6 +677,8 @@ if(jsondata["freeibis"]):
     else:
       if(jsondata["spikedinmult"]): #this is the case where we had a single read group and 4 phix(es) were used, we use all lanes for training
         #lanesToUseTrain= ",".join(str(i) for i in  range(1,int(str( jsondata["LaneCount"]) )+1 ) );
+        makeWrite[int(lanetopredict)].write(" --control_index="+("C"*int(jsondata["cyclesindx1"]))+","+("G"*int(jsondata["cyclesindx1"]))+","+("T"*int(jsondata["cyclesindx1"]))+" ");
+
         lanesToUseTrain= range(1,int(str( jsondata["LaneCount"]) )+1 );
         lanesToUseTrain = [ str(x) for x in lanesToUseTrain ];
         #print lanesToUseTrain;
@@ -1122,7 +1125,7 @@ for baseCaller in BasecallersUsed:
 #################################
 #EXTRACTING AND MAPPING CONTROLS#
 #################################
-    if(jsondata["spikedin"] or jsondata["spikedinmult"]): #this is the case where we had a single read group and 4 phix(es) were used, we use all lanes for training
+    if(jsondata["spikedin"] or (jsondata.get('spikedinmult') and jsondata["spikedinmult"])  ): #this is the case where we had a single read group and 4 phix(es) were used, we use all lanes for training
 
 #EXTRACTING
       makeWrite[int(lanetopredict)].write("\n"+outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_ctrl.bam:\t"+outBaseDirectory+"/"+baseCaller+"/Raw_Sequences/s_"+str(lanetopredict)+"_sequence.bam.finished\n"); 
@@ -1130,7 +1133,8 @@ for baseCaller in BasecallersUsed:
       listOfTargetFiles[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/qscores/s_"+str(lanetopredict)+"_ctrl.bam");
       cmdCtrlExt = Ctrlextract;
 
-      if(jsondata["spikedinmult"]): #multiple phix
+      if(jsondata.get('spikedinmult') and
+        jsondata["spikedinmult"]): #multiple phix
         cmdCtrlExt += " "+jsondataConf["controlindexMult"]+" ";
       else:
         cmdCtrlExt += " "+jsondata["ctrlindex"]+" ";

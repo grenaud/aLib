@@ -58,6 +58,9 @@ for filefound in os.listdir(options.dir):
   if(filefound[-3:] == "bam"):
     sampleid=filefound[(filefound.find(".")+1):-4];
 
+    if(sampleid.startswith("control")):
+      continue;
+
     listOfTargetFiles.append(options.dir+filefound+".5p.prof");  
     print "\n"+options.dir+filefound+".5p.prof:\n\t"+options.bam2prof+" -length "+str(options.length)+" -5p "+options.dir+filefound+".5p.prof "+" -3p "+options.dir+filefound+".3p.prof "+options.dir+filefound;
 

@@ -497,11 +497,12 @@ function displayStep3() {
     $runinformation["bustard"]        = isset($_POST["bustard"]);
     $runinformation["spikedin"]       = ($_POST["spikedin"] == "True");
 
-    if($runinformation["spikedin"]){ //if spiked-in
+    if($runinformation["spikedin"]){ //if spiked-in with single index PhiX
 	$runinformation["ctrlindex"]      = $_POST["ctrlindex"];
 	$runinformation["ctrlindex2"]     = $_POST["ctrlindex2"];
+	$runinformation["spikedinmult"]  = False;
     }else{
-	if($_POST["spikedin"] == "Mult"){
+	if($_POST["spikedin"] == "Mult"){//multiple
 	    $runinformation["spikedinmult"]  = True;
 	}
 
