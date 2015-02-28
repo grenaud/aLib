@@ -685,6 +685,8 @@ if(jsondata["freeibis"]):
         #print "found "+(",".join(lanesToUseTrain))+"#";
       else:
         lanesToUseTrain = jsondata["lanesdedicated"];
+        lanesToUseTrain = [ str(x) for x in lanesToUseTrain ];
+
 
     if(len(lanesToUseTrain) == 0):
       print "Error: no lanes selected for training";
@@ -692,14 +694,21 @@ if(jsondata["freeibis"]):
 
     #checking tiles
     tilesToUse=[];
-
-    for tile in range(1,int(jsondata["TileCount"])+1):
+    if(int(jsondata["TileCount"]) == -1 or 
+       int(jsondata["SwathCount"]) == -1 ):
+      for tile in range(1,int(jsondata["TileCount"])+1):
+        #print tile;
+        tilesToUse.append("%d" % (tile));
+    else:           
+      for tile in range(1,int(jsondata["TileCount"])+1):
         for swath in range(1,int(jsondata["SwathCount"])+1):
           for surface in range(1,int(jsondata["SurfaceCount"])+1):
             tilesToUse.append("%d%d%02d" % (surface, swath, tile));
 
-    
-    makeWrite[int(lanetopredict)].write(" --start="+start+" --end="+end+"  -l '"+(",".join(lanesToUseTrain))+"'    -t '"+(",".join(tilesToUse))+"' --recalibration --plotqual --lock ");
+    makeWrite[int(lanetopredict)].write(" --start="+start+" ")
+    makeWrite[int(lanetopredict)].write(" --end="+end+" ");
+    makeWrite[int(lanetopredict)].write("  -l '"+(",".join(lanesToUseTrain))+"' ");
+    makeWrite[int(lanetopredict)].write(" -t '"+(",".join(tilesToUse))+"' --recalibration --plotqual --lock ");
     makeWrite[int(lanetopredict)].write(" --reference="+jsondataConf["phixref"]+" ");
     makeWrite[int(lanetopredict)].write("\n\n");
 

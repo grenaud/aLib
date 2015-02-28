@@ -192,7 +192,7 @@ function displayStep1($runid) {
 			  "SurfaceCount" => 0, 
 			  "SwathCount"   => 0, 
 			  "TileCount"    => 0);
-    
+    $cannotGetRunInfo=False;
     //////////////////////////////////////////
     //GETTING SOME INFO FROM THE RunInfo.xml
     //////////////////////////////////////////
@@ -202,7 +202,7 @@ function displayStep1($runid) {
 	//getting number of cycles
 	foreach($xmlp->Run->Reads->Read as $readelem){
 	    
-	    if($readelem["IsIndexedRead"]  == "N"){
+	    if($readelem["IsIndexedRead"]  == "N"){ //non index
 		
 		if($runinformation["cyclesread1"] == 0){//first read
 		    $runinformation["cyclesread1"]=(int)$readelem["NumCycles"];
@@ -211,7 +211,7 @@ function displayStep1($runid) {
 		}
 		
 	    }else{
-		if($readelem["IsIndexedRead"]  == "Y"){
+		if($readelem["IsIndexedRead"]  == "Y"){//index
 		    
 		    if($runinformation["cyclesindx1"] == 0){//first indx
 			$runinformation["cyclesindx1"]=(int)$readelem["NumCycles"];
@@ -220,8 +220,14 @@ function displayStep1($runid) {
 		    }
 		    
 		}else{
-		    echo "ERROR: cannot determine type of read in RunInfo.xml";
-		    exit(1);	 
+		    /* echo $readelem["FirstCycle"]."<BR>\n"; */
+
+		    /* foreach($readelem->Index as $testindex){ */
+		    /* 	echo $testindex."<BR>\n"; */
+		    /* } */
+		    /* echo "ERROR: cannot determine type of read in RunInfo.xml"; */
+		    $cannotGetRunInfo=True;
+		    /* exit(1);	  */
 		}
 	    }
 	}
@@ -231,7 +237,12 @@ function displayStep1($runid) {
 	$runinformation["SurfaceCount"] = (int)$xmlp->Run->FlowcellLayout["SurfaceCount"];
 	$runinformation["SwathCount"]   = (int)$xmlp->Run->FlowcellLayout["SwathCount"];
 	$runinformation["TileCount"]    = (int)$xmlp->Run->FlowcellLayout["TileCount"];
-	
+	if($cannotGetRunInfo){
+	    echo "<font color=red size=+2>Warning:</font> cannot get run information from the RunInfo.xml, enter the information in the fields below <br><br>"; 
+	    $runinformation["LaneCount"]    = 8;
+
+	}
+
 	
 
     }else{
@@ -270,19 +281,46 @@ function displayStep1($runid) {
 
     echo "<BR>Flowcell Layout:<BR>\n";
     echo "<label for=\"LaneCount\">Lane count</label>:\n";
-    echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"LaneCount\" value=\"".$runinformation["LaneCount"]."\" readonly><br />";
+    echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"LaneCount\" value=\"".$runinformation["LaneCount"]."\"";
+    if(!$cannotGetRunInfo){
+	echo  " readonly";
+    }
+    echo "><br />";
 
     echo "<label for=\"SurfaceCount\">Surface count</label>:\n";
-    echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"SurfaceCount\" value=\"".$runinformation["SurfaceCount"]."\" readonly><br />";
+    echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"SurfaceCount\" value=\"".$runinformation["SurfaceCount"]."\"";
+    if(!$cannotGetRunInfo){
+	echo  " readonly";
+    }
+    echo "><br />";
 
     echo "<label for=\"SwathCount\">Swath count</label>:\n";
-    echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"SwathCount\" value=\"".$runinformation["SwathCount"]."\" readonly><br />";
+    echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"SwathCount\" value=\"".$runinformation["SwathCount"]."\" ";
+    if(!$cannotGetRunInfo){
+	echo  " readonly";
+    }
+    echo "><br />";
+
 
     echo "<label for=\"TileCount\">Tile count</label>:\n";
-    echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"TileCount\" value=\"".$runinformation["TileCount"]."\" readonly><br />";
+    echo "<input type=\"text\" size=\"12\" maxlength=\"4\" name=\"TileCount\" value=\"".$runinformation["TileCount"]."\" ";
+    if(!$cannotGetRunInfo){
+	echo  " readonly";
+    }
+    echo "><br />";
 
     echo "<label for=\"Experiment name\">Experiment name</label>:\n";
-    echo "<input type=\"text\" size=\"12\" maxlength=\"100\" name=\"ExperimentName\" value=\"".$runinformation["expname"]."\" readonly><br />";
+    echo "<input type=\"text\" size=\"12\" maxlength=\"100\" name=\"ExperimentName\" value=\"".$runinformation["expname"]."\" ";
+    if(!$cannotGetRunInfo){
+	echo  " readonly";
+    }
+    echo "><br />";
+
+
+    if(!$cannotGetRunInfo){
+	echo "<BR><b> Comment:</b>If you have an old Genome Analyser run, enter -1 for both the swath and tile and surface count.";
+
+    }
     
     //echo "<label for=\"TileCount\">Lane count</label>:\n";
 
@@ -496,6 +534,7 @@ function displayStep3() {
     $runinformation["freeibis"]       = isset($_POST["freeibis"]);
     $runinformation["bustard"]        = isset($_POST["bustard"]);
     $runinformation["spikedin"]       = ($_POST["spikedin"] == "True");
+    $runinformation["spikedinmult"]   = False;
 
     if($runinformation["spikedin"]){ //if spiked-in with single index PhiX
 	$runinformation["ctrlindex"]      = $_POST["ctrlindex"];
