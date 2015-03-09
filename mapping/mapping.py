@@ -8,7 +8,7 @@ except ImportError:
     # Python 3.x
     from socketserver import ThreadingMixIn
 
-from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
+#from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
 import cgi;
 import sys;
 import thread

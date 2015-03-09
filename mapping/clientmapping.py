@@ -20,6 +20,7 @@ parser.add_option("-g", "--genome",   dest="genome",  help="BWA indexed genome f
 parser.add_option("-a", "--ancient",  dest="ancient", help="Use ancient parameters",default=False,action="store_true");
 parser.add_option("-e", "--email",    dest="email",   help="Your email, use commas for multiple ones");
 parser.add_option("-w", "--wait",     dest="wait",    help="Wait for done signal from server",default=False,action="store_true");
+parser.add_option("-f", "--force",    dest="force",   help="Ignore the existing output file if it exists",default=False,action="store_true");
 
 if(len(sys.argv) == 1):
   parser.print_help()
@@ -46,9 +47,10 @@ if(not (options.outfile ) ):
   sys.stderr.write("Must specify output file");
   sys.exit(1)
 
-if( os.path.isfile(options.outfile) ) :
-    sys.stderr.write("ERROR: the output file "+str(options.outfile)+" already exist, remove it");
-    sys.exit(1);
+if(not (options.force ) ):
+    if( os.path.isfile(options.outfile) ) :
+        sys.stderr.write("WARNING: the output file "+str(options.outfile)+" already exist, remove it for the program to send to the server");
+        sys.exit(0); #let's exit nicely
 
 if(not (options.genome ) ):
   sys.stderr.write("Must specify genome file");
