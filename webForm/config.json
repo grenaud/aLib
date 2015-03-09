@@ -2,6 +2,7 @@
     "alibdir": "/mnt/solexa/bin/aLib/",
     "schmutzidir": "/mnt/solexa/bin/schmutzi/",
     "fastqcdir": "/mnt/solexa/bin/FastQC/",
+    "tophat": "/home/public/usr/stow/tophat-2.0.6/bin/tophat",
     "illuminareaddir": "/mnt/solexa/",
     "illuminawritedir": "/mnt/ngs_data/",
     "sequencers": {
@@ -26,6 +27,8 @@
     },
     "runstodisplay": "30",
     "emailAddrToSend": "gabriel_renaud@eva.mpg.de",
+    "smtpserver": "smtp.eva.mpg.de",
+    "sender": "sbsuser@bioaps01",
     "genomedirectory": "/mnt/solexa/Genomes/",
     "tempdirectory": "/mnt/solexa/tmp/",
     "freeibispath": "/mnt/solexa/bin/freeIbis/",
