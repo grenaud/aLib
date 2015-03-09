@@ -100,6 +100,7 @@ sendemail            = "webForm/sendemail.php";
 
 dir2make             = "splitRGSubsample/dir2make.py";
 splitRGSubsample     = "splitRGSubsample/splitByRG";
+mappingclient        = "mapping/clientmapping.py";
 
 bam2prof             = "bam2prof";
 deamProf2pdfR        = "deamProf2pdf.R";
@@ -327,6 +328,12 @@ dir2make = alibdir+dir2make;
 if not os.path.exists(dir2make):
   print "Required executable file not found "+dir2make; 
   sys.exit(1);
+
+mappingclient = alibdir+mappingclient;
+if not os.path.exists(mappingclient):
+  print "Required executable file not found "+mappingclient; 
+  sys.exit(1);
+
 
 bam2prof         = schmutzidir+bam2prof;
 if not os.path.exists(bam2prof):
@@ -939,12 +946,22 @@ for baseCaller in BasecallersUsed:
 
       
 #/mnt/solexa/bin/mappr-cli -g /mnt/solexa/Genomes//hg19_evan/bwa-0.4.9 -f /tmp/test.bam /mnt/ngs_data/140328_M00518_0227_000000000-A78LH_MG_B9983/Bustard/Final_Sequences/proc1/s_1_sequence.bam   -n 0.01 -o 2 -l 16500
-      conversion_str = "\t/mnt/solexa/bin/mappr-cli -z "+str(jsondata["runid"])+"l"+str(lanetopredict)+"p"+str(numprocessingcurrent)+" -g "+BWAGENOMES+"/"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+"/bwa-0.4.9"+" -f "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam "+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam";
-      if(str(jsondata["parambwa"+str(numprocessingcurrent)]) == "default"):
-        conversion_str+="";
-      elif(str(jsondata["parambwa"+str(numprocessingcurrent)]) == "ancient") :
-        conversion_str+=" -n 0.01 -o 2 -l 16500 ";
-      conversion_str+="\n";
+
+      if False:
+        conversion_str = "\t/mnt/solexa/bin/mappr-cli -z "+str(jsondata["runid"])+"l"+str(lanetopredict)+"p"+str(numprocessingcurrent)+" -g "+BWAGENOMES+"/"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+"/bwa-0.4.9"+" -f "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam "+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam";
+        if(str(jsondata["parambwa"+str(numprocessingcurrent)]) == "default"):
+          conversion_str+="";
+        elif(str(jsondata["parambwa"+str(numprocessingcurrent)]) == "ancient") :
+          conversion_str+=" -n 0.01 -o 2 -l 16500 ";
+        conversion_str+="\n";
+      else:
+        conversion_str = "\t"+mappingclient+" -w  -n "+str(jsondata["runid"])+"l"+str(lanetopredict)+"p"+str(numprocessingcurrent)+" -g "+BWAGENOMES+"/"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+"/bwa-0.4.9"+" -o "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".bam -i "+outBaseDirectory+"/"+baseCaller+"/Final_Sequences/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence.bam";
+        if(str(jsondata["parambwa"+str(numprocessingcurrent)]) == "default"):
+          conversion_str+="";
+        elif(str(jsondata["parambwa"+str(numprocessingcurrent)]) == "ancient") :
+          conversion_str+=" -a ";
+        conversion_str+="\n";
+        
       conversion_str+="\t"+"touch "+outBaseDirectory+"/"+baseCaller+"/BWA/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_sequence"+"_"+str(jsondata["parambwa"+str(numprocessingcurrent)])+"_"+str(jsondata["genomebwa"+str(numprocessingcurrent)])+".finished\n";
   
 
