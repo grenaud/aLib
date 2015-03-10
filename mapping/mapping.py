@@ -738,7 +738,7 @@ def mapper( ):
                 cmd += " -n 0.01 -o 2 -l 16500  ";     #bwa param
             cmd += " -g  "+str(listInfomapper[4])+" "; #genome
             cmd += " -f  "+str(listInfomapper[3])+"_temp_ "; #output
-            cmd += " --temp-dir "+str(tempDirbwa)+" "; #temp dir
+            cmd += " --temp-dir "+str(tempDirnetw)+" "; #temp dir network
             cmd += "  "+str(listInfomapper[2])+" ";    #input
             tprint ("mapper running :"+str(cmd));
             handle_job(cmd);
@@ -853,8 +853,10 @@ def sorter( ):
 
 
 def jobsAreAllRunning():
+    global tempDirnetw;
     cmd = str(qstatcmd)+" ";
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    #tprint(cmd);
+    p = subprocess.Popen(cmd, cwd=tempDirnetw, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     (stdout, stderr) = p.communicate()
     pstat = p.wait();
     #print "done";
@@ -879,8 +881,10 @@ def jobsAreAllRunning():
     return True;
 
 def deletemyjobs():
+    global tempDirnetw;
+
     cmd = str(qstatcmd)+" ";
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(cmd, cwd=tempDirnetw, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     (stdout, stderr) = p.communicate()
     pstat = p.wait();
     #print "done";
@@ -908,10 +912,10 @@ def deletemyjobs():
 def runQsub():    
     global tempDirnetw;
     # -o /dev/null  -e /dev/null
-    #temp = tempfile.NamedTemporaryFile(prefix=options.tmp+"script",suffix=".sge",delete=False)
-    cmd= " echo \"/home/public/usr/bin/bwa worker -T 20000 -t \$NSLOTS -p "+str(PORT_NUMBERBWA)+" -h "+str( (gethostname()) )+"\" | "+str(qsubcmd)+"   -N alib -S /bin/bash -l \"class=*,h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G \" -V  -pe smp 1- -e "+str(tempDirnetw)+" -o "+str(tempDirnetw)+" ";
+    #temp = tempfile.NamedTemporaryFile(prefix=options.tmp+"script",suffix=".sge",delete=False) cd "+str(tempDirnetw)+"; 
+    cmd= " echo \"  /home/public/usr/bin/bwa worker -T 20000 -t \$NSLOTS -p "+str(PORT_NUMBERBWA)+" -h "+str( (gethostname()) )+";  \" | "+str(qsubcmd)+"   -N alib -S /bin/bash -l \"class=*,h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G \" -V -cwd -pe smp 1- -e "+str(tempDirnetw)+" -o "+str(tempDirnetw)+" ";
     #tprint( cmd);
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(cmd, cwd=tempDirnetw,  shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     (stdout, stderr) = p.communicate()
     pstat = p.wait();
 
@@ -938,7 +942,7 @@ def launcher( ):
         mutexismapping.acquire();
 
 
-        #print "ismapping "+str(ismapping);
+        #tprint( "ismapping "+str(ismapping));
         if(ismapping):
             mutexismapping.release();
             #print "trying to launch";

@@ -83,5 +83,9 @@ if(options.wait):
     data = clientsocket.recv(buf);
     if  data:        
         #else:
-        print data;
+        print "Message received "+str(data);
         clientsocket.close();
+        sys.exit(0);
+    else:
+        print "No data was received";
+        sys.exit(1);
