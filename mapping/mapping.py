@@ -932,7 +932,8 @@ def runQsub():
     global tempDirnetw;
     # -o /dev/null  -e /dev/null
     #temp = tempfile.NamedTemporaryFile(prefix=options.tmp+"script",suffix=".sge",delete=False) cd "+str(tempDirnetw)+"; 
-    cmd= " echo \"  /home/public/usr/bin/bwa worker -T 20000 -t \$NSLOTS -p "+str(PORT_NUMBERBWA)+" -h "+str( (gethostname()) )+";  \" | "+str(qsubcmd)+"   -N alib -S /bin/bash -l \"class=*,h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G \" -V -cwd -pe smp 1- -e "+str(tempDirnetw)+" -o "+str(tempDirnetw)+" ";
+#   -m e -M gabriel_renaud@eva.mpg.de
+    cmd= " echo \"  /home/public/usr/bin/bwa worker -T 20000 -t \$NSLOTS -p "+str(PORT_NUMBERBWA)+" -h "+str( (gethostname()) )+";  \" | "+str(qsubcmd)+"  -N alib -S /bin/bash -l \"class=*,h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G \" -V -cwd -pe smp 1- -e "+str(tempDirnetw)+" -o "+str(tempDirnetw)+" ";
     #tprint( cmd);
     p = subprocess.Popen(cmd, cwd=tempDirnetw,  shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     (stdout, stderr) = p.communicate()
