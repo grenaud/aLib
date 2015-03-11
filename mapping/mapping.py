@@ -32,7 +32,8 @@ import subprocess
 import tempfile;
 import smtplib
 from email.mime.text import MIMEText
-
+import ctypes
+import platform
 
 def chomp(s):
     return s.rstrip('\n');
@@ -44,6 +45,15 @@ def tprint(msg):
     sys.stdout.write(msg + '\n')
     sys.stdout.flush()
 
+
+def freeSpaceGB(folder):
+    if platform.system() == 'Windows':
+        free_bytes = ctypes.c_ulonglong(0);
+        ctypes.windll.kernel32.GetDiskFreeSpaceExW(ctypes.c_wchar_p(folder),None, None, ctypes.pointer(free_bytes));
+        return free_bytes.value/1024/1024/1024;
+    else:
+        st = os.statvfs(folder)
+        return st.f_bavail * st.f_frsize/1024/1024/1024;
 
 
 #BEGIN READ CONFIG FILE
@@ -163,7 +173,8 @@ def handle_job_print(cjob):
 
   while jobcreated.poll() is None:
     l = jobcreated.stderr.readline(); # This blocks until it receives a newline.
-    tprint(l);
+    l=chomp(l)
+    tprint("bwa: "+str(l));
   #jobcreated.wait()
 
   #out, err = jobcreated.communicate()
@@ -173,7 +184,7 @@ def handle_job_print(cjob):
     print "Job failed "+cjob+" failed";
     sys.exit(1);
 
-  return out;
+  #return out;
   
 
 
@@ -700,6 +711,8 @@ def mapper( ):
     global mutexismapping;
     global mutextomap;
     global mutextosort;
+    global tempDirbwa;
+    global tempDirnetw;
 
     tprint ("mapper thread running");
     while True:
@@ -730,18 +743,24 @@ def mapper( ):
             stringNtomap   = jobbamtomap;
 
             #BEGIN MAPPING
+            tempDirbwaToUse= tempDirbwa;
+            if( freeSpaceGB(tempDirbwa)<20 ): #temp has more than 20gb
+                tprint("WARNING : The folder "+str(tempDirbwa)+ " is almost full");
+                tempDirbwaToUse= tempDirnetw;
+
             listInfomapper=jobbamtomap.split("\t");
+            outputbwa = str(tempDirbwaToUse)+"/"+(str(listInfomapper[3]).replace("/", "_"))+"_temp_";
 
             cmd ="bwa bam2bam -t 3 ";
             cmd += " -p "+str(PORT_NUMBERBWA)+" ";
             if( str(listInfomapper[5]) == "True"):
-                cmd += " -n 0.01 -o 2 -l 16500  ";     #bwa param
+                cmd += " -n 0.01 -o 2 -l 16500  ";           #bwa param
             cmd += " -g  "+str(listInfomapper[4])+" "; #genome
-            cmd += " -f  "+str(listInfomapper[3])+"_temp_ "; #output
-            cmd += " --temp-dir "+str(tempDirnetw)+" "; #temp dir network
-            cmd += "  "+str(listInfomapper[2])+" ";    #input
+            cmd += " -f  "+outputbwa+" "; #output
+            cmd += " --temp-dir "+str(tempDirbwaToUse)+" ";      #temp dir bwa
+            cmd += "  "+str(listInfomapper[2])+" ";          #input
             tprint ("mapper running :"+str(cmd));
-            handle_job(cmd);
+            handle_job_print(cmd);
             #end mapping
 
             stringNtomap   = "";
@@ -760,7 +779,7 @@ def mapper( ):
 
             #UPDATE SORTING QUEUE
             mutextosort.acquire()
-            appendLineToFile(fileNtosort,jobbamtomap);
+            appendLineToFile(fileNtosort,jobbamtomap+"\t"+(outputbwa.rstrip('_')));
             mutextosort.release()
 
 
@@ -796,7 +815,7 @@ def sorter( ):
             listInfosorter=bamfiletosort.split("\t");
             cmd = "sam sort -m 2G ";
             cmd+=" -O "+str(listInfosorter[3])[:-4]+" ";
-            cmd+=" "+str(listInfosorter[3])+"_temp "+tempDirsort;
+            cmd+=" "+str(listInfosorter[8])+" "+tempDirsort;
             tprint ("sorter "+str(cmd));
             handle_job(cmd);
             #if(str(listInfosorter[3]) 
@@ -810,9 +829,9 @@ def sorter( ):
                 #handle_job(cmd);
 
 
-            cmd="rm -fv "+str(listInfosorter[3])+"_temp ";
+            cmd="rm -fv "+str(listInfosorter[8])+" ";
             #print cmd;
-            os.remove( str(listInfosorter[3])+"_temp" );                
+            os.remove( str(listInfosorter[8])+"" );                
             #handle_job(cmd);
             stringNtosort = "";
     
