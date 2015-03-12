@@ -815,7 +815,7 @@ def sorter( ):
             listInfosorter=bamfiletosort.split("\t");
             cmd = "sam sort -m 2G ";
             cmd+=" -O "+str(listInfosorter[3])[:-4]+" ";
-            cmd+=" "+str(listInfosorter[8])+" "+tempDirsort;
+            cmd+=" "+str(listInfosorter[8])+" "+tempDirsort+"/"+( (str(listInfosorter[3])[:-4]).replace("/", "_") );
             tprint ("sorter "+str(cmd));
             handle_job(cmd);
             #if(str(listInfosorter[3]) 
@@ -875,7 +875,7 @@ def jobsAreAllRunning():
     global tempDirnetw;
     cmd = str(qstatcmd)+" ";
     #tprint(cmd);
-    p = subprocess.Popen(cmd, cwd=tempDirnetw, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(cmd, cwd=tempDirnetw, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (stdout, stderr) = p.communicate()
     pstat = p.wait();
     #print "done";
@@ -884,26 +884,29 @@ def jobsAreAllRunning():
         sys.exit(1);
         #print stdout;
     found=False;
+    numberQW=0;
     runcode = "done";
     for line in stdout.split('\n'):
+
         fields= line.split();
         if(len(fields) < 3):
             continue;
+        #print line+fields[2]+"\t"+fields[4]+"\t"+str(numberQW);
 
         if(fields[0] == "job-ID"):
             continue;
 
         if(fields[2] == "alib"):
             if(fields[4] == "qw"): #code for queued
-                return False;
+                numberQW+=1;
             
-    return True;
+    return numberQW;
 
 def deletemyjobs():
     global tempDirnetw;
 
     cmd = str(qstatcmd)+" ";
-    p = subprocess.Popen(cmd, cwd=tempDirnetw, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    p = subprocess.Popen(cmd, cwd=tempDirnetw, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (stdout, stderr) = p.communicate()
     pstat = p.wait();
     #print "done";
@@ -932,12 +935,24 @@ def runQsub():
     global tempDirnetw;
     # -o /dev/null  -e /dev/null
     #temp = tempfile.NamedTemporaryFile(prefix=options.tmp+"script",suffix=".sge",delete=False) cd "+str(tempDirnetw)+"; 
-#   -m e -M gabriel_renaud@eva.mpg.de
-    cmd= " echo \"  /home/public/usr/bin/bwa worker -T 20000 -t \$NSLOTS -p "+str(PORT_NUMBERBWA)+" -h "+str( (gethostname()) )+";  \" | "+str(qsubcmd)+"  -N alib -S /bin/bash -l \"class=*,h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G \" -V -cwd -pe smp 1- -e "+str(tempDirnetw)+" -o "+str(tempDirnetw)+" ";
+    #   -m e -M gabriel_renaud@eva.mpg.de
+    #cmd= "  echo \"  /home/public/usr/bin/bwa worker -T 20000 -t \$NSLOTS -p  "+str(PORT_NUMBERBWA)+" -h "+str( gethostname() )+" \" | "+str(qsubcmd)+"  -N alib -S /bin/bash -l \"class=*,h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G\" -pe smp 1- -j y  -e "+str(tempDirnetw)+" -o "+str(tempDirnetw)+" ";
     #tprint( cmd);
+    #p = subprocess.Popen(cmd, cwd=tempDirnetw,  shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    ##p = subprocess.Popen(cmd, cwd=tempDirnetw,  shell=False)
+    #(stdout, stderr) = p.communicate()
+    #pstat = p.wait();
+    #cmd= " echo \"  /home/public/usr/bin/bwa worker -T 20000 -t \$NSLOTS -p 52690 -h "+str( (gethostname()) )+"  \" | /opt/sge/bin/lx-amd64/qsub    -N alib -S /bin/bash -l \"class=*,h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G \" -V -cwd -pe smp 1- -e "+str(tempDirnetw)+" -o "+str(tempDirnetw)+" ";
+    cmd  = "qsub -b y -N alib -pe smp 2- -l h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G,class=* bwa worker -t \$NSLOTS -h "+str( (gethostname()) )+" -p "+str(PORT_NUMBERBWA)+" "
+    #tprint( cmd);
+    
     p = subprocess.Popen(cmd, cwd=tempDirnetw,  shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     (stdout, stderr) = p.communicate()
+    #print stdout;
+    #print stderr;
     pstat = p.wait();
+
+
 
     if(pstat != 0):
         print "Error cmd returned a non zero code :"+cmd;
@@ -965,21 +980,30 @@ def launcher( ):
         #tprint( "ismapping "+str(ismapping));
         if(ismapping):
             mutexismapping.release();
-            #print "trying to launch";
+            jobsqueued=int(jobsAreAllRunning());
+            tprint( "trying to launch, "+jobsqueued+" jobs queued";
             #TODO add qstat and qsub commands
-            if( jobsAreAllRunning() ):
+            if( jobsqueued < 5 ):
                 #launch more
-                #print "All jobs running, launching more";
+                #tprint( "All jobs running, launching more");
+                #for i in range(5):
+                #    runQsub();
                 runQsub();
+                #runQsub();
+                #runQsub();
+                time.sleep(1);
+
             else:
-                #print "All jobs queued, sleeping";
-                time.sleep(SLEEPTIME);
+                #tprint( "All jobs queued, sleeping");
+                time.sleep(10);
                 continue;
+
             #if qstat says all running
             #   launch jobs SGE (socket.gethostname())
             #print (socket.gethostname())
 
         else:            
+            tprint( "not trying to launch");
             mutexismapping.release();
             #not mapping, go to sleep
             time.sleep(SLEEPTIME);
@@ -1052,7 +1076,7 @@ if not os.path.exists(fileNdone):
     fileHandleWrite.write("");
     fileHandleWrite.close();
 
-
+deletemyjobs();
 
 #MAIN
 try:
