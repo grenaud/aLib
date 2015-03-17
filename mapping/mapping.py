@@ -34,6 +34,10 @@ import smtplib
 from email.mime.text import MIMEText
 import ctypes
 import platform
+import getpass
+
+#bionode13',h='!bionode14',h='!bionode15',h='!bionode19',h='!bionode18',h='!bionode20',h='!bionode23',h='!bionode24',h='!bionode28,h!=bionode21|
+nodesallowed="bionode01|bionode03|bionode04|bionode05|bionode07|bionode09|bionode10|bionode11|bionode12|bionode16|bionode17|bionode22|bionode25|bionode27|bionode29|bionode30|bionode31|bionode32|bionode33|bionode34|bio01.eva.mpg.de|bio02.eva.mpg.de|bio03.eva.mpg.de|bio04.eva.mpg.de|bio05.eva.mpg.de|bio06.eva.mpg.de|bio07.eva.mpg.de|bio08.eva.mpg.de|bio10.eva.mpg.de|bio11.eva.mpg.de|bio13.eva.mpg.de|bio14.eva.mpg.de|bio15.eva.mpg.de|bio16.eva.mpg.de|bio17.eva.mpg.de|bio18.eva.mpg.de|bio20.eva.mpg.de|bio21.eva.mpg.de|bio22.eva.mpg.de|bio23.eva.mpg.de|bio24.eva.mpg.de|bio25.eva.mpg.de|bio26.eva.mpg.de|bio29.eva.mpg.de|bio30.eva.mpg.de|bio31.eva.mpg.de|bio33.eva.mpg.de|bio34.eva.mpg.de|bio36.eva.mpg.de|bio37.eva.mpg.de|bio38.eva.mpg.de|bio39.eva.mpg.de|bio40.eva.mpg.de|bio41.eva.mpg.de|bio42.eva.mpg.de|bio43.eva.mpg.de|bio44.eva.mpg.de|bio45.eva.mpg.de|bio46.eva.mpg.de|bio47.eva.mpg.de|bio49.eva.mpg.de|bio50.eva.mpg.de|bio51.eva.mpg.de|bio52.eva.mpg.de|bio53.eva.mpg.de|bio55.eva.mpg.de|bio56.eva.mpg.de|bio57.eva.mpg.de|bio59.eva.mpg.de|bio60.eva.mpg.de|bio62.eva.mpg.de|bio63.eva.mpg.de|bio64.eva.mpg.de|bio65.eva.mpg.de|bio67.eva.mpg.de|bio68.eva.mpg.de|bio70.eva.mpg.de|bio71.eva.mpg.de|bio72.eva.mpg.de|bio73.eva.mpg.de|bio74.eva.mpg.de|bio75.eva.mpg.de|bio76.eva.mpg.de|bio77.eva.mpg.de|bio19.eva.mpg.de|bio32.eva.mpg.de|bio66.eva.mpg.de";
 
 def chomp(s):
     return s.rstrip('\n');
@@ -96,9 +100,9 @@ PORT_NUMBERWEB = 8080
 PORT_NUMBERCLI = 8088
 #PORT_NUMBERZMQ = 8088
 #PORT_NUMBERZMQ = range(5550,5650,2) #range(8088,8188,2) 
-PORT_NUMBERBWA = 52690
+PORT_NUMBERBWA = 52600
 
-PORT_NUMBERBWA = 52690
+#PORT_NUMBERBWA = 52690
 SLEEPTIME      = 10
 
 qsubcmd  = "qsub";
@@ -170,11 +174,33 @@ def handle_job_print(cjob):
   jobcreated=subprocess.Popen(cjob,shell=True,
                               stdout=subprocess.PIPE, 
                               stderr=subprocess.PIPE); 
-
+  #0                    1       2  3
+  #[run_io_multiplexor] polling -- 199843139 (211542770) records received, 199318851 (210974392) written, 14906177 resends; 279589 done, 244699 in flight.
+  linesnumber=0;
   while jobcreated.poll() is None:
     l = jobcreated.stderr.readline(); # This blocks until it receives a newline.
     l=chomp(l)
     tprint("bwa: "+str(l));
+    linesnumber+=1;
+    #tprint("bwa: "+str( linesnumber ));
+    if(linesnumber>20):
+        linesnumber=0;
+        lTemp=l.split(" ");    
+
+        if(len(lTemp)>4):
+
+            if( (lTemp[0] == "[run_io_multiplexor]") and
+                (lTemp[1] == "polling")              and
+                (lTemp[2] == "--")                   and
+                unicode(lTemp[3]).isnumeric() ):
+                
+                #tprint("bwaC: "+str( lTemp[3] ));
+
+                fileHandleWrite = open ( fileNtomapprogress, 'w' ) ;
+                fileHandleWrite.write(str(lTemp[3]));
+                fileHandleWrite.close();
+   
+            
   #jobcreated.wait()
 
   #out, err = jobcreated.communicate()
@@ -258,6 +284,10 @@ class myHandler(BaseHTTPRequestHandler):
 #<form>
     def do_GET(self):
         global mutexdone;
+        global stringNtomap;
+        global stringNtosort;
+        global stringNtocount;
+
         response = """
         <html><body>
 <form enctype="multipart/form-data" method="post">
@@ -311,6 +341,10 @@ Output file<BR>
         linesMAP = fileHandle.readlines();
         fileHandle.close();
 
+        fileHandle = open (fileNtomapprogress );
+        linesMAPProgress = fileHandle.readlines();
+        fileHandle.close();
+
         mutextomap.release();
 
 
@@ -331,8 +365,31 @@ Output file<BR>
 
         mutexdone.release();
 
+        numberTotal=0;
+        numberDone=0;
 
-        response = response+"<h2>Jobs currently counting:</h2><BR><pre>"+str( stringNtocount )+"</pre><BR>"+"<h2>Jobs queued to count:</h2><BR><pre>"+str( '\n'.join( linesCount ) )+"</pre><BR>"+"<h2>Jobs currently mapping:</h2><BR><pre>"+str( stringNtomap  )+"</pre><BR>"+"<h2>Jobs queued to map:</h2><BR><pre>"+str( '\n'.join( linesMAP ) )+"</pre><BR>"+"<h2>Jobs currently sorting:</h2><BR><pre>"+str( stringNtosort  )+"</pre><BR>"+"<h2>Jobs queued to sort:</h2><BR><pre>"+str( '\n'.join( linesSort ) )+"</pre><BR>"+"<h2>Jobs done:</h2><BR><pre>"+str( '\n'.join( linesDone ) )+"</pre><BR>"+"</body></html>";
+        lTemp=stringNtomap.split("\t");    
+        if(len(lTemp)>2):
+            if(  unicode(lTemp[0]).isnumeric() ):
+                numberTotal=int(lTemp[0]);
+        #tprint("web1 "+str(linesMAPProgress));
+        #tprint("web2 "+str(len(linesMAPProgress)));
+
+        if(len(linesMAPProgress)>0):
+            numberDone=str(linesMAPProgress[0]);
+
+        if(  unicode(numberDone).isnumeric() ):
+            numberDone=int(numberDone);
+        else:#give up
+            numberTotal=0;
+
+        response = response+"<h2>Jobs currently counting:</h2><BR><pre>"+str( stringNtocount )+"</pre><BR>"+"<h2>Jobs queued to count:</h2><BR><pre>"+str( '\n'.join( linesCount ) )+"</pre><BR>"+"<h2>Jobs currently mapping:</h2><BR><pre>"+str( stringNtomap  )+"</pre><BR>";
+
+        if(numberTotal != 0):
+            floatnum = (100*(float(numberDone)/float(numberTotal)));
+            response = response+"Progress: "+str( numberDone  )+" out of "+str( numberTotal  )+" ( "+str( "{:3.0f}".format(floatnum) ) +" % )  <BR>";
+
+        response = response+"<h2>Jobs queued to map:</h2><BR><pre>"+str( '\n'.join( linesMAP ) )+"</pre><BR>"+"<h2>Jobs currently sorting:</h2><BR><pre>"+str( stringNtosort  )+"</pre><BR>"+"<h2>Jobs queued to sort:</h2><BR><pre>"+str( '\n'.join( linesSort ) )+"</pre><BR>"+"<h2>Jobs done:</h2><BR><pre>"+str( '\n'.join( linesDone ) )+"</pre><BR>"+"</body></html>";
 
         self.respond(response)
 
@@ -737,7 +794,11 @@ def mapper( ):
             mutexismapping.acquire();
             ismapping=True;
             mutexismapping.release();
-            
+
+            #re-init counter            
+            fileHandleWrite = open ( fileNtomapprogress, 'w' ) ;
+            fileHandleWrite.write("0");
+            fileHandleWrite.close();
 
 
             stringNtomap   = jobbamtomap;
@@ -770,6 +831,11 @@ def mapper( ):
             mutexismapping.release();
             #deleting jobs
             deletemyjobs();
+
+            #re-init counter            
+            fileHandleWrite = open ( fileNtomapprogress, 'w' ) ;
+            fileHandleWrite.write("0");
+            fileHandleWrite.close();
 
 
             #UPDATING MAPPING QUEUE            
@@ -891,12 +957,13 @@ def jobsAreAllRunning():
         fields= line.split();
         if(len(fields) < 3):
             continue;
-        #print line+fields[2]+"\t"+fields[4]+"\t"+str(numberQW);
+        #tprint(line+fields[0]+"\t"+fields[1]+"\t"+fields[2]+"\t"+fields[3]+"\t"+fields[4]);
 
         if(fields[0] == "job-ID"):
             continue;
 
-        if(fields[2] == "alib"):
+        if(fields[2] == "alib" and
+           fields[3] == getpass.getuser()[:12] ):
             if(fields[4] == "qw"): #code for queued
                 numberQW+=1;
             
@@ -924,7 +991,8 @@ def deletemyjobs():
         if(fields[0] == "job-ID"):
             continue;
 
-        if(fields[2] == "alib"):
+        if(fields[2] == "alib" and
+           fields[3] == getpass.getuser() ):
             cmddel = str(qdelcmd)+" "+str(fields[0]);
             #print "killing "+str(fields[0]);
             handle_job(cmddel);
@@ -943,7 +1011,7 @@ def runQsub():
     #(stdout, stderr) = p.communicate()
     #pstat = p.wait();
     #cmd= " echo \"  /home/public/usr/bin/bwa worker -T 20000 -t \$NSLOTS -p 52690 -h "+str( (gethostname()) )+"  \" | /opt/sge/bin/lx-amd64/qsub    -N alib -S /bin/bash -l \"class=*,h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G \" -V -cwd -pe smp 1- -e "+str(tempDirnetw)+" -o "+str(tempDirnetw)+" ";
-    cmd  = "qsub -b y -N alib -pe smp 2- -l h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G,class=* bwa worker -t \$NSLOTS -h "+str( (gethostname()) )+" -p "+str(PORT_NUMBERBWA)+" "
+    cmd  = "qsub -b y -N alib -pe smp 1- -l h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G,class=*,hostname=\""+str(nodesallowed)+"\" bwa worker -t \$NSLOTS -h "+str( (gethostname()) )+" -p "+str(PORT_NUMBERBWA)+" "
     #tprint( cmd);
     
     p = subprocess.Popen(cmd, cwd=tempDirnetw,  shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -981,9 +1049,9 @@ def launcher( ):
         if(ismapping):
             mutexismapping.release();
             jobsqueued=int(jobsAreAllRunning());
-            tprint( "trying to launch, "+jobsqueued+" jobs queued";
+            tprint( "trying to launch, "+str(jobsqueued)+" jobs queued");
             #TODO add qstat and qsub commands
-            if( jobsqueued < 5 ):
+            if( jobsqueued < 2 ):
                 #launch more
                 #tprint( "All jobs running, launching more");
                 #for i in range(5):
@@ -991,7 +1059,7 @@ def launcher( ):
                 runQsub();
                 #runQsub();
                 #runQsub();
-                time.sleep(1);
+                time.sleep(0.5);
 
             else:
                 #tprint( "All jobs queued, sleeping");
@@ -1053,6 +1121,8 @@ qdelcmd  = options.qdel;
 
 fileNtocount = tempDirbwa+"/alib.tocount"
 fileNtomap   = tempDirbwa+"/alib.tomap"
+fileNtomapprogress   = tempDirbwa+"/alib.tomap.progress"
+
 fileNtosort  = tempDirbwa+"/alib.tosort"
 fileNdone    = tempDirbwa+"/alib.done"
 
@@ -1063,6 +1133,11 @@ if not os.path.exists(fileNtocount):
 
 if not os.path.exists(fileNtomap):
     fileHandleWrite = open ( fileNtomap, 'w' ) ;
+    fileHandleWrite.write("");
+    fileHandleWrite.close();
+
+if not os.path.exists(fileNtomapprogress):
+    fileHandleWrite = open ( fileNtomapprogress, 'w' ) ;
     fileHandleWrite.write("");
     fileHandleWrite.close();
 
