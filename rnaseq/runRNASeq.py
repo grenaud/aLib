@@ -150,6 +150,18 @@ for filefound in os.listdir(tempdirname):
     #os.
     if(sampleid.startswith("control")):
       continue;
+    if(sampleid.startswith("controlA")):
+      continue;
+    if(sampleid.startswith("controlC")):
+      continue;
+    if(sampleid.startswith("controlG")):
+      continue;
+    if(sampleid.startswith("controlT")):
+      continue;
+
+    if(sampleid.startswith("unknown")):
+      continue;
+
     #define target
     listOfTargetFiles.append(filefound[:-4]+"_r1.fq.gz");  
     listOfTargetFilesTH.append(filefound[:-4]+"_r1.fq.gz");  
