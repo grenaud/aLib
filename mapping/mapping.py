@@ -12,6 +12,7 @@ except ImportError:
 from BaseHTTPServer import BaseHTTPRequestHandler,HTTPServer
 import cgi;
 import sys;
+import random;
 import thread
 import threading;
 from optparse import OptionParser
@@ -36,8 +37,13 @@ import ctypes
 import platform
 import getpass
 
-#bionode13',h='!bionode14',h='!bionode15',h='!bionode19',h='!bionode18',h='!bionode20',h='!bionode23',h='!bionode24',h='!bionode28,h!=bionode21|
-nodesallowed="bionode01|bionode03|bionode04|bionode05|bionode07|bionode09|bionode10|bionode11|bionode12|bionode16|bionode17|bionode22|bionode25|bionode27|bionode29|bionode30|bionode31|bionode32|bionode33|bionode34|bio01.eva.mpg.de|bio02.eva.mpg.de|bio03.eva.mpg.de|bio04.eva.mpg.de|bio05.eva.mpg.de|bio06.eva.mpg.de|bio07.eva.mpg.de|bio08.eva.mpg.de|bio10.eva.mpg.de|bio11.eva.mpg.de|bio13.eva.mpg.de|bio14.eva.mpg.de|bio15.eva.mpg.de|bio16.eva.mpg.de|bio17.eva.mpg.de|bio18.eva.mpg.de|bio20.eva.mpg.de|bio21.eva.mpg.de|bio22.eva.mpg.de|bio23.eva.mpg.de|bio24.eva.mpg.de|bio25.eva.mpg.de|bio26.eva.mpg.de|bio29.eva.mpg.de|bio30.eva.mpg.de|bio31.eva.mpg.de|bio33.eva.mpg.de|bio34.eva.mpg.de|bio36.eva.mpg.de|bio37.eva.mpg.de|bio38.eva.mpg.de|bio39.eva.mpg.de|bio40.eva.mpg.de|bio41.eva.mpg.de|bio42.eva.mpg.de|bio43.eva.mpg.de|bio44.eva.mpg.de|bio45.eva.mpg.de|bio46.eva.mpg.de|bio47.eva.mpg.de|bio49.eva.mpg.de|bio50.eva.mpg.de|bio51.eva.mpg.de|bio52.eva.mpg.de|bio53.eva.mpg.de|bio55.eva.mpg.de|bio56.eva.mpg.de|bio57.eva.mpg.de|bio59.eva.mpg.de|bio60.eva.mpg.de|bio62.eva.mpg.de|bio63.eva.mpg.de|bio64.eva.mpg.de|bio65.eva.mpg.de|bio67.eva.mpg.de|bio68.eva.mpg.de|bio70.eva.mpg.de|bio71.eva.mpg.de|bio72.eva.mpg.de|bio73.eva.mpg.de|bio74.eva.mpg.de|bio75.eva.mpg.de|bio76.eva.mpg.de|bio77.eva.mpg.de|bio19.eva.mpg.de|bio32.eva.mpg.de|bio66.eva.mpg.de";
+#bionode13',h='!bionode14',h='!bionode15',h='!bionode19',h='!bionode18',h='!bionode20',h='!bionode23',h='!bionode24',h='!bionode28,h!=bionode21|bionode17 bionode25|
+#nodesallowed="bionode01|bionode03|bionode04|bionode05|bionode07|bionode09|bionode10|bionode11|bionode12|bionode16|bionode22|bionode27|bionode29|bionode30|bionode31|bionode32|bionode33|bionode34|bio01.eva.mpg.de|bio02.eva.mpg.de|bio03.eva.mpg.de|bio04.eva.mpg.de|bio05.eva.mpg.de|bio06.eva.mpg.de|bio07.eva.mpg.de|bio08.eva.mpg.de|bio10.eva.mpg.de|bio11.eva.mpg.de|bio13.eva.mpg.de|bio14.eva.mpg.de|bio15.eva.mpg.de|bio16.eva.mpg.de|bio17.eva.mpg.de|bio18.eva.mpg.de|bio20.eva.mpg.de|bio21.eva.mpg.de|bio22.eva.mpg.de|bio23.eva.mpg.de|bio24.eva.mpg.de|bio25.eva.mpg.de|bio26.eva.mpg.de|bio29.eva.mpg.de|bio30.eva.mpg.de|bio31.eva.mpg.de|bio33.eva.mpg.de|bio34.eva.mpg.de|bio36.eva.mpg.de|bio37.eva.mpg.de|bio38.eva.mpg.de|bio39.eva.mpg.de|bio40.eva.mpg.de|bio41.eva.mpg.de|bio42.eva.mpg.de|bio43.eva.mpg.de|bio44.eva.mpg.de|bio45.eva.mpg.de|bio46.eva.mpg.de|bio47.eva.mpg.de|bio49.eva.mpg.de|bio50.eva.mpg.de|bio51.eva.mpg.de|bio52.eva.mpg.de|bio53.eva.mpg.de|bio55.eva.mpg.de|bio56.eva.mpg.de|bio57.eva.mpg.de|bio59.eva.mpg.de|bio60.eva.mpg.de|bio62.eva.mpg.de|bio63.eva.mpg.de|bio64.eva.mpg.de|bio65.eva.mpg.de|bio67.eva.mpg.de|bio68.eva.mpg.de|bio70.eva.mpg.de|bio71.eva.mpg.de|bio72.eva.mpg.de|bio73.eva.mpg.de|bio74.eva.mpg.de|bio75.eva.mpg.de|bio76.eva.mpg.de|bio77.eva.mpg.de|bio19.eva.mpg.de|bio32.eva.mpg.de|bio66.eva.mpg.de";
+#nodesallowed="bionode01|bionode03|bionode04|bionode05|bionode07|bionode09|bionode10|bionode11|bionode12|bionode13|bionode14|bionode15|bionode16|bionode17|bionode18|bionode19|bionode20|bionode21|bionode22|bionode23|bionode24|bionode25|bionode26|bionode27|bionode28|bionode29|bionode30|bionode31|bionode32|bionode33|bionode34|bio01.eva.mpg.de|bio02.eva.mpg.de|bio03.eva.mpg.de|bio04.eva.mpg.de|bio05.eva.mpg.de|bio06.eva.mpg.de|bio07.eva.mpg.de|bio08.eva.mpg.de|bio10.eva.mpg.de|bio11.eva.mpg.de|bio13.eva.mpg.de|bio14.eva.mpg.de|bio15.eva.mpg.de|bio16.eva.mpg.de|bio17.eva.mpg.de|bio18.eva.mpg.de|bio20.eva.mpg.de|bio21.eva.mpg.de|bio22.eva.mpg.de|bio23.eva.mpg.de|bio24.eva.mpg.de|bio25.eva.mpg.de|bio26.eva.mpg.de|bio29.eva.mpg.de|bio30.eva.mpg.de|bio31.eva.mpg.de|bio33.eva.mpg.de|bio34.eva.mpg.de|bio36.eva.mpg.de|bio37.eva.mpg.de|bio38.eva.mpg.de|bio39.eva.mpg.de|bio40.eva.mpg.de|bio41.eva.mpg.de|bio42.eva.mpg.de|bio43.eva.mpg.de|bio44.eva.mpg.de|bio45.eva.mpg.de|bio46.eva.mpg.de|bio47.eva.mpg.de|bio49.eva.mpg.de|bio50.eva.mpg.de|bio51.eva.mpg.de|bio52.eva.mpg.de|bio53.eva.mpg.de|bio55.eva.mpg.de|bio56.eva.mpg.de|bio57.eva.mpg.de|bio59.eva.mpg.de|bio60.eva.mpg.de|bio62.eva.mpg.de|bio63.eva.mpg.de|bio64.eva.mpg.de|bio65.eva.mpg.de|bio67.eva.mpg.de|bio68.eva.mpg.de|bio70.eva.mpg.de|bio71.eva.mpg.de|bio72.eva.mpg.de|bio73.eva.mpg.de|bio74.eva.mpg.de|bio75.eva.mpg.de|bio76.eva.mpg.de|bio77.eva.mpg.de|bio19.eva.mpg.de|bio32.eva.mpg.de|bio66.eva.mpg.de";
+
+nodesallowed=["bionode01","bionode03","bionode04","bionode05","bionode07","bionode09","bionode10","bionode11","bionode12","bionode13","bionode14","bionode15","bionode16","bionode17","bionode18","bionode19","bionode20","bionode21","bionode22","bionode23","bionode24","bionode25","bionode26","bionode27","bionode28","bionode29","bionode30","bionode31","bionode32","bionode33","bionode34","bio01.eva.mpg.de","bio02.eva.mpg.de","bio03.eva.mpg.de","bio04.eva.mpg.de","bio05.eva.mpg.de","bio06.eva.mpg.de","bio07.eva.mpg.de","bio08.eva.mpg.de","bio10.eva.mpg.de","bio11.eva.mpg.de","bio13.eva.mpg.de","bio14.eva.mpg.de","bio15.eva.mpg.de","bio16.eva.mpg.de","bio17.eva.mpg.de","bio18.eva.mpg.de","bio20.eva.mpg.de","bio21.eva.mpg.de","bio22.eva.mpg.de","bio23.eva.mpg.de","bio24.eva.mpg.de","bio25.eva.mpg.de","bio26.eva.mpg.de","bio29.eva.mpg.de","bio30.eva.mpg.de","bio31.eva.mpg.de","bio33.eva.mpg.de","bio34.eva.mpg.de","bio36.eva.mpg.de","bio37.eva.mpg.de","bio38.eva.mpg.de","bio39.eva.mpg.de","bio40.eva.mpg.de","bio41.eva.mpg.de","bio42.eva.mpg.de","bio43.eva.mpg.de","bio44.eva.mpg.de","bio45.eva.mpg.de","bio46.eva.mpg.de","bio47.eva.mpg.de","bio49.eva.mpg.de","bio50.eva.mpg.de","bio51.eva.mpg.de","bio52.eva.mpg.de","bio53.eva.mpg.de","bio55.eva.mpg.de","bio56.eva.mpg.de","bio57.eva.mpg.de","bio59.eva.mpg.de","bio60.eva.mpg.de","bio62.eva.mpg.de","bio63.eva.mpg.de","bio64.eva.mpg.de","bio65.eva.mpg.de","bio67.eva.mpg.de","bio68.eva.mpg.de","bio70.eva.mpg.de","bio71.eva.mpg.de","bio72.eva.mpg.de","bio73.eva.mpg.de","bio74.eva.mpg.de","bio75.eva.mpg.de","bio76.eva.mpg.de","bio77.eva.mpg.de","bio19.eva.mpg.de","bio32.eva.mpg.de","bio66.eva.mpg.de"];
+nodestouse      =[];
+nodesblacklisted=[];
 
 def chomp(s):
     return s.rstrip('\n');
@@ -168,47 +174,100 @@ def handle_job(cjob):
   return out;
 
 
+
+def nodeIsRunning(node):
+    global tempDirnetw;
+    cmd = str(qstatcmd)+" ";
+    #tprint(cmd);
+    p = subprocess.Popen(cmd, cwd=tempDirnetw, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (stdout, stderr) = p.communicate()
+    pstat = p.wait();
+    #print "done";
+    if(pstat != 0):
+        print "Error cmd returned a non zero code :"+cmd;
+        sys.exit(1);
+        #print stdout;
+    found=False;
+    numberQW=0;
+    runcode = "done";
+    for line in stdout.split('\n'):
+
+        fields= line.split();
+        if(len(fields) < 8):
+            continue;
+            #tprint(line+fields[0]+"\t"+fields[1]+"\t"+fields[2]+"\t"+fields[3]+"\t"+fields[4]);
+
+        if(fields[0] == "job-ID"):
+            continue;
+
+        if(fields[2] == "alib" and
+           fields[3] == getpass.getuser()[:12] ):
+            if(fields[7] == "all.q@"+node+".eva.mpg.de"): #code for queued
+                #print node+"#"+line;
+                return True;
+            
+    return False;
+
 def handle_job_print(cjob):
-    #global options
+    global nodestouse;
+    global nodesblacklisted;
 
-  jobcreated=subprocess.Popen(cjob,shell=True,
-                              stdout=subprocess.PIPE, 
-                              stderr=subprocess.PIPE); 
-  #0                    1       2  3
-  #[run_io_multiplexor] polling -- 199843139 (211542770) records received, 199318851 (210974392) written, 14906177 resends; 279589 done, 244699 in flight.
-  linesnumber=0;
-  while jobcreated.poll() is None:
-    l = jobcreated.stderr.readline(); # This blocks until it receives a newline.
-    l=chomp(l)
-    tprint("bwa: "+str(l));
-    linesnumber+=1;
-    #tprint("bwa: "+str( linesnumber ));
-    if(linesnumber>20):
-        linesnumber=0;
-        lTemp=l.split(" ");    
+    jobcreated=subprocess.Popen(cjob,shell=True,
+                                stdout=subprocess.PIPE, 
+                                stderr=subprocess.PIPE); 
+    #0                    1       2  3
+    #[run_io_multiplexor] polling -- 199843139 (211542770) records received, 199318851 (210974392) written, 14906177 resends; 279589 done, 244699 in flight.
+    linesnumber=0;
+    while jobcreated.poll() is None:
+        l = jobcreated.stderr.readline(); # This blocks until it receives a newline.
+        l=chomp(l)
+        tprint("bwa: "+str(l));
+        linesnumber+=1;
+        #tprint("bwa: "+str( linesnumber ));
+        if(linesnumber>20):
+            linesnumber=0;
+            lTemp=l.split(" ");    
 
-        if(len(lTemp)>4):
+            if(len(lTemp)>4):
+                if( (lTemp[0] == "[run_io_multiplexor]") and
+                    (lTemp[1] == "polling")              and
+                    (lTemp[2] == "--")                   and
+                    unicode(lTemp[3]).isnumeric() ):
 
-            if( (lTemp[0] == "[run_io_multiplexor]") and
-                (lTemp[1] == "polling")              and
-                (lTemp[2] == "--")                   and
-                unicode(lTemp[3]).isnumeric() ):
-                
-                #tprint("bwaC: "+str( lTemp[3] ));
+                    #tprint("bwaC: "+str( lTemp[3] ));
 
-                fileHandleWrite = open ( fileNtomapprogress, 'w' ) ;
-                fileHandleWrite.write(str(lTemp[3]));
-                fileHandleWrite.close();
+                    fileHandleWrite = open ( fileNtomapprogress, 'w' ) ;
+                    fileHandleWrite.write(str(lTemp[3]));
+                    fileHandleWrite.close();
+
+
+#
+#          lTemp2=l.split(" ");
+#          if(len(lTemp2)==5):
+#              if( (lTemp2[0] == "[run_config_service]" ) and
+#                  (lTemp2[1] == "Received")              and
+#                  (lTemp2[2] == "update")                and
+#                  (lTemp2[3] == "request:")            ):
+#                  nodename=lTemp2[4][:-1];
+#                  time.sleep(1);
+#                  isnodeRunning=nodeIsRunning( nodename );
+#
+#                  if(not(isnodeRunning)):
+#                      if(nodename in nodestouse):
+#                          tprint("Black listing node: "+nodename+" ");
+#                          nodestouse.remove(nodename);
+#                          if( not(nodename in nodesblacklisted) ):
+#                              nodesblacklisted.append(nodename);
    
             
   #jobcreated.wait()
 
   #out, err = jobcreated.communicate()
-  errcode  = jobcreated.returncode;
+    errcode  = jobcreated.returncode;
 
-  if(errcode != 0): #has finished but wrong code
-    print "Job failed "+cjob+" failed";
-    sys.exit(1);
+    if(errcode != 0): #has finished but wrong code
+        print "Job failed "+cjob+" failed";
+        sys.exit(1);
 
   #return out;
   
@@ -770,6 +829,9 @@ def mapper( ):
     global mutextosort;
     global tempDirbwa;
     global tempDirnetw;
+    global nodesallowed;
+    global nodestouse;
+    global nodesblacklisted;
 
     tprint ("mapper thread running");
     while True:
@@ -794,6 +856,9 @@ def mapper( ):
             mutexismapping.acquire();
             ismapping=True;
             mutexismapping.release();
+
+            nodestouse=nodesallowed;#copy nodes allowed to nodestouse
+            nodesblacklisted=[];
 
             #re-init counter            
             fileHandleWrite = open ( fileNtomapprogress, 'w' ) ;
@@ -1001,6 +1066,9 @@ def deletemyjobs():
 
 def runQsub():    
     global tempDirnetw;
+    global nodestouse;
+    global nodesblacklisted;
+
     # -o /dev/null  -e /dev/null
     #temp = tempfile.NamedTemporaryFile(prefix=options.tmp+"script",suffix=".sge",delete=False) cd "+str(tempDirnetw)+"; 
     #   -m e -M gabriel_renaud@eva.mpg.de
@@ -1011,9 +1079,19 @@ def runQsub():
     #(stdout, stderr) = p.communicate()
     #pstat = p.wait();
     #cmd= " echo \"  /home/public/usr/bin/bwa worker -T 20000 -t \$NSLOTS -p 52690 -h "+str( (gethostname()) )+"  \" | /opt/sge/bin/lx-amd64/qsub    -N alib -S /bin/bash -l \"class=*,h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G \" -V -cwd -pe smp 1- -e "+str(tempDirnetw)+" -o "+str(tempDirnetw)+" ";
-    cmd  = "qsub -b y -N alib -pe smp 1- -l h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G,class=*,hostname=\""+str(nodesallowed)+"\" bwa worker -t \$NSLOTS -h "+str( (gethostname()) )+" -p "+str(PORT_NUMBERBWA)+" "
-    #tprint( cmd);
+    nodestouseStr= str( '|'.join( nodestouse ) );
     
+    if(len(nodesblacklisted)>0 and 
+       (random.choice([True, False]) ) ):
+        nodesblacklistedStr= str( '|'.join( nodesblacklisted ) );
+        cmd  = "qsub -b y -N alib -pe smp 1-3 -l h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G,class=*,hostname=\""+str(nodesblacklistedStr)+"\" bwa worker -t \$NSLOTS -h "+str( (gethostname()) )+" -p "+str(PORT_NUMBERBWA)+" ";
+        #tprint( "launching limited on "+nodesblacklistedStr );
+    else:
+        cmd  = "qsub -b y -N alib -pe smp 1- -l h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G,class=*,hostname=\""+str(nodestouseStr)+"\" bwa worker -t \$NSLOTS -h "+str( (gethostname()) )+" -p "+str(PORT_NUMBERBWA)+" ";
+        #tprint( "launching normally on "+nodestouseStr );
+
+    #tprint( cmd );
+    cmd  = "qsub -b y -N alib -pe smp 1-3 -l h_vmem=6.8G,s_vmem=6.8G,virtual_free=6.8G,class=* bwa worker -t \$NSLOTS -h "+str( (gethostname()) )+" -p "+str(PORT_NUMBERBWA)+" ";
     p = subprocess.Popen(cmd, cwd=tempDirnetw,  shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     (stdout, stderr) = p.communicate()
     #print stdout;
@@ -1051,7 +1129,7 @@ def launcher( ):
             jobsqueued=int(jobsAreAllRunning());
             tprint( "trying to launch, "+str(jobsqueued)+" jobs queued");
             #TODO add qstat and qsub commands
-            if( jobsqueued < 2 ):
+            if( jobsqueued < 5 ):
                 #launch more
                 #tprint( "All jobs running, launching more");
                 #for i in range(5):
@@ -1059,7 +1137,7 @@ def launcher( ):
                 runQsub();
                 #runQsub();
                 #runQsub();
-                time.sleep(0.5);
+                time.sleep(0.1);
 
             else:
                 #tprint( "All jobs queued, sleeping");
