@@ -877,14 +877,15 @@ def mapper( ):
             listInfomapper=jobbamtomap.split("\t");
             outputbwa = str(tempDirbwaToUse)+"/"+(str(listInfomapper[3]).replace("/", "_"))+"_temp_";
 
-            cmd ="bwa bam2bam -t 3 ";
+            cmd = "bam-fixpair "+str(listInfomapper[2])+" | ";
+            cmd +="bwa bam2bam -t 3 ";
             cmd += " -p "+str(PORT_NUMBERBWA)+" ";
             if( str(listInfomapper[5]) == "True"):
                 cmd += " -n 0.01 -o 2 -l 16500  ";           #bwa param
             cmd += " -g  "+str(listInfomapper[4])+" "; #genome
             cmd += " -f  "+outputbwa+" "; #output
             cmd += " --temp-dir "+str(tempDirbwaToUse)+" ";      #temp dir bwa
-            cmd += "  "+str(listInfomapper[2])+" ";          #input
+            cmd += "  /dev/stdin ";          #input
             tprint ("mapper running :"+str(cmd));
             handle_job_print(cmd);
             #end mapping
@@ -944,7 +945,7 @@ def sorter( ):
             #BEGIN SORTING
             stringNtosort = bamfiletosort;
             listInfosorter=bamfiletosort.split("\t");
-            cmd = "sam sort -m 2G ";
+            cmd = "sam sort -m 10G ";
             cmd+=" -O "+str(listInfosorter[3])[:-4]+" ";
             cmd+=" "+str(listInfosorter[8])+" "+tempDirsort+"/"+( (str(listInfosorter[3])[:-4]).replace("/", "_") );
             tprint ("sorter "+str(cmd));

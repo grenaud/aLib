@@ -877,6 +877,9 @@ for baseCaller in BasecallersUsed:
     conversion_str += "| "+IndexReassign+" --summary "+outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_rg_summary.txt" 
     listOfFilesFinal[lanetopredict].append(outBaseDirectory+"/"+baseCaller+"/QC/rg/proc"+str(numprocessingcurrent)+"/s_"+str(lanetopredict)+"_rg_summary.txt"); 
 
+    if( jsondata.get("rgnofail"+str(numprocessingcurrent)) and 
+        jsondata["rgnofail"+str(numprocessingcurrent)]):
+      conversion_str += " --nofail ";
 
     conversion_str +=  " -i "+listOfFilesWithIndices[lanetopredict]+ " ";
     #conversion_str +=  " --mm "+str(jsondata["mmrgassign"])+ " ";

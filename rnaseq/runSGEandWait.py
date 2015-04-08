@@ -4,6 +4,8 @@ import sys,os
 from optparse import OptionParser
 from optparse import OptionGroup
 import subprocess
+import random;
+
 #qsub ="/opt/sge/bin/lx-amd64/qsub"
 #qstat="/opt/sge/bin/lx-amd64/qstat"
 import time;
@@ -32,6 +34,7 @@ def runQsub(cmd):
 
 def runQstat(cmd,code):    
   #print cmd;
+  cmd = cmd +" -j "+str(code);
   p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
   (stdout, stderr) = p.communicate()
   pstat = p.wait();
@@ -84,7 +87,7 @@ parser = OptionParser(usage="usage: %prog [options]");
 parser.add_option("-i", "--infile",  dest="infile", help="File with commands or specify:");
 parser.add_option("-c", "--cmd",  dest="command", help="Command to run");
 parser.add_option("--tmp",  dest="tmp", help="Temp directory [default: %default]",default="/mnt/scratch/tmp/");
-parser.add_option("--time",  dest="checktime", help="Delay for checking on the job in seconds [default: %default]" ,type="int",default=60);
+parser.add_option("--time",  dest="checktime", help="Delay for checking on the job in seconds [default: %default]" ,type="int",default=600);
 
 #parser.add_option("-i", "--infile",  dest="qsub", help="qsub location",default="/opt/sge/bin/lx-amd64/qsub");
 parser.add_option("--qsub",  dest="qsub", help="qsub location [default: %default]",default="/opt/sge/bin/lx-amd64/qsub");
@@ -158,11 +161,12 @@ code = runQsub(cmd);
 #removing
 
 while True:
+  time.sleep(  max(int(random.normalvariate(options.checktime, 60)),1) );
+
   codeqstat = runQstat(options.qstat,code)
   #print codeqstat;
   if(codeqstat == "done"):
     break;
-  time.sleep( 5 );
 
 #time.sleep( 15 );
 #print code;
@@ -175,7 +179,7 @@ while True:
     acctcode="1";
     break;
   if(acctcode == "NA"):
-    time.sleep( options.checktime );
+    time.sleep(  max(int(random.normalvariate( options.checktime , 2)),1) );
   else:
     break;
 

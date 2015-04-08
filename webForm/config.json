@@ -2,7 +2,9 @@
     "alibdir": "/mnt/solexa/bin/aLib/",
     "schmutzidir": "/mnt/solexa/bin/schmutzi/",
     "fastqcdir": "/mnt/solexa/bin/FastQC/",
-    "tophat": "/home/public/usr/stow/tophat-2.0.6/bin/tophat",
+    "couchdb": "http://bioaps01:5984/foo/_recursive/dindex_list",
+    "tophat": "tophat",
+    "cufflinks": "cufflinks",
     "illuminareaddir": "/mnt/solexa/",
     "illuminawritedir": "/mnt/ngs_data/",
     "sequencers": {

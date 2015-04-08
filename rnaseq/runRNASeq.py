@@ -42,14 +42,17 @@ parser = OptionParser(usage="This program splits a BAM file into RG and generate
 #parser.add_option("-i", "--infile",  dest="infile", help="input");
 input = OptionGroup(parser, "Input","Input files");
 input.add_option("-i", "--infile", dest="infile", help="Input BAM file");
-input.add_option("-g", "--bowtie", dest="bowtieIndex", help="Bowtie index");
+input.add_option("-g", "--bowtie",    dest="bowtieIndex", help="Bowtie index");
+input.add_option("-c", "--cufflinks", dest="cufflinksgtf", help="Cufflinks gtf file");
 
 output = OptionGroup(parser, "Output","Output options");
 output.add_option("-o", "--outdir", dest="outdir", help="Output directory");
 
 misc = OptionGroup(parser, "Miscellaneous","Miscellaneous");
-misc.add_option("--tmp", dest="tempdir", default=jsondataConf["tempdirectory"], help="Input BAM file");
-misc.add_option("--mock", dest="mock", help="Do a mock run for testing",default=False,action="store_true")                                          
+misc.add_option("--tmp", dest="tempdir", default=jsondataConf["tempdirectory"], help="Temporary directory");
+misc.add_option("--mock", dest="mock", help="Do a mock run for testing ",default=False,action="store_true");
+misc.add_option("--nosge", dest="nosge", help="Do not use the SGE, run on the node ",default=False,action="store_true");
+misc.add_option("--nosplit", dest="nosplit", help="Do not split the BAM file, use the current BAM file in the directory specified");
 
 
 parser.add_option_group(input);
@@ -88,10 +91,13 @@ if (options.bowtieIndex == None) :
   print "Need to specify bowtie index file ";
   sys.exit(1);
   
-
+if (options.cufflinksgtf == None) :
+  print "Need to specify cufflinks gtf file ";
+  sys.exit(1);
 
 alibdir          = jsondataConf["alibdir"];
 tophat           = jsondataConf["tophat"];
+cufflinks        = jsondataConf["cufflinks"];
 
 splitByRG = alibdir+"/"+splitByRG;
 if not os.path.exists(splitByRG):
@@ -117,22 +123,32 @@ if not os.path.exists(options.bowtieIndex+".rev.1.bt2"):
   print "Bowtie index file not found "+options.bowtieIndex+".rev.1.bt2";
   sys.exit(1);
 
+#check for gtf files
+if not os.path.exists(options.cufflinksgtf):
+  print "Bowtie index file not found "+options.cufflinksgtf+"";
+  sys.exit(1);
 
 ########################################
 
 #make temp dir
-tempdirname=tempfile.mkdtemp(prefix=options.tempdir);
-#print tempdirname;
-if(tempdirname[-1:] != "/"):
-  tempdirname= tempdirname+"/";
 
 #split RG
+if (len(options.nosplit)==0) :
+  tempdirname=tempfile.mkdtemp(prefix=options.tempdir);
+  #print tempdirname;
+  if(tempdirname[-1:] != "/"):
+    tempdirname= tempdirname+"/";
 
-cmd = splitByRG+" "+options.infile+" "+tempdirname+"/rna";
-sys.stderr.write("spliting BAM file using command : "+str(cmd)+"\nWait this may take a while");
-handle_jobs(cmd);
-sys.stderr.write("done spliting\n");
-#write makefile
+  cmd = splitByRG+" "+options.infile+" "+tempdirname+"/rna";
+  sys.stderr.write("spliting BAM file using command : "+str(cmd)+"\nWait this may take a while");
+  handle_jobs(cmd);
+  sys.stderr.write("done spliting\n");
+  #write makefile
+
+else:
+  tempdirname=options.nosplit;
+  if(tempdirname[-1:] != "/"):
+    tempdirname= tempdirname+"/";
 
 print "SHELL := /bin/bash\n\nDefault:\tall\n\n";  
 
@@ -174,9 +190,21 @@ for filefound in os.listdir(tempdirname):
     listOfTargetFilesTH.append(filefound[:-4]+"/tophat/accepted_hits.bam");  
 
     #TODO add runSGE
-    print "\n\n"+filefound[:-4]+"/tophat/accepted_hits.bam: "+filefound[:-4]+"_r1.fq.gz\n\tmkdir -p "+filefound[:-4]+"/tophat/"+"\n\t"+runSGEandWait+" --param=\" -S /bin/bash -l \\\"h_vmem=5500M,virtual_free=5500M\\\" -V -R y -pe smp 1- \" --tmp="+tempdirname+"tophat_"+str(++fileFoundIndex)+" -c \""+tophat+" -p \\$$NSLOTS  -o "+filefound[:-4]+"/tophat/ "+options.bowtieIndex+" "+filefound[:-4]+"_r1.fq.gz "+" "+filefound[:-4]+"_r2.fq.gz\"";
+    print "\n\n"+filefound[:-4]+"/tophat/accepted_hits.bam: "+filefound[:-4]+"_r1.fq.gz\n\tmkdir -p "+filefound[:-4]+"/tophat/"+"";
+    if options.nosge:
+      print "\t"+tophat+"   -o "+filefound[:-4]+"/tophat/ "+options.bowtieIndex+" "+filefound[:-4]+"_r1.fq.gz "+" "+filefound[:-4]+"_r2.fq.gz\"";
+    else:
+      print "\t"+runSGEandWait+" --param=\" -S /bin/bash -l \\\"h_vmem=5500M,virtual_free=5500M\\\" -V -R y -pe smp 1- \" --tmp="+tempdirname+"tophat_"+str(++fileFoundIndex)+" -c \""+tophat+" -p \\$$NSLOTS  -o "+filefound[:-4]+"/tophat/ "+options.bowtieIndex+" "+filefound[:-4]+"_r1.fq.gz "+" "+filefound[:-4]+"_r2.fq.gz\"";
 #bam2fastq+" "+filefound+" "+filefound[-4:];
     
+    listOfTargetFiles.append(filefound[:-4]+"/cuffdiff_output/genes.fpkm_tracking");  
+    #/cuffdiff_output/genes.fpkm_tracking
+    print "\n\n"+filefound[:-4]+"/cuffdiff_output/genes.fpkm_tracking: "+filefound[:-4]+"/tophat/accepted_hits.bam\n\tmkdir -p "+filefound[:-4]+"/cuffdiff_output/"+"";
+    if options.nosge:
+      print "\t"+cufflinks+"   -o "+filefound[:-4]+"/cuffdiff_output/ --GTF "+options.cufflinksgtf+" "+filefound[:-4]+"/tophat/accepted_hits.bam 2> "+filefound[:-4]+"/cuffdiff_output/error.log";
+    else:
+      print "\t"+runSGEandWait+" --param=\" -S /bin/bash -l \\\"h_vmem=5500M,virtual_free=5500M\\\" -V -R y -pe smp 1- \" --tmp="+tempdirname+"cufflinks_"+str(fileFoundIndex)+" -c \""+cufflinks+" -p \\$$NSLOTS  -o "+filefound[:-4]+"/cuffdiff_output/ --GTF "+options.cufflinksgtf+" "+filefound[:-4]+"/tophat/accepted_hits.bam 2> "+filefound[:-4]+"/cuffdiff_output/error.log\"";
+
 print "\n"+"all:\t"+(" ".join(listOfTargetFiles))+"\n\n";
     
 #move output to output dir

@@ -27,6 +27,10 @@ $jsonconf = json_decode(file_get_contents( getcwd()."/config.json" ),true);
 $emailAddrToSend  = $jsonconf["emailAddrToSend"];
 $genomedirectory  = $jsonconf["genomedirectory"];
 $illuminawritedir = $jsonconf["illuminawritedir"];
+if(isset($jsonconf["couchdb"]) ){
+    $couchdb=$jsonconf["couchdb"];
+}
+
 $protocol2chimera = array();
 foreach($jsonconf["chimeras"]["chimera"] as $chimlem){
     $protocol2chimera[ (string)$chimlem["protocol"] ] = array((string)$chimlem["name"],
@@ -264,7 +268,7 @@ function displayStep1($runid) {
     
 
     echo "<label for=\"email\">Your email (put commas if multiple emails)</label>:\n";
-    echo "<input type=\"text\" size=\"12\" maxlength=\"200\" name=\"email\"><br />";
+    echo "<input type=\"text\" size=\"80\" maxlength=\"500\" name=\"email\"><br />";
 
     echo "<BR>Verify number of cycles: (Please note these values are used for the analysis hence, put the values observed not the ones that were planned i.e if a run had 2x76bp+double indices of 7bp but the machine was stopped after the first index, enter 0 for both the second index and read)<BR>\n";
     echo "<label for=\"cyclesread1\">Cycles for read#1</label>:\n";
@@ -736,6 +740,9 @@ If you plan to genotype, the first one might improve calls for low-coverage data
 
 
     echo "Basic filtering:<BR>\n";
+
+
+
     echo "<input type=\"radio\" name=\"filterseqexp".$runinformation["numprocessingcurrent"]."\" value=\"False\" checked>Do not flag reads<BR>\n";
     echo "<input type=\"radio\" name=\"filterseqexp".$runinformation["numprocessingcurrent"]."\" value=\"True\">Flag reads with a high number of expected mismatches<br>\n";
 
@@ -745,7 +752,9 @@ If you plan to genotype, the first one might improve calls for low-coverage data
     echo "<input type=\"radio\" name=\"addfilters".$runinformation["numprocessingcurrent"]."\" value=\"False\" checked>Do not use additional flagging<br>\n";
     echo "<input type=\"radio\" name=\"addfilters".$runinformation["numprocessingcurrent"]."\" value=\"entropy\">Apply sequence entropy [0.0-2.0]  flag at:  <input type=\"text\" name=\"entropycutoff".$runinformation["numprocessingcurrent"]."\" value=\"0.85\" size=\"5\"> <BR>\n";
     echo "<input type=\"radio\" name=\"addfilters".$runinformation["numprocessingcurrent"]."\" value=\"frequency\">Apply base frequency [0.0-1.0] flag at: <input type=\"text\" name=\"frequencycutoff".$runinformation["numprocessingcurrent"]."\" value=\"0.1\" size=\"5\"> <BR>\n";    
-    
+    echo "<BR>Do not fail reads due to poor sample assignment:\n";    
+    echo "<input type=\"checkbox\" value=\"rgnofail".$runinformation["numprocessingcurrent"]."\" name=\"rgnofail".$runinformation["numprocessingcurrent"]."\"><br/>\n";
+
     //}
     echo "<br><input type=\"submit\" name=\"submitButton\" id=\"nextButton\" value=\"Next &gt;\" />\n<BR><BR><hline>";
     echo "<a name=\"expmism\">";
@@ -789,6 +798,7 @@ function displayStep5() {
 	}
     }
 
+    $runinformation["rgnofail".$runinformation["numprocessingcurrent"]]           = isset($_POST["rgnofail".$runinformation["numprocessingcurrent"]]);
     $runinformation["key1".$runinformation["numprocessingcurrent"]]               = $_POST["key1".$runinformation["numprocessingcurrent"]];
     $runinformation["key2".$runinformation["numprocessingcurrent"]]               = $_POST["key2".$runinformation["numprocessingcurrent"]];
 
@@ -893,7 +903,17 @@ please enter the indices for everyone on the lane<br />
 					      echo $indicesAlreadyThere;
 					  }
 					  ?></textarea>
-	<br>
+
+<br>
+        <label <?php
+				echo  "for=pool".$runinformation["numprocessingcurrent"];
+	    ?>
+    >Pool ID (optional):</label>
+
+       <input type="text" size="12" maxlength="200" <?php
+	    echo "name=pool".$runinformation["numprocessingcurrent"]
+	    ?>>
+	 <br>
 	<input type="submit" name="submitButton" id="nextButton" value="Next &gt;" />
         <br>
 	<input type="reset" value="Clear fields" />
@@ -942,7 +962,7 @@ function displayStep6() {
     global $emailAddrToSend;
     global $p7Indices;
     global $p5Indices;
-
+    global $couchdb;
     global $illuminawritedir;
 
     // echo "test6";
@@ -975,6 +995,8 @@ function displayStep6() {
     /* }else{ */
     
 	$indextext      = $_POST["indextext"];
+	$poolID         = $_POST["pool".$runinformation["numprocessingcurrent"]];
+
 	//    $runinformation["mmrgassign"] = (int)$_POST["mmrgassign"];
 
 	if($runinformation["cyclesindx2"] != 0 ){
@@ -1136,6 +1158,8 @@ function displayStep6() {
     echo "<input type=\"hidden\" name=\"runinformation\" value=\"".htmlspecialchars(serialize($runinformation))."\" />\n";
     /* if($runinformation["numprocessingcurrent"]==1){     */
     echo "<input type=\"hidden\" name=\"testindexorig\"   value=\"$indextext\" />\n";
+    echo "<input type=\"hidden\" name=\"poolid\"   value=\"$poolID\" />\n";
+
     /* }else{ */
     /* 	echo "A previous set of indices has been found, please verify that they are correct. If not, please email ".$emailAddrToSend."<BR><BR>\n"; */
     /* } */
@@ -1158,14 +1182,16 @@ function displayStep7() {
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
 
 
-    $runinformation["indicesseq"]= $_POST["textindex"];
+    $runinformation["indicesseq"] = $_POST["textindex"];
     //if($runinformation["numprocessingcurrent"]==1){    
-    $runinformation["indicesraw"]= $_POST["testindexorig"];
+    $runinformation["indicesraw"] = $_POST["testindexorig"];
+    $runinformation["poolid"]     = $_POST["poolid"];
+   
 	/* }else{ */
     /* 	$runinformation["indicesraw"]= ""; */
     /* } */
-
-    //var_dump($runinformation);
+    /* echo "pool id :"; */
+    /* var_dump($runinformation["poolid"]); */
 
 
     //////////////////////////////////
@@ -1385,12 +1411,16 @@ function displayStep8() {
     if( ($runinformation["filterfrequency".$runinformation["numprocessingcurrent"]]=="1") ){
 	$htmltable.="<TR><TD nowrap>Frequency cutoff  :</TD><TD> ".($runinformation["frequencycutoff".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
     }
+
+    $htmltable.="<TR><TD nowrap>Allow read groups to fail due to poor sample assignment  :</TD><TD> ".(($runinformation["rgnofail".$runinformation["numprocessingcurrent"]])?"no":"yes")."</TD></TR>\n";
+
     $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
     $htmltable.="<TR><TD nowrap>      </TD><TD></TD></TR>\n";
     $htmltable.="<TR><TD nowrap>BWA mapping:     </TD><TD></TD></TR>\n";
-    $htmltable.="<TR><TD nowrap>Map using BWA  :</TD><TD> ".(($runinformation["usebwa".$runinformation["numprocessingcurrent"]])?"yes":"no")."</TD></TR>\n";
-    $htmltable.="<TR><TD nowrap>Genome to use  :</TD><TD> ".($runinformation["genomebwa".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Map using BWA   :</TD><TD> ".(($runinformation["usebwa".$runinformation["numprocessingcurrent"]])?"yes":"no")."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Genome to use   :</TD><TD> ".($runinformation["genomebwa".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
     $htmltable.="<TR><TD nowrap>BWA parameters  :</TD><TD> ".($runinformation["parambwa".$runinformation["numprocessingcurrent"]])."</TD></TR>\n";
+    $htmltable.="<TR><TD nowrap>Pool ID         :</TD><TD> ".( ($runinformation["poolid"]=="")?"none provided":$runinformation["poolid"])."</TD></TR>\n";
     $htmltable.="<TR><TD nowrap> </TD><TD></TD></TR>\n";
     // $htmltable.="<TR><TD nowrap>Indices:     </TD><TD></TD></TR>\n";
     //    }
@@ -1425,6 +1455,7 @@ function displayStep9() {
     global $illuminawritedir;
     global $emailAddrToSend;
     global $json2makePath;
+    global $couchdb;
 
 
     $runinformation = unserialize(stripslashes(htmlspecialchars_decode($_POST["runinformation"])));
@@ -1477,16 +1508,17 @@ function displayStep9() {
     
     
 
-    $fh = fopen($targetfile, 'w') or die("can't open $targetfile");
-    fwrite($fh, $stringtoprint);
-    fclose($fh);
     
     //call json2make    
     //$json2makePath
-    if(1){
+    if(1){ //set to 0 to test
+	$fh = fopen($targetfile, 'w') or die("can't open $targetfile");
+	fwrite($fh, $stringtoprint);
+	fclose($fh);
+
 	foreach($runinformation["lanes"] as $lanetouse){	
 	    $cmdToRun="python ".$json2makePath." -o ".$illuminawritedir."/".$runid."/build/ $targetfile";
-	    echo "<BR> Running command".$cmdToRun."<BR><BR>";
+	    //echo "<BR> Running command".$cmdToRun."<BR><BR>";
 	    $outputStore="";
 	    $returnCode=1;
 
@@ -1500,6 +1532,77 @@ function displayStep9() {
 
 	}    
     }    
+    //var_dump($couchdb);
+    if(isset($couchdb)){
+	
+    	$url = $couchdb;
+
+    	$file_headers = @get_headers($url);
+    	if( strpos($file_headers[0], '404') ) {
+    	    $exists = false;
+    	}
+    	else {
+    	    $exists = true;
+    	}
+	
+    	if(!$exists){
+    	    echo "Unable to connect to couchDB:<BR> ".$url."<BR><BR>please contact directly ".$emailAddrToSend."<BR><BR>got the following output: ".var_dump($file_headers)." <br>\n";
+    	}else{//
+    	    echo "CouchDB detected, trying to post indices<br>";
+
+    	    $url = $couchdb;
+    	    if($runinformation["poolid"]!=""){//has pool ID
+    		$url = $url."/".$runinformation["poolid"];
+    	    }
+	    
+    	    $indicestopost="Library\tP7_index";
+    	    if($runinformation["cyclesindx2"] != 0 ){
+    		$indicestopost.="\tP5_index";
+    	    }
+    	    //$indicestopost.="";
+
+	    foreach(array_slice($runinformation["indicesraw"],1) as $recordIndex){
+		//var_dump($recordIndex);
+		if(      count($recordIndex) == 3){//double
+		    $indicestopost.="\n".$recordIndex["name"]."\t".$recordIndex["p7"]."\t".$recordIndex["p5"];
+		}elseif( count($recordIndex) == 2){//single
+		    $indicestopost.="\n".$recordIndex["name"]."\t".$recordIndex["p7"];
+		}else{
+		    echo "ERROR: wrong number of fields (".count($recordIndex).") in line \"".$recordIndex."\"";
+		    exit;
+		}
+
+	    }
+	    //var_dump($indicestopost);
+    	    $options = array(
+    			     'http' => array(
+    					     'header'  => "Content-type: text/csv\r\n"
+    					     ,'method'  => 'POST'
+    					     ,'content' => $indicestopost	)
+    			     );
+	    
+    	    $context  = stream_context_create($options);
+    	    $result   = file_get_contents($url, false, $context);
+
+    	    $couchdbresponse = json_decode($result,true);
+    	    if(isset($couchdbresponse["status"])){
+		echo "Status : ".$couchdbresponse["status"]."<BR>";
+	    }else{
+		echo "Status : error while posting to couchDB<BR>";
+	    }
+	    
+   
+
+
+
+    	}
+
+    }else{
+	echo "CouchDB was not set";
+
+    }
+
+
 
     //send user email
     $mailu = new EMail;
