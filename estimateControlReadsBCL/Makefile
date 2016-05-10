@@ -2,7 +2,7 @@
 include ../makefile.defs
 
 
-CXXFLAGS+= -O3 -Wall -I${BAMTOOLS}/include/ -I${LIBGAB}
+CXXFLAGS+= -O3 -Wall -I${BAMTOOLS}/include/ -I${BAMTOOLS}/include/ -I${LIBGAB} -I${LIBGAB}/gzstream/
 LDLIBS+= -lm
 
 all:	estimateControlReadsBCL	printIndicesBCL
